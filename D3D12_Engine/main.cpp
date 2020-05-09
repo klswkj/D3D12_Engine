@@ -1,10 +1,9 @@
-
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
 #endif
 #define NOMINMAX
 
-#include "Game.h"
+// #include "Game.h"
 #include "GameLoader.h"
 #include <dxgidebug.h>
 #include "FileWatcher.h"
@@ -12,9 +11,9 @@
 
 static const char* gameDll = "Game.dll";
 #if defined(_DEBUG) | defined(DEBUG)
-static const char* buildCommandLineStr = "msbuild.exe ../../Essentia.sln /target:Game /p:Platform=x64 /property:Configuration=Debug";
+static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /target:Game /p:Platform=x64 /property:Configuration=Debug";
 #else
-static const char* buildCommandLineStr = "msbuild.exe ../../Essentia.sln /target:Game /p:Platform=x64 /property:Configuration=Release";
+static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /target:Game /p:Platform=x64 /property:Configuration=Release";
 #endif
 int main()
 {
@@ -25,9 +24,9 @@ int main()
 
 	// Ensure "Current Directory" (relative path) is always the .exe's folder
 	{
-		char currentDir[1024] = {};
+		wchar_t currentDir[1024] = {};
 		GetModuleFileName(0, currentDir, 1024);
-		char* lastSlash = strrchr(currentDir, '\\');
+		wchar_t* lastSlash = wcsrchr(currentDir, '\\');
 		if (lastSlash)
 		{
 			*lastSlash = 0;
