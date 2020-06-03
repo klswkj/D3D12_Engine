@@ -4,7 +4,7 @@
 // Grep for [DEAR IMGUI] to find the changes.
 
 // stb_truetype.h - v1.20 - public domain
-// authored from 2009-2016 by Sean Barrett / RAD Game Tools
+// authored from 2009-2016 by Sean Barrett / RAD Engine Tools
 //
 //   This library processes TrueType files:
 //        parse files

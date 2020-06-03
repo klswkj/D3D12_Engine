@@ -1,0 +1,13 @@
+
+
+1. MS쪽에서 정의한 구조체는 사용목적으로 덧붙여서 기존 구조체의 이름이 반드시 들어가게끔 다시 재정의한다.
+ID3D12Resource -> CONSTANT_BUFFER_POST_EFFECT
+
+2. 1에서 class, API는 다시 정의하지 않고(위의 예처럼 Resource 제외), 오직 구조체만 재정의한다.
+
+3. primitive type은 Index나, 컨테이너의 Key가 될 시에는 재정의하여 선언한다.
+
+4. 1과 3의 이유로 Auto는 쓰지 않는다.
+
+5. 함수가 성공적으로 수행됬을 때에는 BOOL형이나 HRESULT를 리턴하고, void를 리턴하는 함수는 가급적 사용하지 않는다.
+

@@ -640,7 +640,7 @@ struct IMGUI_API ImGuiInputTextState
     void        ClearFreeMemory()           { TextW.clear(); TextA.clear(); InitialTextA.clear(); }
     int         GetUndoAvailCount() const   { return Stb.undostate.undo_point; }
     int         GetRedoAvailCount() const   { return STB_TEXTEDIT_UNDOSTATECOUNT - Stb.undostate.redo_point; }
-    void        OnKeyPressed(int key);      // Cannot be inline because we call in code in stb_textedit.h implementation
+    void        onKeyPressed(int key);      // Cannot be inline because we call in code in stb_textedit.h implementation
 
     // Cursor & Selection
     void        CursorAnimReset()           { CursorAnim = -0.30f; }                                   // After a user-input the cursor stays on for a while without blinking
@@ -1713,7 +1713,7 @@ extern void                 ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGu
 extern void                 ImGuiTestEngineHook_Log(ImGuiContext* ctx, const char* fmt, ...);
 #define IMGUI_TEST_ENGINE_ITEM_ADD(_BB, _ID)                ImGuiTestEngineHook_ItemAdd(&g, _BB, _ID)               // Register item bounding box
 #define IMGUI_TEST_ENGINE_ITEM_INFO(_ID, _LABEL, _FLAGS)    ImGuiTestEngineHook_ItemInfo(&g, _ID, _LABEL, _FLAGS)   // Register item label and status flags (optional)
-#define IMGUI_TEST_ENGINE_LOG(_FMT, ...)                    ImGuiTestEngineHook_Log(&g, _FMT, __VA_ARGS__)          // Custom log entry from user land into test log
+#define IMGUI_TEST_ENGINE_LOG(_FMT, ...)                    ImGuiTestEngineHook_Log(&g, _FMT, __VA_ARGS__)          // custom log entry from user land into test log
 #else
 #define IMGUI_TEST_ENGINE_ITEM_ADD(_BB, _ID)                do { } while (0)
 #define IMGUI_TEST_ENGINE_ITEM_INFO(_ID, _LABEL, _FLAGS)    do { } while (0)

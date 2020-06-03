@@ -3,11 +3,13 @@
 #endif
 #define NOMINMAX
 
-// #include "Game.h"
-#include "GameLoader.h"
+// #include "Engine.h"
 #include <dxgidebug.h>
-#include "FileWatcher.h"
 #include <thread>
+
+#include "../Graphics/Game.h"
+#include "GameLoader.h"
+#include "FileWatcher.h"
 
 static const char* gameDll = "Game.dll";
 #if defined(_DEBUG) | defined(DEBUG)
@@ -15,6 +17,7 @@ static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /ta
 #else
 static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /target:Game /p:Platform=x64 /property:Configuration=Release";
 #endif
+
 int main()
 {
 #if defined(DEBUG) | defined(_DEBUG)
@@ -37,10 +40,10 @@ int main()
 	{
 		GameLoader gameLoader;
 		gameLoader.LoadGameLibrary(gameDll);
-		LinearAllocator allocator(CMaxStackHeapSize);
+		LinearAllocator allocator(kMaxStackHeapSize);
 		{
 			FileWatcher fw{ "../../Game", std::chrono::milliseconds(2000) };
-			ScopedPtr<Game> game = MakeScoped<Game>();
+			PooledPtr<Engine> game = MakePooled<Engine>();
 			game->Setup();
 			gameLoader.InitializeLoader(EngineContext::Context);
 			gameLoader.LoadSystems(game.get(), &allocator);

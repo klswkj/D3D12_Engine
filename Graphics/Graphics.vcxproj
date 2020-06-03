@@ -140,8 +140,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ExceptionMessage.cpp" />
-    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Color.cpp" />
+    <ClCompile Include="CommandAllocatorPool.cpp" />
+    <ClCompile Include="CommandContext.cpp" />
+    <ClCompile Include="CommandQueue.cpp" />
+    <ClCompile Include="CommandQueueManager.cpp" />
+    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="PixelBuffer.cpp" />
+    <ClCompile Include="PSO.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="UAVBuffer.cpp" />
+    <ClCompile Include="Graphics.cpp" />
+    <ClCompile Include="GraphicsDeviceManager.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="ImguiRenderStage.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
@@ -149,16 +162,50 @@
     <ClCompile Include="imgui_impl_dx12.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
     <ClCompile Include="imgui_widgets.cpp" />
+    <ClCompile Include="LinearAllocator.cpp" />
+    <ClCompile Include="MyKeyboard.cpp" />
+    <ClCompile Include="MyMouse.cpp" />
+    <ClCompile Include="OBJAssetManager.cpp" />
+    <ClCompile Include="ObjectModel.cpp" />
+    <ClCompile Include="OBJMaterial.cpp" />
+    <ClCompile Include="OBJMesh.cpp" />
+    <ClCompile Include="ObJNode.cpp" />
+    <ClCompile Include="RootSignature.cpp" />
+    <ClCompile Include="SamplerManager.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="App.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Color.h" />
+    <ClInclude Include="CommandAllocatorPool.h" />
+    <ClInclude Include="CommandContext.h" />
+    <ClInclude Include="CommandContextManager.h" />
+    <ClInclude Include="CommandQueue.h" />
+    <ClInclude Include="CommandQueueManager.h" />
+    <ClInclude Include="CustomAssert.h" />
+    <ClInclude Include="AssetManager.h" />
     <ClInclude Include="d3dx12.h" />
-    <ClInclude Include="DebugNoException.h" />
-    <ClInclude Include="ExceptionMessage.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="GraphicsThrowMacros.h" />
+    <ClInclude Include="DDS.h" />
+    <ClInclude Include="DDSTextureLoader.cpp" />
+    <ClInclude Include="DescriptorHandle.h" />
+    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="PixelBuffer.h" />
+    <ClInclude Include="PSO.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="UAVBuffer.h" />
+    <ClInclude Include="GraphicsDeviceManager.h" />
+    <ClInclude Include="Hash.h" />
+    <ClInclude Include="LinearAllocationPage.h" />
+    <ClInclude Include="LinearAllocator.h" />
+    <ClInclude Include="DescriptorHeapManager.h" />
+    <ClInclude Include="Graphics.h" />
+    <ClInclude Include="GPUResource.h" />
+    <ClInclude Include="IAllocator.h" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
+    <ClInclude Include="ImGuiManager.h" />
     <ClInclude Include="ImguiRenderStage.h" />
     <ClInclude Include="imgui_impl_dx12.h" />
     <ClInclude Include="imgui_impl_win32.h" />
@@ -166,10 +213,25 @@
     <ClInclude Include="imstb_rectpack.h" />
     <ClInclude Include="imstb_textedit.h" />
     <ClInclude Include="imstb_truetype.h" />
+    <ClInclude Include="MyKeyboard.h" />
+    <ClInclude Include="MyMouse.h" />
+    <ClInclude Include="OBJAssetManager.h" />
+    <ClInclude Include="ObjectModel.h" />
+    <ClInclude Include="OBJMaterial.h" />
+    <ClInclude Include="OBJMesh.h" />
+    <ClInclude Include="ObJNode.h" />
+    <ClInclude Include="ReadyMadePSO.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="RootParameter.h" />
+    <ClInclude Include="RootSignature.h" />
+    <ClInclude Include="SamplerDescriptor.h" />
+    <ClInclude Include="SamplerManager.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="SVDescriptor.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="TypeDefine.h" />
     <ClInclude Include="WinDefine.h" />
     <ClInclude Include="Window.h" />
-    <ClInclude Include="WIndowsThrowMacros.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

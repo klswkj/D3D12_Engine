@@ -3219,7 +3219,7 @@ static bool STB_TEXTEDIT_INSERTCHARS(STB_TEXTEDIT_STRING* obj, int pos, const Im
 
 }
 
-void ImGuiInputTextState::OnKeyPressed(int key)
+void ImGuiInputTextState::onKeyPressed(int key)
 {
     stb_textedit_key(this, &Stb, key);
     CursorFollow = true;
@@ -3327,7 +3327,7 @@ static bool InputTextFilterCharacter(unsigned int* p_char, ImGuiInputTextFlags f
                 return false;
     }
 
-    // Custom callback filter
+    // custom callback filter
     if (flags & ImGuiInputTextFlags_CallbackCharFilter)
     {
         ImGuiInputTextCallbackData callback_data;
@@ -3565,8 +3565,8 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
         else if (hovered && is_osx && io.MouseDoubleClicked[0])
         {
             // Double-click select a word only, OS X style (by simulating keystrokes)
-            state->OnKeyPressed(STB_TEXTEDIT_K_WORDLEFT);
-            state->OnKeyPressed(STB_TEXTEDIT_K_WORDRIGHT | STB_TEXTEDIT_K_SHIFT);
+            state->onKeyPressed(STB_TEXTEDIT_K_WORDLEFT);
+            state->onKeyPressed(STB_TEXTEDIT_K_WORDRIGHT | STB_TEXTEDIT_K_SHIFT);
         }
         else if (io.MouseClicked[0] && !state->SelectedAllMouseLock)
         {
@@ -3593,7 +3593,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
             {
                 unsigned int c = '\t'; // Insert TAB
                 if (InputTextFilterCharacter(&c, flags, callback, callback_user_data))
-                    state->OnKeyPressed((int)c);
+                    state->onKeyPressed((int)c);
             }
 
         // Process regular text input (before we check for Return because using some IME will effectively send a Return?)
@@ -3608,7 +3608,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
                     if (c == '\t' && io.KeyShift)
                         continue;
                     if (InputTextFilterCharacter(&c, flags, callback, callback_user_data))
-                        state->OnKeyPressed((int)c);
+                        state->onKeyPressed((int)c);
                 }
 
             // Consume characters
@@ -3636,23 +3636,23 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
         const bool is_undo  = ((is_shortcut_key && IsKeyPressedMap(ImGuiKey_Z)) && !is_readonly && is_undoable);
         const bool is_redo  = ((is_shortcut_key && IsKeyPressedMap(ImGuiKey_Y)) || (is_osx_shift_shortcut && IsKeyPressedMap(ImGuiKey_Z))) && !is_readonly && is_undoable;
 
-        if (IsKeyPressedMap(ImGuiKey_LeftArrow))                        { state->OnKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_LINESTART : is_wordmove_key_down ? STB_TEXTEDIT_K_WORDLEFT : STB_TEXTEDIT_K_LEFT) | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_RightArrow))                  { state->OnKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_LINEEND : is_wordmove_key_down ? STB_TEXTEDIT_K_WORDRIGHT : STB_TEXTEDIT_K_RIGHT) | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_UpArrow) && is_multiline)     { if (io.KeyCtrl) SetScrollY(draw_window, ImMax(draw_window->Scroll.y - g.FontSize, 0.0f)); else state->OnKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_TEXTSTART : STB_TEXTEDIT_K_UP) | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_DownArrow) && is_multiline)   { if (io.KeyCtrl) SetScrollY(draw_window, ImMin(draw_window->Scroll.y + g.FontSize, GetScrollMaxY())); else state->OnKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_TEXTEND : STB_TEXTEDIT_K_DOWN) | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_Home))                        { state->OnKeyPressed(io.KeyCtrl ? STB_TEXTEDIT_K_TEXTSTART | k_mask : STB_TEXTEDIT_K_LINESTART | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_End))                         { state->OnKeyPressed(io.KeyCtrl ? STB_TEXTEDIT_K_TEXTEND | k_mask : STB_TEXTEDIT_K_LINEEND | k_mask); }
-        else if (IsKeyPressedMap(ImGuiKey_Delete) && !is_readonly)      { state->OnKeyPressed(STB_TEXTEDIT_K_DELETE | k_mask); }
+        if (IsKeyPressedMap(ImGuiKey_LeftArrow))                        { state->onKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_LINESTART : is_wordmove_key_down ? STB_TEXTEDIT_K_WORDLEFT : STB_TEXTEDIT_K_LEFT) | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_RightArrow))                  { state->onKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_LINEEND : is_wordmove_key_down ? STB_TEXTEDIT_K_WORDRIGHT : STB_TEXTEDIT_K_RIGHT) | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_UpArrow) && is_multiline)     { if (io.KeyCtrl) SetScrollY(draw_window, ImMax(draw_window->Scroll.y - g.FontSize, 0.0f)); else state->onKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_TEXTSTART : STB_TEXTEDIT_K_UP) | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_DownArrow) && is_multiline)   { if (io.KeyCtrl) SetScrollY(draw_window, ImMin(draw_window->Scroll.y + g.FontSize, GetScrollMaxY())); else state->onKeyPressed((is_startend_key_down ? STB_TEXTEDIT_K_TEXTEND : STB_TEXTEDIT_K_DOWN) | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_Home))                        { state->onKeyPressed(io.KeyCtrl ? STB_TEXTEDIT_K_TEXTSTART | k_mask : STB_TEXTEDIT_K_LINESTART | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_End))                         { state->onKeyPressed(io.KeyCtrl ? STB_TEXTEDIT_K_TEXTEND | k_mask : STB_TEXTEDIT_K_LINEEND | k_mask); }
+        else if (IsKeyPressedMap(ImGuiKey_Delete) && !is_readonly)      { state->onKeyPressed(STB_TEXTEDIT_K_DELETE | k_mask); }
         else if (IsKeyPressedMap(ImGuiKey_Backspace) && !is_readonly)
         {
             if (!state->HasSelection())
             {
                 if (is_wordmove_key_down)
-                    state->OnKeyPressed(STB_TEXTEDIT_K_WORDLEFT|STB_TEXTEDIT_K_SHIFT);
+                    state->onKeyPressed(STB_TEXTEDIT_K_WORDLEFT|STB_TEXTEDIT_K_SHIFT);
                 else if (is_osx && io.KeySuper && !io.KeyAlt && !io.KeyCtrl)
-                    state->OnKeyPressed(STB_TEXTEDIT_K_LINESTART|STB_TEXTEDIT_K_SHIFT);
+                    state->onKeyPressed(STB_TEXTEDIT_K_LINESTART|STB_TEXTEDIT_K_SHIFT);
             }
-            state->OnKeyPressed(STB_TEXTEDIT_K_BACKSPACE | k_mask);
+            state->onKeyPressed(STB_TEXTEDIT_K_BACKSPACE | k_mask);
         }
         else if (IsKeyPressedMap(ImGuiKey_Enter) || IsKeyPressedMap(ImGuiKey_KeyPadEnter))
         {
@@ -3665,7 +3665,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
             {
                 unsigned int c = '\n'; // Insert new line
                 if (InputTextFilterCharacter(&c, flags, callback, callback_user_data))
-                    state->OnKeyPressed((int)c);
+                    state->onKeyPressed((int)c);
             }
         }
         else if (IsKeyPressedMap(ImGuiKey_Escape))
@@ -3674,7 +3674,7 @@ bool ImGui::InputTextEx(const char* label, const char* hint, char* buf, int buf_
         }
         else if (is_undo || is_redo)
         {
-            state->OnKeyPressed(is_undo ? STB_TEXTEDIT_K_UNDO : STB_TEXTEDIT_K_REDO);
+            state->onKeyPressed(is_undo ? STB_TEXTEDIT_K_UNDO : STB_TEXTEDIT_K_REDO);
             state->ClearSelection();
         }
         else if (is_shortcut_key && IsKeyPressedMap(ImGuiKey_A))

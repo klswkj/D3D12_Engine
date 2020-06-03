@@ -1,65 +1,61 @@
-// CODE
-// (search for "[SECTION]" in the code to find them)
-// Index of this file:
-// [SECTION] Forward Declarations
-
 #pragma once
-#include <windows.h>
-#include <functional>
-#include <string>
-#include "ExceptionMessage.h"
+/*  
+   App ¦£ Window ¦£ MyMouse
+       ¦¢        ¦¦ MyKeyboard
+	   ¦¢
+	   ¦¢ Graphics
+	   ¦¦
+*/
 
-class HrException;
+
 
 class Window
 {
-	friend class Renderer;
 public:
-	static Window*      Instance;
-	LRESULT CALLBACK	WindowsMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	Window();
+	~Window();
 
 	void				Initialize(HINSTANCE hInstance, int width, int height, const wchar_t* windowName = L"KSK", const wchar_t* windowTitle = L"D3D12_Engine", BOOL fullscreen = false, int ShowWnd = 1);
 	HWND				GetWindowHandle() noexcept;
 	void				StartMessagePump(std::function<void()> callback);
-	static Window*      GetInstance() noexcept;
-	bool				IsFullscreen() noexcept;
+	static HINSTANCE    GetInstance() noexcept;
+	BOOL				IsFullscreen() noexcept;
 	SIZE			    GetWindowSize() noexcept;
-	void				RegisterOnResizeCallback(std::function<void()> callback)  noexcept;
 	void				OnResize() noexcept;
-	~Window();
+	void				RegisterOnResizeCallback(std::function<void()> callback)  noexcept;
+
+	void EnableCursor() noexcept; 
+	void DisableCursor() noexcept;
+	bool GetCursorEnabled() const noexcept;
+
 private:
-	Window();
-	std::vector<std::function<void()>> onResizeCallbacks = {};
-	std::wstring	windowName;
-	std::wstring    windowTitle;
-	int			    width;
-	int			    height;
-	BOOL		    fullscreen;
-	HWND		    windowHandle;
-};
+	static LRESULT CALLBACK handleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
+	static LRESULT CALLBACK handleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
+	LRESULT handleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
 
-class Exception : public ExceptionMessage
-{
-	using ExceptionMessage::ExceptionMessage;
-public:
-	static std::string TranslateErrorCode(HRESULT hardwareResult) noexcept;
-};
+	void confineCursor() noexcept;
+	void freeCursor() noexcept;
+	void showCursor() noexcept;
+	void hideCursor() noexcept;
+	void enableImGuiMouse() noexcept;
+	void disableImGuiMouse() noexcept;
 
-class HrException final : public Exception
-{
-public:
-	HrException(int line, const char* file, HRESULT hardwareResult) noexcept;
-	const char* what() const noexcept override;
-	const char* GetType() const noexcept override;
-	HRESULT GetErrorCode() const noexcept;
-	std::string GetErrorDescription() const noexcept;
 private:
-	HRESULT hardwareResult;
-};
+	static Window*      Instance;
+	HINSTANCE           hInstance;
+	HWND		        windowHandle;
 
-class NoGfxException final : public Exception
-{
-public:
-	using Exception::Exception;
-	const char* GetType() const noexcept override;
+	std::vector<std::function<void()>> onResizeCallbacks = {}; // Swapchain, Resize
+	std::vector<byte> rawInputData;
+	std::wstring	  windowName;
+	std::wstring      windowTitle;
+
+	MyKeyboard        myKeyboard;
+	MyMouse           myMouse;
+
+	int			      width;
+	int			      height;
+	BOOL		      fullscreen;
+	BOOL              cursorEnabled = true;
+	// rawinput data scpoed
 };

@@ -1,136 +1,363 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="External">
-      <UniqueIdentifier>{7611c217-d63f-4025-8102-393e3612b535}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="External\Imgui">
-      <UniqueIdentifier>{10edd79d-44e4-4a95-a4ff-3b3e8088b1f8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files Only">
       <UniqueIdentifier>{ec739b3a-d966-4131-95c4-e54419ea1d37}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files Only\Macro Defines">
-      <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
+    <Filter Include="External Source Code Files">
+      <UniqueIdentifier>{7611c217-d63f-4025-8102-393e3612b535}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files Only\D3DX12%28External%29">
-      <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
+    <Filter Include="External Source Code Files\Imgui">
+      <UniqueIdentifier>{10edd79d-44e4-4a95-a4ff-3b3e8088b1f8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="External\Imgui\Current Issue">
+    <Filter Include="External Source Code Files\Imgui\Current Issue">
       <UniqueIdentifier>{10377a6a-9b87-4bb7-8053-52a10ac307a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files Only\Allocator">
+      <UniqueIdentifier>{4a840ea9-910b-4475-be7d-62e866e180ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files Only\EngineManager">
+      <UniqueIdentifier>{c668e10a-e3e7-47f7-b560-fe2aa34bd0c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Source Code Files\D3DX12">
+      <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files Only\Defines">
+      <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Icon">
+      <UniqueIdentifier>{ea895217-495e-4bbb-81fb-4154003f580b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Shader">
+      <UniqueIdentifier>{37023f8f-66cc-4cc6-a266-7cce6e98e984}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces">
+      <UniqueIdentifier>{2d3d62b3-5c1a-4b2d-9b47-fb25de1e9ed6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\Header Files">
+      <UniqueIdentifier>{34bc3a97-d69d-402f-bc37-faff0b08c1ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\Source Files">
+      <UniqueIdentifier>{3fec7fb8-3d81-4582-bf80-66b4d7f5a708}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PreCompiled Header">
+      <UniqueIdentifier>{5b346aed-72df-4185-b355-f297b3287d1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Graphics\Input Device">
+      <UniqueIdentifier>{44b735cb-b1b0-4363-979e-388f30a224e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Model">
+      <UniqueIdentifier>{b6ff10d0-620e-4e55-90e0-6e9f52328e6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\Header Files\D3D12Resource">
+      <UniqueIdentifier>{6bfb3077-6cbb-4c0f-96e2-2668742c9960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV">
+      <UniqueIdentifier>{24fef168-ebeb-4506-85e9-b6b1c98c4e6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\0 Tier">
+      <UniqueIdentifier>{02bda487-86e8-456a-82e4-4201d7a6748c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\1 Tier">
+      <UniqueIdentifier>{c2cde65a-582e-4e7e-99b9-f8742ab8530b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Custom D3D12 Core Interfaces\2 Tier">
+      <UniqueIdentifier>{5e9fa64a-ca07-4201-9edc-dc3ed38acdb6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="imgui.cpp">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_demo.cpp">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_impl_dx12.cpp">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_impl_win32.cpp">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_widgets.cpp">
-      <Filter>External\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="ExceptionMessage.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="ImguiRenderStage.cpp">
-      <Filter>External\Imgui\Current Issue</Filter>
+      <Filter>External Source Code Files\Imgui\Current Issue</Filter>
+    </ClCompile>
+    <ClCompile Include="RootSignature.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MyKeyboard.cpp">
+      <Filter>Graphics\Input Device</Filter>
+    </ClCompile>
+    <ClCompile Include="MyMouse.cpp">
+      <Filter>Graphics\Input Device</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJAssetManager.cpp">
+      <Filter>Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectModel.cpp">
+      <Filter>Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJMaterial.cpp">
+      <Filter>Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJMesh.cpp">
+      <Filter>Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ObJNode.cpp">
+      <Filter>Graphics\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="App.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Color.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDeviceManager.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContext.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandAllocatorPool.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueue.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueueManager.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SamplerManager.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearAllocator.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UAVBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureManager.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PSO.cpp">
+      <Filter>Custom D3D12 Core Interfaces\1 Tier</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="imconfig.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_dx12.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_win32.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_internal.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_rectpack.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_textedit.h">
-      <Filter>External\Imgui</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
-      <Filter>External\Imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Resource Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ExceptionMessage.h">
-      <Filter>Header Files</Filter>
+      <Filter>External Source Code Files\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="WinDefine.h">
-      <Filter>Header Files Only\Macro Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="WIndowsThrowMacros.h">
-      <Filter>Header Files Only\Macro Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugNoException.h">
-      <Filter>Header Files Only\Macro Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="GraphicsThrowMacros.h">
-      <Filter>Header Files Only\Macro Defines</Filter>
+      <Filter>Header Files Only\Defines</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
-      <Filter>Header Files Only\D3DX12%28External%29</Filter>
+      <Filter>External Source Code Files\D3DX12</Filter>
     </ClInclude>
     <ClInclude Include="ImguiRenderStage.h">
-      <Filter>External\Imgui\Current Issue</Filter>
+      <Filter>External Source Code Files\Imgui\Current Issue</Filter>
+    </ClInclude>
+    <ClInclude Include="MyKeyboard.h">
+      <Filter>Graphics\Input Device</Filter>
+    </ClInclude>
+    <ClInclude Include="MyMouse.h">
+      <Filter>Graphics\Input Device</Filter>
+    </ClInclude>
+    <ClInclude Include="Window.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="IAllocator.h">
+      <Filter>Header Files Only\Allocator</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetManager.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJAssetManager.h">
+      <Filter>Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectModel.h">
+      <Filter>Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJMesh.h">
+      <Filter>Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ObJNode.h">
+      <Filter>Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJMaterial.h">
+      <Filter>Graphics\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files\Icon</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>PreCompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeDefine.h">
+      <Filter>Header Files Only\Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomAssert.h">
+      <Filter>Header Files Only\Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="App.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Color.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SamplerDescriptor.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SamplerManager.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHandle.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hash.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="SVDescriptor.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadyMadePSO.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsDeviceManager.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContextManager.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContext.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUResource.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearAllocationPage.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearAllocator.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueue.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandAllocatorPool.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueueManager.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeap.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeapManager.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UAVBuffer.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelBuffer.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="DDSTextureLoader.cpp">
+      <Filter>External Source Code Files\D3DX12</Filter>
+    </ClInclude>
+    <ClInclude Include="DDS.h">
+      <Filter>External Source Code Files\D3DX12</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureManager.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PSO.h">
+      <Filter>Custom D3D12 Core Interfaces\1 Tier</Filter>
+    </ClInclude>
+    <ClInclude Include="RootSignature.h">
+      <Filter>Custom D3D12 Core Interfaces\0 Tier</Filter>
+    </ClInclude>
+    <ClInclude Include="RootParameter.h">
+      <Filter>Custom D3D12 Core Interfaces\0 Tier</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Icon\ksk3.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
+    <ResourceCompile Include="IconResource.rc">
+      <Filter>Resource Files\Icon</Filter>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="IconResource.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <Image Include="Icon\ksk3.ico">
+      <Filter>Resource Files\Icon</Filter>
+    </Image>
   </ItemGroup>
 </Project>

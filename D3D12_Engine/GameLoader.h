@@ -6,7 +6,7 @@
 #define NOMINMAX
 
 #include <Windows.h>
-class Game;
+class Engine;
 
 class SystemManager;
 class IAllocator;
@@ -20,8 +20,8 @@ class GameLoader
 {
 public:
 	void	InitializeLoader(EngineContext* context);
-	void	LoadSystems(Game* game, IAllocator* allocator);
-	Game*   CreateGame(IAllocator* allocator);
+	void	LoadSystems(Engine* game, IAllocator* allocator);
+	Engine*   CreateGame(IAllocator* allocator);
 	void	LoadGameLibrary(const char* dll);
 	void	FreeGameLibrary();
 private:

@@ -2052,7 +2052,7 @@ enum ImFontAtlasFlags_
 
 // Load and rasterize multiple TTF/OTF fonts into a same texture. The font atlas will build a single texture holding:
 //  - One or more fonts.
-//  - Custom graphics data needed to render the shapes needed by Dear ImGui.
+//  - custom graphics data needed to render the shapes needed by Dear ImGui.
 //  - Mouse cursor shapes for software cursor rendering (unless setting 'Flags |= ImFontAtlasFlags_NoMouseCursors' in the font atlas).
 // It is the user-code responsibility to setup/build the atlas, then upload the pixel data into a texture accessible by your graphics api.
 //  - Optionally, call any of the AddFont*** functions. If you don't call any, the default font embedded in the code will be loaded for you.
@@ -2110,7 +2110,7 @@ struct ImFontAtlas
     IMGUI_API const ImWchar*    GetGlyphRangesVietnamese();             // Default + Vietnamese characters
 
     //-------------------------------------------
-    // [BETA] Custom Rectangles/Glyphs API
+    // [BETA] custom Rectangles/Glyphs API
     //-------------------------------------------
 
     // You can request arbitrary rectangles to be packed into the atlas, for your own purposes. 

@@ -6,7 +6,7 @@ void GameLoader::InitializeLoader(EngineContext* context)
 	initializeFunc(context);
 }
 
-void GameLoader::LoadSystems(Game* game, IAllocator* allocator)
+void GameLoader::LoadSystems(Engine* game, IAllocator* allocator)
 {
 	auto manager = game->GetGameSystemsManager();
 	manager->Destroy();
@@ -14,9 +14,9 @@ void GameLoader::LoadSystems(Game* game, IAllocator* allocator)
 	manager->Initialize();
 }
 
-Game* GameLoader::CreateGame(IAllocator* allocator)
+Engine* GameLoader::CreateGame(IAllocator* allocator)
 {
-	return (Game*)createGameFunc(allocator);
+	return (Engine*)createGameFunc(allocator);
 }
 
 void GameLoader::LoadGameLibrary(const char* dll)

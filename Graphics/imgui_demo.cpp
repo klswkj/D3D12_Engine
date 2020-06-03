@@ -48,7 +48,7 @@ Index of this file:
 // [SECTION] Example App: Constrained Resize / ShowExampleAppConstrainedResize()
 // [SECTION] Example App: Simple Overlay / ShowExampleAppSimpleOverlay()
 // [SECTION] Example App: Manipulating Window Titles / ShowExampleAppWindowTitles()
-// [SECTION] Example App: Custom Rendering using ImDrawList API / ShowExampleAppCustomRendering()
+// [SECTION] Example App: custom Rendering using ImDrawList API / ShowExampleAppCustomRendering()
 // [SECTION] Example App: Documents Handling / ShowExampleAppDocuments()
 
 */
@@ -4260,7 +4260,7 @@ static void ShowExampleAppWindowTitles(bool*)
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] Example App: Custom Rendering using ImDrawList API / ShowExampleAppCustomRendering()
+// [SECTION] Example App: custom Rendering using ImDrawList API / ShowExampleAppCustomRendering()
 //-----------------------------------------------------------------------------
 
 // Demonstrate using the low-level ImDrawList to draw custom shapes.

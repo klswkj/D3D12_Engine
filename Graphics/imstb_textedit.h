@@ -5,7 +5,7 @@
 // Grep for [DEAR IMGUI] to find the changes.
 
 // stb_textedit.h - v1.13  - public domain - Sean Barrett
-// Development of this library was sponsored by RAD Game Tools
+// Development of this library was sponsored by RAD Engine Tools
 //
 // This C header file implements the guts of a multi-line text-editing
 // widget; you implement display, word-wrapping, and low-level string

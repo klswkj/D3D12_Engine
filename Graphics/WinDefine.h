@@ -43,5 +43,3 @@
 #define NOMINMAX
 
 #define STRICT
-
-#include <Windows.h>
