@@ -1,4 +1,6 @@
 #pragma once
+#include "stdafx.h"
+#include "CommandQueue.h"
 
 class CommandQueueManager
 {
@@ -85,8 +87,6 @@ public:
     }
 
 private:
-    ID3D12Device* m_pDevice;
-
     custom::CommandQueue m_GraphicsQueue;
     custom::CommandQueue m_ComputeQueue;
     custom::CommandQueue m_CopyQueue;

@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "CommandContext.h"
 
 class CommandContextManager
 {
@@ -33,11 +34,11 @@ public:
 
 		return ret;
 	}
-	void FreeContext(custom::CommandContext* usedContext)
+	void FreeContext(custom::CommandContext* pUsedContext)
 	{
-		ASSERT(UsedContext != nullptr);
+		ASSERT(pUsedContext != nullptr);
 		std::lock_guard<std::mutex> LockGuard(sm_ContextAllocationMutex);
-		sm_AvailableContexts[UsedContext->m_type].push(UsedContext);
+		sm_AvailableContexts[pUsedContext->m_type].push(pUsedContext);
 	}
 
 	void DestroyAllContexts()

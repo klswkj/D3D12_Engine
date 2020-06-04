@@ -72,33 +72,33 @@ BOOL MyKeyboard::AutorepeatIsEnabled() const noexcept
 	return autorepeatEnabled;
 }
 
-void MyKeyboard::onKeyPressed(unsigned char keycode) noexcept
+void MyKeyboard::OnKeyPressed(unsigned char keycode) noexcept
 {
 	keystates[keycode] = true;
 	keybuffer.push(KeyboardEvent(KeyboardEvent::Type::Press, keycode));
-	trimBuffer(keybuffer);
+	TrimBuffer(keybuffer);
 }
 
-void MyKeyboard::onKeyReleased(unsigned char keycode) noexcept
+void MyKeyboard::OnKeyReleased(unsigned char keycode) noexcept
 {
 	keystates[keycode] = false;
 	keybuffer.push(KeyboardEvent(KeyboardEvent::Type::Release, keycode));
-	trimBuffer(keybuffer);
+	TrimBuffer(keybuffer);
 }
 
-void MyKeyboard::onChar(char character) noexcept
+void MyKeyboard::OnChar(char character) noexcept
 {
 	charbuffer.push(character);
-	trimBuffer(charbuffer);
+	TrimBuffer(charbuffer);
 }
 
-void MyKeyboard::clearState() noexcept
+void MyKeyboard::ClearState() noexcept
 {
 	keystates.reset();
 }
 
 template<typename T>
-void MyKeyboard::trimBuffer(std::queue<T>& buffer) noexcept
+void MyKeyboard::TrimBuffer(std::queue<T>& buffer) noexcept
 {
 	while(kBufferSize < buffer.size())
 	{

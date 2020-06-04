@@ -141,20 +141,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Color.cpp" />
+    <ClCompile Include="ColorBuffer.cpp" />
     <ClCompile Include="CommandAllocatorPool.cpp" />
     <ClCompile Include="CommandContext.cpp" />
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="CommandQueueManager.cpp" />
-    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="ComputeContext.cpp" />
+    <ClCompile Include="DepthBuffer.cpp" />
+    <ClCompile Include="DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="GraphicsContext.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="PixelBuffer.cpp" />
     <ClCompile Include="PSO.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="UAVBuffer.cpp" />
     <ClCompile Include="Graphics.cpp" />
-    <ClCompile Include="GraphicsDeviceManager.cpp" />
+    <ClCompile Include="Device.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="ImguiRenderStage.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
@@ -176,26 +180,30 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
-    <ClInclude Include="Camera.h" />
     <ClInclude Include="Color.h" />
+    <ClInclude Include="ColorBuffer.h" />
     <ClInclude Include="CommandAllocatorPool.h" />
     <ClInclude Include="CommandContext.h" />
     <ClInclude Include="CommandContextManager.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="CommandQueueManager.h" />
+    <ClInclude Include="ComputeContext.h" />
     <ClInclude Include="CustomAssert.h" />
     <ClInclude Include="AssetManager.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="DDS.h" />
     <ClInclude Include="DDSTextureLoader.cpp" />
+    <ClInclude Include="DepthBuffer.h" />
     <ClInclude Include="DescriptorHandle.h" />
-    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="DynamicDescriptorHeap.h" />
+    <ClInclude Include="GraphicsContext.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="PSO.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="UAVBuffer.h" />
-    <ClInclude Include="GraphicsDeviceManager.h" />
+    <ClInclude Include="Device.h" />
     <ClInclude Include="Hash.h" />
     <ClInclude Include="LinearAllocationPage.h" />
     <ClInclude Include="LinearAllocator.h" />

@@ -20,9 +20,6 @@
     <Filter Include="Header Files Only\Allocator">
       <UniqueIdentifier>{4a840ea9-910b-4475-be7d-62e866e180ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files Only\EngineManager">
-      <UniqueIdentifier>{c668e10a-e3e7-47f7-b560-fe2aa34bd0c5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="External Source Code Files\D3DX12">
       <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
     </Filter>
@@ -71,6 +68,9 @@
     </Filter>
     <Filter Include="Custom D3D12 Core Interfaces\2 Tier">
       <UniqueIdentifier>{5e9fa64a-ca07-4201-9edc-dc3ed38acdb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Main">
+      <UniqueIdentifier>{ef4adc24-e2a1-4d39-8fa2-8c258cc0da64}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -122,9 +122,6 @@
     <ClCompile Include="App.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
@@ -133,9 +130,6 @@
     </ClCompile>
     <ClCompile Include="Color.cpp">
       <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDeviceManager.cpp">
-      <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="CommandContext.cpp">
       <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
@@ -150,9 +144,6 @@
       <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SamplerManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DescriptorHeap.cpp">
       <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="LinearAllocator.cpp">
@@ -172,6 +163,27 @@
     </ClCompile>
     <ClCompile Include="PSO.cpp">
       <Filter>Custom D3D12 Core Interfaces\1 Tier</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicDescriptorHeap.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputeContext.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsContext.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -256,9 +268,6 @@
     <ClInclude Include="CustomAssert.h">
       <Filter>Header Files Only\Defines</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="App.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -286,9 +295,6 @@
     <ClInclude Include="ReadyMadePSO.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GraphicsDeviceManager.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="CommandContextManager.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
@@ -311,9 +317,6 @@
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandQueueManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHeap.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorHeapManager.h">
@@ -346,9 +349,27 @@
     <ClInclude Include="RootParameter.h">
       <Filter>Custom D3D12 Core Interfaces\0 Tier</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClInclude Include="main.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorBuffer.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthBuffer.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicDescriptorHeap.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsContext.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeContext.h">
+      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IconResource.rc">
@@ -359,5 +380,10 @@
     <Image Include="Icon\ksk3.ico">
       <Filter>Resource Files\Icon</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

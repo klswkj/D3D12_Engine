@@ -1,14 +1,15 @@
 #include "stdafx.h"
+#include "Device.h"
 #include "CommandAllocatorPool.h"
+
+namespace device
+{
+    extern ID3D12Device* g_pDevice;
+}
 
 CommandAllocatorPool::~CommandAllocatorPool()
 {
 	CleanUp();
-}
-
-void CommandAllocatorPool::Create(ID3D12Device* pDevice)
-{
-	g_pDevice = pDevice;
 }
 
 ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t CompletedFenceValue)
@@ -32,7 +33,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t Complete
     // If no allocator's were ready to be reused, create a new one
     if (pAllocator == nullptr)
     {
-        ASSERT_HR(m_pDevice->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&pAllocator)));
+        ASSERT_HR(device::g_pDevice->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&pAllocator)));
         wchar_t AllocatorName[32];
         swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_allocatorPool.size());
         pAllocator->SetName(AllocatorName);

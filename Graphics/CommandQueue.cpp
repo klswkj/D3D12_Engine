@@ -3,11 +3,11 @@
 
 namespace custom
 {
-    CommandQueue::CommandQueue(// CommandQueueManager* pCommandQueueManager, 
-        D3D12_COMMAND_LIST_TYPE Type)
-        : // m_pCommandQueueManager(pCommandQueueManager), 
+    CommandQueue::CommandQueue( D3D12_COMMAND_LIST_TYPE Type)
+        : 
         m_type(Type), m_allocatorPool(Type),
         m_commandQueue(nullptr), m_pFence(nullptr), 
+        m_fenceEventHandle(nullptr),
         m_nextFenceValue((uint64_t)Type << 56 | 1),
         m_lastCompletedFenceValue((uint64_t)Type << 56)
     {
@@ -46,8 +46,6 @@ namespace custom
 
         m_fenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
         ASSERT(m_fenceEventHandle != NULL);
-
-        m_allocatorPool.Create(pDevice);
     }
 
     uint64_t CommandQueue::IncrementFence(void)

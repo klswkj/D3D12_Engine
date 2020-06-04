@@ -98,7 +98,7 @@ namespace custom
 
 	protected:
 		UAVBuffer(ID3D12Device* pDevice, DescriptorHeapManager& AllocateManager)
-			: m_pDevice(pDevice), m_rAllocateManager(AllocateManager), m_bufferSize(0), m_elementCount(0), m_elementSize(0)
+			: m_bufferSize(0), m_elementCount(0), m_elementSize(0)
 		{
 			m_resourceFlags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 			m_UAV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -109,9 +109,6 @@ namespace custom
 		virtual void CreateUAV(void) = 0;
 
 	protected:
-		ID3D12Device*          g_pDevice;
-		DescriptorHeapManager& m_rAllocateManager;
-
 		D3D12_CPU_DESCRIPTOR_HANDLE m_UAV;
 		D3D12_CPU_DESCRIPTOR_HANDLE m_SRV;
 

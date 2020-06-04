@@ -18,6 +18,7 @@ public:
     }
 
 private:
+    // class DescriptorHeapAllocator
     class DescriptorHeapAllocator
     {
     public:
@@ -80,6 +81,7 @@ private:
         uint32_t m_descriptorSize;
         uint32_t m_remainingFreeHandles;
     };
+
     DescriptorHeapAllocator m_descriptorHeapAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
     {
         D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,

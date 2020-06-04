@@ -1,5 +1,7 @@
 #pragma once
 // Navigation : 여기에 해설 달기 IMGUI처럼 [Section]
+#include "LinearAllocationPage.h"
+
 
 static constexpr uint32_t kGpuAllocatorPageSize = _KB(64);
 static constexpr uint32_t kCpuAllocatorPageSize = _MB(2);

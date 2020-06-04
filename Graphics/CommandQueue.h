@@ -1,4 +1,6 @@
 #pragma once
+#include "stdafx.h"
+#include "CommandAllocatorPool.h"
 
 class CommandQueueManager;
 
@@ -10,8 +12,7 @@ namespace custom
         friend class CommandContext;
 
     public:
-        CommandQueue(// CommandQueueManager* pCommandQueueManager, 
-            D3D12_COMMAND_LIST_TYPE Type);
+        CommandQueue(D3D12_COMMAND_LIST_TYPE Type);
         ~CommandQueue();
 
         void Create(ID3D12Device* pDevice);

@@ -32,7 +32,6 @@ public:
 	void EnableRaw() noexcept;
 	void DisableRaw() noexcept;
 	bool RawEnabled() const noexcept;
-private:
 	void OnMouseMove(int x, int y) noexcept;
 	void OnMouseLeave() noexcept;
 	void OnMouseEnter() noexcept;
@@ -43,7 +42,7 @@ private:
 	void OnRightReleased(int x, int y) noexcept;
 	void OnWheelUp(int x, int y) noexcept;
 	void OnWheelDown(int x, int y) noexcept;
-	void trimBuffer() noexcept;
+	void TrimBuffer() noexcept;
 	void TrimRawInputBuffer() noexcept;
 	void OnWheelDelta(int x, int y, int delta) noexcept;
 private:
@@ -80,6 +79,7 @@ private:
 	bool leftIsPressed;
 	bool rightIsPressed;
 	POINT MousePoint;
+
 public:
 	MouseEvent(Type type, const MyMouse& parent) noexcept
 		:

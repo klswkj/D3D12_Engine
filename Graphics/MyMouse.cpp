@@ -78,27 +78,27 @@ void MyMouse::OnMouseMove(int newx, int newy) noexcept
 	MousePoint.y = newy;
 
 	buffer.push(MouseEvent(MouseEvent::Type::Move, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnMouseLeave() noexcept
 {
 	isInWindow = false;
 	buffer.push(MouseEvent(MouseEvent::Type::Leave, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnMouseEnter() noexcept
 {
 	isInWindow = true;
 	buffer.push(MouseEvent(MouseEvent::Type::Enter, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnRawDelta(int dx, int dy) noexcept
 {
 	rawDeltaBuffer.push({dx, dy});
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnLeftPressed(int x, int y) noexcept
@@ -106,7 +106,7 @@ void MyMouse::OnLeftPressed(int x, int y) noexcept
 	leftIsPressed = true;
 
 	buffer.push(MouseEvent(MouseEvent::Type::LPress, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnLeftReleased(int x, int y) noexcept
@@ -114,7 +114,7 @@ void MyMouse::OnLeftReleased(int x, int y) noexcept
 	leftIsPressed = false;
 
 	buffer.push(MouseEvent(MouseEvent::Type::LRelease, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnRightPressed(int x, int y) noexcept
@@ -122,7 +122,7 @@ void MyMouse::OnRightPressed(int x, int y) noexcept
 	rightIsPressed = true;
 
 	buffer.push(MouseEvent(MouseEvent::Type::RPress, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnRightReleased(int x, int y) noexcept
@@ -130,22 +130,22 @@ void MyMouse::OnRightReleased(int x, int y) noexcept
 	rightIsPressed = false;
 
 	buffer.push(MouseEvent(MouseEvent::Type::RRelease, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnWheelUp(int x, int y) noexcept
 {
 	buffer.push(MouseEvent(MouseEvent::Type::WheelUp, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
 void MyMouse::OnWheelDown(int x, int y) noexcept
 {
 	buffer.push(MouseEvent(MouseEvent::Type::WheelDown, *this));
-	trimBuffer();
+	TrimBuffer();
 }
 
-void MyMouse::trimBuffer() noexcept
+void MyMouse::TrimBuffer() noexcept
 {
 	while (kBufferSize < buffer.size())
 	{

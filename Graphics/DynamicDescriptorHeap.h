@@ -1,4 +1,12 @@
 #pragma once
+#include "Device.h"
+#include "CommandContext.h"
+#include "DescriptorHandle.h"
+
+namespace
+{
+	extern ID3D12Device* g_pDevice;
+}
 
 namespace custom
 {
@@ -10,17 +18,14 @@ namespace custom
 	public:
 		DynamicDescriptorHeap
 		(
-			ID3D12Device* pDevice, 
-			CommandQueueManager& commandQueueManager,
 			custom::CommandContext& OwningContext, 
 			D3D12_DESCRIPTOR_HEAP_TYPE HeapType
 		)
-			: g_pDevice(pDevice), m_CommandQueueManager(commandQueueManager), 
-			m_owningContext(OwningContext), m_descriptorType(HeapType)
+			: m_owningContext(OwningContext), m_descriptorType(HeapType)
 		{
 			m_pCurrentHeap = nullptr;
 			m_currentOffset = 0;
-			m_descriptorSize = pDevice->GetDescriptorHandleIncrementSize(HeapType);
+			m_descriptorSize = g_pDevice->GetDescriptorHandleIncrementSize(HeapType);
 		}
 
 		~DynamicDescriptorHeap()
@@ -130,9 +135,7 @@ namespace custom
 		static std::queue<ID3D12DescriptorHeap*> sm_availableDescriptorHeaps[2];
 
 		// Non-static members
-		CONTAINED ID3D12Device* m_pDevice;
 		CommandContext& m_owningContext;
-		CommandQueueManager& m_CommandQueueManager;
 
 		ID3D12DescriptorHeap* m_pCurrentHeap;
 		const D3D12_DESCRIPTOR_HEAP_TYPE m_descriptorType;

@@ -1,4 +1,6 @@
 #pragma once
+#include "stdafx.h"
+#include "GPUResource.h"
 
 class LinearAllocationPage : public custom::GPUResource
 {

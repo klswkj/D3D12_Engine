@@ -1,15 +1,28 @@
 #include "stdafx.h"
-#include "DescriptorHeap.h"
+#include "Device.h"
+#include "DynamicDescriptorHeap.h"
+#include "CommandQueueManager.h"
+
+namespace device
+{
+    extern ID3D12Device* g_pDevice;
+    extern CommandQueueManager g_commandQueueManager;
+}
 
 namespace custom
 {
+    std::mutex DynamicDescriptorHeap::sm_mutex;
+    std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> DynamicDescriptorHeap::sm_descriptorHeapPool[2];
+    std::queue<std::pair<uint64_t, ID3D12DescriptorHeap*>> DynamicDescriptorHeap::sm_retiredDescriptorHeaps[2];
+    std::queue<ID3D12DescriptorHeap*> DynamicDescriptorHeap::sm_availableDescriptorHeaps[2];
+
     ID3D12DescriptorHeap* DynamicDescriptorHeap::requestDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE HeapType)
     {
         std::lock_guard<std::mutex> LockGuard(sm_mutex);
 
         uint32_t idx = HeapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ? 1 : 0;
 
-        while (!sm_retiredDescriptorHeaps[idx].empty() && m_CommandQueueManager.IsFenceComplete(sm_retiredDescriptorHeaps[idx].front().first))
+        while (!sm_retiredDescriptorHeaps[idx].empty() && device::g_commandQueueManager.IsFenceComplete(sm_retiredDescriptorHeaps[idx].front().first))
         {
             sm_availableDescriptorHeaps[idx].push(sm_retiredDescriptorHeaps[idx].front().second);
             sm_retiredDescriptorHeaps[idx].pop();
@@ -29,7 +42,7 @@ namespace custom
             HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
             HeapDesc.NodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> HeapPtr;
-            ASSERT_HR(m_pDevice->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&HeapPtr)));
+            ASSERT_HR(device::g_pDevice->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&HeapPtr)));
             sm_descriptorHeapPool[idx].emplace_back(HeapPtr);
             return HeapPtr.Get();
         }
@@ -178,7 +191,7 @@ namespace custom
                 // If we run out of temp room, copy what we've got so far
                 if (NumSrcDescriptorRanges + DescriptorCount > kMaxDescriptorsPerCopy)
                 {
-                    m_pDevice->CopyDescriptors
+                    device::g_pDevice->CopyDescriptors
                     (
                         NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
                         NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes,
@@ -208,7 +221,7 @@ namespace custom
             }
         }
 
-        m_pDevice->CopyDescriptors(
+        device::g_pDevice->CopyDescriptors(
             NumDestDescriptorRanges, pDestDescriptorRangeStarts, pDestDescriptorRangeSizes,
             NumSrcDescriptorRanges, pSrcDescriptorRangeStarts, pSrcDescriptorRangeSizes,
             Type);
@@ -249,7 +262,7 @@ namespace custom
         DescriptorHandle DestHandle = m_firstDescriptor + m_currentOffset * m_descriptorSize;
         m_currentOffset += 1;
 
-        m_pDevice->CopyDescriptorsSimple(1, DestHandle.GetCpuHandle(), Handle, m_descriptorType);
+        device::g_pDevice->CopyDescriptorsSimple(1, DestHandle.GetCpuHandle(), Handle, m_descriptorType);
 
         return DestHandle.GetGpuHandle();
     }

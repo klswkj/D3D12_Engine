@@ -1,19 +1,22 @@
 #include "stdafx.h"
+#include "Device.h"
 #include "CommandQueueManager.h"
 
+namespace device
+{
+    extern ID3D12Device* g_pDevice;
+}
+
 CommandQueueManager::CommandQueueManager() :
-    g_pDevice(nullptr),
-    m_GraphicsQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT),
-    m_ComputeQueue(this, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-    m_CopyQueue(this, D3D12_COMMAND_LIST_TYPE_COPY)
+    m_GraphicsQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
+    m_ComputeQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE),
+    m_CopyQueue(D3D12_COMMAND_LIST_TYPE_COPY)
 {
 }
 
 void CommandQueueManager::Create(ID3D12Device* pDevice)
 {
     ASSERT(pDevice != nullptr);
-
-    m_pDevice = pDevice;
 
     m_GraphicsQueue.Create(pDevice);
     m_ComputeQueue.Create(pDevice);
@@ -50,7 +53,7 @@ void CommandQueueManager::CreateNewCommandList
         }
     }
 
-    ASSERT_HR(m_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
+    ASSERT_HR(device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
     SET_NAME(*List);
 }
 

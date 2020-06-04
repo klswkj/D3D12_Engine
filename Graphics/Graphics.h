@@ -1,27 +1,13 @@
 #pragma once
-/*
+#include "stdafx.h"
+#include "DescriptorHeapManager.h"
 
-   App ¦£ Graphics ¦£ GraphicsDeviceManager ( ID3D12, IDXGI, IWIC, ID2D, ... )
-	   ¦¢          ¦¢ DescriptorHeapManager( Descriptor Heap Manager)
-	   ¦¢          ¦¦ SamplerManager( custom::SamplerDescriptor Manage(hash, request allocate) )
-	   ¦¢ 
-	   ¦¦ Windows
-*/
-
-class Graphics
+namespace graphics
 {
-public:
-	void Init();
+    extern DescriptorHeapManager g_DescriptorHeapManager;
 
-private:
-	GraphicsDeviceManager GRPXDeviceManager;
-
-	DescriptorHeapAllocator DescriptorHeapManager[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
-	{
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-		D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-		D3D12_DESCRIPTOR_HEAP_TYPE_DSV
-	};
-	custom::SamplerDescriptor samplerManager;
-};
+    inline D3D12_CPU_DESCRIPTOR_HANDLE AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE Type, UINT Count = 1)
+    {
+        return g_DescriptorHeapManager.Allocate(Type, Count);
+    }
+}
