@@ -5,6 +5,9 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 
 namespace window
 {
+	uint32_t g_windowWidth{ 720 };
+	uint32_t g_windowHeight{ 480 };
+
 	LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
 	{
 		// retrieve ptr to window instance
@@ -271,12 +274,12 @@ namespace window
 
 	void Initialize
 	(
-		const wchar_t* windowName = L"KSK",
-		const wchar_t* windowTitle = L"D3D12_Engine",
-		uint32_t width = g_windowWidth,
-		uint32_t height = g_windowHeight,
-		BOOL g_fullscreen = false,
-		int ShowWnd = 1
+		const wchar_t* windowName,  // = L"KSK",
+		const wchar_t* windowTitle, // = L"D3D12_Engine",
+		uint32_t width,             // = g_windowWidth,
+		uint32_t height,            // = g_windowHeight,
+		BOOL g_fullscreen,          // = false,
+		int ShowWnd                 // = 1
 	) noexcept
 	{
 		HWND g_hWnd = nullptr;

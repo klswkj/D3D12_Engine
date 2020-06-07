@@ -1,11 +1,12 @@
 #include "stdafx.h"
+#include "Device.h"
 #include "RootSignature.h"
 
 void custom::RootSignature::InitStaticSampler
 (
     uint32_t Register,
     const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
-    D3D12_SHADER_VISIBILITY Visibility = D3D12_SHADER_VISIBILITY_ALL
+    D3D12_SHADER_VISIBILITY Visibility // = D3D12_SHADER_VISIBILITY_ALL
     )
 {
     ASSERT(m_numInitializedStaticSamplers < m_numStaticSamplers);
@@ -68,7 +69,7 @@ void custom::RootSignature::InitStaticSampler
     }
 }
 
-void custom::RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE)
+void custom::RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags /*= D3D12_ROOT_SIGNATURE_FLAG_NONE*/)
 {
 	if (m_finalized == true)
 	{
@@ -125,7 +126,7 @@ void custom::RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNAT
 
 	ASSERT_HR
     (
-        g_pDevice->CreateRootSignature
+        device::g_pDevice->CreateRootSignature
         (
             1, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)
         )

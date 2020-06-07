@@ -10,14 +10,11 @@ namespace custom
     public:
         static ComputeContext& Begin(const std::wstring& ID = L"", bool Async = false);
 
-        void ClearUAV(UAVBuffer& Target);
-        void ClearUAV(ColorBuffer& Target);
-
         void SetRootSignature(const RootSignature& RootSig);
 
         void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants);
-        void SetConstant(UINT RootIndex, uint32_t Val, UINT Offset = 0);
-        void SetConstants(UINT RootIndex, uint32_t size, uint32_t* X, ...);
+        void SetConstant(UINT RootIndex, UINT Val, UINT Offset = 0);
+        void SetConstants(UINT RootIndex, uint32_t size, ...);
 
         void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV);
         void SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData);
@@ -39,6 +36,8 @@ namespace custom
         void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
             uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
 
+        void ClearUAV(UAVBuffer& Target);
+        void ClearUAV(ColorBuffer& Target);
     private:
     };
 }

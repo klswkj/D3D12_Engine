@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "DynamicDescriptorHeap.h"
 #include "CommandQueueManager.h"
+#include "CommandContext.h"
 
 namespace device
 {

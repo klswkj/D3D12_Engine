@@ -52,8 +52,9 @@ namespace custom
             return reinterpret_cast<ComputeContext&>(*this);
         }
 
-        ID3D12GraphicsCommandList* GetCommandList() {
-            return m_CommandList;
+        ID3D12GraphicsCommandList* GetCommandList() 
+        {
+            return m_commandList;
         }
 
         void CopyBuffer(GPUResource& Dest, GPUResource& Src);
@@ -64,7 +65,7 @@ namespace custom
 
         LinearBuffer ReserveUploadMemory(size_t SizeInBytes)
         {
-            return m_cpuLinearAllocator.Allocate(SizeInBytes);
+            return m_CPULinearAllocator.Allocate(SizeInBytes);
         }
 
         static void InitializeTexture(GPUResource& Dest, UINT NumSubresources, D3D12_SUBRESOURCE_DATA SubData[]);
@@ -81,8 +82,8 @@ namespace custom
         void InsertAliasBarrier(GPUResource& Before, GPUResource& After, bool FlushImmediate = false);
         inline void FlushResourceBarriers(void);
 
-        void InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, uint32_t QueryIdx);
-        void ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, uint32_t NumQueries);
+        void InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, UINT QueryIdx);
+        void ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, UINT NumQueries);
         void PIXBeginEvent(const wchar_t* label);
         void PIXEndEvent(void);
         void PIXSetMarker(const wchar_t* label);
@@ -91,33 +92,34 @@ namespace custom
         void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr);
         void SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[]);
 
+        // Not used.
         void SetPredication(ID3D12Resource* Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op);
 
     protected:
+        void bindDescriptorHeaps(void);
 
-        void BindDescriptorHeaps(void);
+    protected:
+        CommandQueueManager* m_owningManager;
+        ID3D12GraphicsCommandList* m_commandList;
+        ID3D12CommandAllocator* m_currentCommandAllocator;
 
-        CommandQueueManager* m_OwningManager;
-        ID3D12GraphicsCommandList* m_CommandList;
-        ID3D12CommandAllocator* m_CurrentAllocator;
-
-        ID3D12RootSignature* m_CurGraphicsRootSignature;
+        ID3D12RootSignature* m_pCurrentGraphicsRootSignature;
         ID3D12PipelineState* m_CurPipelineState;
-        ID3D12RootSignature* m_CurComputeRootSignature;
+        ID3D12RootSignature* m_pCurrentComputeRootSignature;
 
-        DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // HEAP_TYPE_CBV_SRV_UAV
-        DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;    // HEAP_TYPE_SAMPLER
+        custom::DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // For HEAP_TYPE_CBV_SRV_UAV
+        custom::DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
 
-        D3D12_RESOURCE_BARRIER m_ResourceBarrierBuffer[16];
-        UINT m_NumBarriersToFlush;
+        D3D12_RESOURCE_BARRIER m_resourceBarriers[16];
+        size_t m_numStandByBarriers;
 
-        ID3D12DescriptorHeap* m_CurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+        ID3D12DescriptorHeap* m_pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-        LinearAllocator m_cpuLinearAllocator;
-        LinearAllocator m_gpuLinearAllocator;
+        LinearAllocator m_CPULinearAllocator;
+        LinearAllocator m_GPULinearAllocator;
 
         std::wstring m_ID;
-        void SetID(const std::wstring& ID) { m_ID = ID; }
+        void setName(const std::wstring& ID) { m_ID = ID; }
 
         D3D12_COMMAND_LIST_TYPE m_type;
     };

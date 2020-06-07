@@ -48,7 +48,6 @@ DXGI_FORMAT PixelBuffer::GetBaseFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-
 DXGI_FORMAT PixelBuffer::GetUAVFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
@@ -91,7 +90,6 @@ DXGI_FORMAT PixelBuffer::GetUAVFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-
 DXGI_FORMAT PixelBuffer::GetDSVFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
@@ -126,7 +124,6 @@ DXGI_FORMAT PixelBuffer::GetDSVFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-
 DXGI_FORMAT PixelBuffer::GetDepthFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
@@ -161,7 +158,6 @@ DXGI_FORMAT PixelBuffer::GetDepthFormat(DXGI_FORMAT defaultFormat)
         return DXGI_FORMAT_UNKNOWN;
     }
 }
-
 DXGI_FORMAT PixelBuffer::GetStencilFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
@@ -285,9 +281,6 @@ size_t PixelBuffer::BytesPerPixel(DXGI_FORMAT Format)
         return 0;
     }
 }
-//--------------------------------------------------------------------------------------
-// Return the BPP for a particular format
-//--------------------------------------------------------------------------------------
 
 void PixelBuffer::CopyResource
 (
@@ -298,19 +291,17 @@ void PixelBuffer::CopyResource
     ASSERT(pResource != nullptr);
     D3D12_RESOURCE_DESC ResourceDescriptor = pResource->GetDesc();
 
-    m_pResource.Attach(pResource);
+    SafeRelease(m_pResource);
+
+    m_pResource = pResource;
     m_currentState = CurrentState;
     
-    m_Width = (uint32_t)ResourceDescriptor.Width;        // We don't care about large virtual textures yet
-    m_Height = ResourceDescriptor.Height;
-    m_ArraySize = ResourceDescriptor.DepthOrArraySize;
-    m_Format = ResourceDescriptor.Format;
+    m_width = (uint32_t)ResourceDescriptor.Width;
+    m_height = ResourceDescriptor.Height;
+    m_arraySize = ResourceDescriptor.DepthOrArraySize;
+    m_format = ResourceDescriptor.Format;
     
-#ifndef RELEASE
-    m_pResource->SetName(Name.c_str());
-#else
-    (Name);
-#endif
+    SET_NAME(m_pResource);
 }
 
 D3D12_RESOURCE_DESC PixelBuffer::Texture2DResourceDescriptor
@@ -319,10 +310,10 @@ D3D12_RESOURCE_DESC PixelBuffer::Texture2DResourceDescriptor
     uint32_t NumMips, DXGI_FORMAT Format, UINT Flags
 )
 {
-    m_Width = Width;
-    m_Height = Height;
-    m_ArraySize = DepthOrArraySize;
-    m_Format = Format;
+    m_width = Width;
+    m_height = Height;
+    m_arraySize = DepthOrArraySize;
+    m_format = Format;
 
     D3D12_RESOURCE_DESC descriptor;
 
@@ -364,9 +355,5 @@ void PixelBuffer::CreateTextureResource
     m_currentState = D3D12_RESOURCE_STATE_COMMON;
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 
-#ifndef RELEASE
-    m_pResource->SetName(Name.c_str());
-#else
-    (Name);
-#endif
+    SET_NAME(m_pResource);
 }

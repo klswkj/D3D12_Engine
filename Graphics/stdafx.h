@@ -55,7 +55,7 @@
 #include "resource.h"
 
 #include "Hash.h"
-#include "WinDefine.h"
+// #include "WinDefine.h"
 #include "TypeDefine.h"
 #include "CustomAssert.h"
 
@@ -88,6 +88,112 @@ inline void SafeDelete(T*& rpObject)
 		rpObject = nullptr;
 	}
 }
+
+
+// Insecure Function.
+// 
+void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t NumQuadwords)
+{
+    ASSERT(HashInternal::IsAligned(_Dest, 16));
+    ASSERT(HashInternal::IsAligned(_Source, 16));
+
+    __m128i* __restrict Dest = (__m128i * __restrict)_Dest;
+    const __m128i* __restrict Source = (const __m128i * __restrict)_Source;
+
+    // Discover how many quadwords precede a cache line boundary.  
+    // Copy them separately.
+    size_t InitialQuadwordCount = (4 - ((size_t)Source >> 4) & 3) & 3;
+    if (NumQuadwords < InitialQuadwordCount)
+    {
+        InitialQuadwordCount = NumQuadwords;
+    }
+
+    if (0 < InitialQuadwordCount)
+    {
+        _mm_stream_si128(Dest + (InitialQuadwordCount - 1), _mm_load_si128(Source + (InitialQuadwordCount - 1)));
+        // Fall through
+    }
+
+    if (NumQuadwords == InitialQuadwordCount)
+    {
+        return;
+    }
+
+    Dest += InitialQuadwordCount;
+    Source += InitialQuadwordCount;
+    NumQuadwords -= InitialQuadwordCount;
+
+    size_t CacheLines = NumQuadwords >> 2;
+
+    if (CacheLines)
+    {
+        _mm_prefetch((char*)(Source + (CacheLines - 1) * 9), _MM_HINT_NTA);    // Fall through
+
+        // Do four quadwords per loop to minimize stalls.
+        for (size_t i = CacheLines; 0 < i; --i)
+        {
+            // If this is a large copy, start prefetching future cache lines.  This also prefetches the
+            // trailing quadwords that are not part of a whole cache line.
+            if (10 <= i)
+            {
+                _mm_prefetch((char*)(Source + 40), _MM_HINT_NTA);
+            }
+            _mm_stream_si128(Dest + 0, _mm_load_si128(Source + 0));
+            _mm_stream_si128(Dest + 1, _mm_load_si128(Source + 1));
+            _mm_stream_si128(Dest + 2, _mm_load_si128(Source + 2));
+            _mm_stream_si128(Dest + 3, _mm_load_si128(Source + 3));
+
+            Dest += 4;
+            Source += 4;
+        }
+    }
+
+    // Copy the remaining quadwords
+    if (NumQuadwords & 3)
+    {
+        _mm_stream_si128(Dest + (NumQuadwords & 3) - 1, _mm_load_si128(Source + (NumQuadwords & 3) - 1));
+        // Fall through
+    }
+
+    _mm_sfence();
+}
+
+void SIMDMemFill(void* __restrict _Dest, __m128 FillVector, size_t NumQuadwords)
+{
+    ASSERT(HashInternal::IsAligned(_Dest, 16));
+    // Keyword 'Register' is no longer a supported storage class
+    /*register */const __m128i Source = _mm_castps_si128(FillVector);
+    __m128i* __restrict Dest = (__m128i * __restrict)_Dest;
+
+    if (((size_t)Dest >> 4) & 3)
+    {
+        _mm_stream_si128(Dest++, Source); 
+        --NumQuadwords;
+        // Fall through
+    }
+
+    size_t WholeCacheLines = NumQuadwords >> 2;
+
+    // Do four quadwords per loop to minimize stalls.
+    while (WholeCacheLines--)
+    {
+        _mm_stream_si128(Dest++, Source);
+        _mm_stream_si128(Dest++, Source);
+        _mm_stream_si128(Dest++, Source);
+        _mm_stream_si128(Dest++, Source);
+    }
+
+    // Copy the remaining quadwords
+    if (((size_t)Dest >> 4) & 3)
+    {
+        _mm_stream_si128(Dest++, Source);
+        --NumQuadwords;
+        // Fall through
+    }
+
+    _mm_sfence();
+}
+
 
 /*
 #include "ReadyMadePSO.h"

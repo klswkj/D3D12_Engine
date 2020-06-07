@@ -1,11 +1,13 @@
 #include "stdafx.h"
+#include "Device.h"
+#include "CommandQueueManager.h"
 #include "LinearAllocator.h"
 
 LinearAllocationPage* LinearAllocatorPageManager::RequestPage()
 {
     // lock_guard<mutex> LockGuard(m_Mutex);
 
-    while (!m_retiredPages.empty() && m_commandQueueManager.IsFenceComplete(m_retiredPages.front().first))
+    while (!m_retiredPages.empty() && device::g_commandQueueManager.IsFenceComplete(m_retiredPages.front().first))
     {
         m_availablePages.push(m_retiredPages.front().second);
         m_retiredPages.pop();
@@ -40,7 +42,7 @@ void LinearAllocatorPageManager::FreeLargePages(uint64_t FenceValue, const std::
 {
     // lock_guard<mutex> LockGuard(m_Mutex);
 
-    while (!m_deletionQueue.empty() && m_commandQueueManager.IsFenceComplete(m_deletionQueue.front().first))
+    while (!m_deletionQueue.empty() && device::g_commandQueueManager.IsFenceComplete(m_deletionQueue.front().first))
     {
         delete m_deletionQueue.front().second;
         m_deletionQueue.pop();
@@ -92,7 +94,7 @@ LinearAllocationPage* LinearAllocatorPageManager::CreateNewPage(size_t PageSize)
     ID3D12Resource* pBuffer;
     ASSERT_HR
     (
-		m_pDevice->CreateCommittedResource
+		device::g_pDevice->CreateCommittedResource
 		(
 			&HeapProps, D3D12_HEAP_FLAG_NONE,
 			&ResourceDesc, DefaultUsage, nullptr, IID_PPV_ARGS(&pBuffer)
@@ -131,8 +133,8 @@ LinearBuffer LinearAllocator::allocateLargePage(size_t SizeInBytes)
     m_largePageList.push_back(OneOff);
 
     LinearBuffer ret(*OneOff, 0, SizeInBytes);
-    ret.dataPtr = OneOff->m_CpuVirtualAddress;
-    ret.gpuAddress = OneOff->m_GpuVirtualAddress;
+    ret.pData = OneOff->m_CpuVirtualAddress;
+    ret.GPUAddress = OneOff->m_GpuVirtualAddress;
 
     return ret;
 }
@@ -167,8 +169,8 @@ LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment)
     }
 
     LinearBuffer ret(*m_currentPage, m_currentOffset, AlignedSize);
-    ret.dataPtr = (uint8_t*)m_currentPage->m_CpuVirtualAddress + m_currentOffset;
-    ret.gpuAddress = m_currentPage->m_GpuVirtualAddress + m_currentOffset;
+    ret.pData = (uint8_t*)m_currentPage->m_CpuVirtualAddress + m_currentOffset;
+    ret.GPUAddress = m_currentPage->m_GpuVirtualAddress + m_currentOffset;
 
     m_currentOffset += AlignedSize;
 

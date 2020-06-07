@@ -1,5 +1,11 @@
 #pragma once
 #include "stdafx.h"
+#include "GPUResource.h"
+
+namespace custom
+{
+    class CommandContext;
+}
 
 namespace custom
 {
@@ -8,15 +14,13 @@ namespace custom
         friend class CommandContext;
 
     public:
-        Texture(ID3D12Device* m_Device, CommandContext& CommandContext, DescriptorHeapManager& DescriptorHeapManager)
-            : g_pDevice(m_Device), m_rCommandContext(CommandContext), m_rDescriptorHeapManager(DescriptorHeapManager)
+        Texture()
         { 
             m_hCpuDescriptorHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; 
         }
-        Texture(CommandContext& CommandContext, DescriptorHeapManager& DescriptorHeapManager, D3D12_CPU_DESCRIPTOR_HANDLE Handle)
-            : m_rCommandContext(CommandContext), m_rDescriptorHeapManager(DescriptorHeapManager), m_hCpuDescriptorHandle(Handle)
+        Texture(D3D12_CPU_DESCRIPTOR_HANDLE Handle)
+            : m_hCpuDescriptorHandle(Handle)
         {
-            g_pDevice = nullptr;
         }
 
         // Create a 1-level 2D texture
@@ -49,10 +53,6 @@ namespace custom
         }
 
     protected:
-        ID3D12Device*               g_pDevice;
-        CommandContext&             m_rCommandContext;
-        DescriptorHeapManager&      m_rDescriptorHeapManager;
         D3D12_CPU_DESCRIPTOR_HANDLE m_hCpuDescriptorHandle;
     };
-
 }

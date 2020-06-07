@@ -1,18 +1,16 @@
 #pragma once
 #include "Device.h"
-#include "CommandContext.h"
+// #include "CommandContext.h"
 #include "DescriptorHandle.h"
-
-namespace
-{
-	extern ID3D12Device* g_pDevice;
-}
 
 namespace custom
 {
 	// This class is a linear allocation system for dynamically generated descriptor tables.  It internally caches
 	// CPU descriptor handles so that when not enough space is available in the current heap, necessary descriptors
 	// can be re-copied to the new heap.
+
+	class CommandContext;
+
 	class DynamicDescriptorHeap
 	{
 	public:
@@ -25,7 +23,7 @@ namespace custom
 		{
 			m_pCurrentHeap = nullptr;
 			m_currentOffset = 0;
-			m_descriptorSize = g_pDevice->GetDescriptorHandleIncrementSize(HeapType);
+			m_descriptorSize = device::g_pDevice->GetDescriptorHandleIncrementSize(HeapType);
 		}
 
 		~DynamicDescriptorHeap()

@@ -2,9 +2,15 @@
 #include "stdafx.h"
 #include "CommandQueue.h"
 
+namespace custom
+{
+    class CommandContext;
+}
+
 class CommandQueueManager
 {
-    friend class CommandContext;
+	friend class custom::CommandContext;
+	
 public:
     CommandQueueManager();
     ~CommandQueueManager()
@@ -16,29 +22,29 @@ public:
 
     void CreateNewCommandList
     (
-        D3D12_COMMAND_LIST_TYPE Type,
         ID3D12GraphicsCommandList** List,
-        ID3D12CommandAllocator** Allocator
+        ID3D12CommandAllocator** Allocator,
+        D3D12_COMMAND_LIST_TYPE Type
     );
 
     void CleanUp()
     {
-        m_GraphicsQueue.CleanUp();
-        m_ComputeQueue.CleanUp();
-        m_CopyQueue.CleanUp();
+        m_graphicsCommandQueue.CleanUp();
+        m_computeCommandQueue.CleanUp();
+        m_copyCommandQueue.CleanUp();
     }
 
-    custom::CommandQueue& GetGraphicsQueue(void) 
+    custom::CommandQueue& GetGraphicsQueue() 
     { 
-        return m_GraphicsQueue; 
+        return m_graphicsCommandQueue;
     }
-    custom::CommandQueue& GetComputeQueue(void) 
+    custom::CommandQueue& GetComputeQueue() 
     { 
-        return m_ComputeQueue; 
+        return m_computeCommandQueue; 
     }
-    custom::CommandQueue& GetCopyQueue(void) 
+    custom::CommandQueue& GetCopyQueue() 
     { 
-        return m_CopyQueue; 
+        return m_copyCommandQueue; 
     }
     custom::CommandQueue& GetQueue(D3D12_COMMAND_LIST_TYPE Type = D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
@@ -46,15 +52,15 @@ public:
         {
             case D3D12_COMMAND_LIST_TYPE_DIRECT:
             {
-                return m_GraphicsQueue;
+                return m_graphicsCommandQueue;
             }
             case D3D12_COMMAND_LIST_TYPE_COMPUTE: 
             {
-                return m_ComputeQueue; 
+                return m_computeCommandQueue; 
             }
             case D3D12_COMMAND_LIST_TYPE_COPY: 
             {
-                return m_CopyQueue; 
+                return m_copyCommandQueue; 
             }
             default:
             {
@@ -62,9 +68,10 @@ public:
             }
         }
     }
+
     ID3D12CommandQueue* GetCommandQueue()
     {
-        return m_GraphicsQueue.GetCommandQueue();
+        return m_graphicsCommandQueue.GetCommandQueue();
     }
 
     // Test to see if a fence has already been reached
@@ -81,13 +88,13 @@ public:
     // The CPU will wait for all command queues to empty (so that the GPU is idle)
     void IdleGPU(void)
     {
-        m_GraphicsQueue.WaitForIdle();
-        m_ComputeQueue.WaitForIdle();
-        m_CopyQueue.WaitForIdle();
+        m_graphicsCommandQueue.WaitForIdle();
+        m_computeCommandQueue.WaitForIdle();
+        m_copyCommandQueue.WaitForIdle();
     }
 
 private:
-    custom::CommandQueue m_GraphicsQueue;
-    custom::CommandQueue m_ComputeQueue;
-    custom::CommandQueue m_CopyQueue;
+    custom::CommandQueue m_graphicsCommandQueue;
+    custom::CommandQueue m_computeCommandQueue;
+    custom::CommandQueue m_copyCommandQueue;
 };

@@ -4,12 +4,44 @@
 // [SECTION] Forward Declarations
 
 #pragma once
-#include <minwindef.h>
+#include <windows.h>
 #include <queue>
 #include <bitset>
 #include <optional>
 
-class KeyboardEvent;
+class KeyboardEvent
+{
+public:
+	enum class Type
+	{
+		Press,
+		Release,
+		Invalid,
+		Count
+	};
+public:
+	KeyboardEvent(Type type, unsigned char code) noexcept
+		:
+		type(type),
+		code(code)
+	{
+	}
+	bool IsPress() const noexcept
+	{
+		return type == Type::Press;
+	}
+	bool IsRelease() const noexcept
+	{
+		return type == Type::Release;
+	}
+	unsigned char GetCode() const noexcept
+	{
+		return code;
+	}
+private:
+	Type          type;
+	unsigned char code;
+};
 
 class MyKeyboard
 {
@@ -51,38 +83,4 @@ private:
 	std::bitset<kMaxKey>                 keystates;
 	std::queue<KeyboardEvent>            keybuffer;
 	std::queue<char>                     charbuffer;
-};
-
-class KeyboardEvent
-{
-public:
-	enum class Type
-	{
-		Press,
-		Release,
-		Invalid,
-		Count
-	};
-public:
-	KeyboardEvent(Type type, unsigned char code) noexcept
-		:
-		type(type),
-		code(code)
-	{
-	}
-	bool IsPress() const noexcept
-	{
-		return type == Type::Press;
-	}
-	bool IsRelease() const noexcept
-	{
-		return type == Type::Release;
-	}
-	unsigned char GetCode() const noexcept
-	{
-		return code;
-	}
-private:
-	Type          type;
-	unsigned char code;
 };

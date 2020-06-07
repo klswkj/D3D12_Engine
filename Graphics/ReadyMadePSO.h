@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "SamplerDescriptor.h"
 
 namespace readymade
 {
@@ -50,36 +51,36 @@ namespace readymade
 void readymade::Init()
 {
     SamplerLinearWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    SamplerLinearWrap = SamplerLinearWrapDesc.Finalize();
+    SamplerLinearWrap = SamplerLinearWrapDesc.RequestHandle();
 
     SamplerAnisoWrapDesc.MaxAnisotropy = 4;
-    SamplerAnisoWrap = SamplerAnisoWrapDesc.Finalize();
+    SamplerAnisoWrap = SamplerAnisoWrapDesc.RequestHandle();
 
     SamplerShadowDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
     SamplerShadowDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
     SamplerShadowDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    SamplerShadow = SamplerShadowDesc.Finalize();
+    SamplerShadow = SamplerShadowDesc.RequestHandle();
 
     SamplerLinearClampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerLinearClampDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    SamplerLinearClamp = SamplerLinearClampDesc.Finalize();
+    SamplerLinearClamp = SamplerLinearClampDesc.RequestHandle();
 
     SamplerVolumeWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    SamplerVolumeWrap = SamplerVolumeWrapDesc.Finalize();
+    SamplerVolumeWrap = SamplerVolumeWrapDesc.RequestHandle();
 
     SamplerPointClampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
     SamplerPointClampDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
-    SamplerPointClamp = SamplerPointClampDesc.Finalize();
+    SamplerPointClamp = SamplerPointClampDesc.RequestHandle();
 
     SamplerLinearBorderDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     SamplerLinearBorderDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_BORDER);
     SamplerLinearBorderDesc.SetBorderColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-    SamplerLinearBorder = SamplerLinearBorderDesc.Finalize();
+    SamplerLinearBorder = SamplerLinearBorderDesc.RequestHandle();
 
     SamplerPointBorderDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
     SamplerPointBorderDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_BORDER);
     SamplerPointBorderDesc.SetBorderColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-    SamplerPointBorder = SamplerPointBorderDesc.Finalize();
+    SamplerPointBorder = SamplerPointBorderDesc.RequestHandle();
 
     // Default rasterizer states
     RasterizerDefault.FillMode = D3D12_FILL_MODE_SOLID;

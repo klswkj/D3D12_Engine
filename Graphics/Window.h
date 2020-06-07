@@ -4,7 +4,10 @@
 
 namespace window
 {
-	void				Initialize
+	extern uint32_t g_windowWidth;
+	extern uint32_t g_windowHeight;
+
+	void Initialize
 	(
 		const wchar_t* windowName = L"KSK", 
 		const wchar_t* windowTitle = L"D3D12_Engine", 
@@ -35,10 +38,8 @@ namespace window
 	MyKeyboard        g_Keyboard;
 	MyMouse           g_Mouse;
 
-	constexpr static uint32_t          g_windowWidth{ 720 };
-	constexpr static uint32_t          g_windowHeight{ 480 };
-	constexpr static BOOL		       g_fullscreen{ false };
-	static BOOL                        g_bCursorEnabled{ true };
+	constexpr static BOOL		g_fullscreen{ false };
+	static BOOL                 g_bCursorEnabled{ true };
 
 	// rawinput data scpoed
 	// std::vector<std::function<void()>> onResizeCallbacks = {}; // Swapchain, Resize

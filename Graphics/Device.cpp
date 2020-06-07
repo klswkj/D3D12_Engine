@@ -1,8 +1,14 @@
 #include "stdafx.h"
 #include "Device.h"
+#include "CommandQueueManager.h"
+#include "CommandContextManager.h"
+#include "DescriptorHeapManager.h"
 
 namespace device
 {
+	uint32_t g_windowHeight{ 720 };
+	uint32_t g_windowWidth{ 480 };
+
 	inline LPCSTR GetFeatureLevelName(D3D_FEATURE_LEVEL FeatureLevel)
 	{
 		switch (FeatureLevel)
@@ -224,14 +230,14 @@ namespace device
 		// the IDXGISwapchain3 interface from it.
 		//
 		IDXGISwapChain1* pSwapChain;
-		ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(m_RenderContext.GetCommandQueue(), g_hwnd, &SwapChainDesc, nullptr, nullptr, &pSwapChain));
+		ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(g_pDevice, g_hwnd, &SwapChainDesc, nullptr, nullptr, &pSwapChain));
 
 		ASSERT_HR(pSwapChain->QueryInterface(&s_pDXGISwapChain));
 		pSwapChain->Release();
 
 		// Create 11On12 state to enable D2D rendering on D3D12.
 		//
-		IUnknown* pRenderCommandQueue = m_RenderContext.GetCommandQueue();
+		IUnknown* pRenderCommandQueue = g_commandQueueManager.GetGraphicsQueue().GetCommandQueue();
 		ASSERT_HR
 		(
 			D3D11On12CreateDevice

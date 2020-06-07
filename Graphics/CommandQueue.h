@@ -6,11 +6,12 @@ class CommandQueueManager;
 
 namespace custom
 {
+    class CommandContext;
+
 	class CommandQueue
 	{
         friend class CommandQueueManager;
         friend class CommandContext;
-
     public:
         CommandQueue(D3D12_COMMAND_LIST_TYPE Type);
         ~CommandQueue();
@@ -44,10 +45,7 @@ namespace custom
         ID3D12CommandAllocator* requestAllocator(void);
         void discardAllocator(uint64_t FenceValueForReset, ID3D12CommandAllocator* Allocator);
 
-
     private:
-        // CONTAINED CommandQueueManager* m_pCommandQueueManager;
-
         ID3D12CommandQueue* m_commandQueue;
 
         const D3D12_COMMAND_LIST_TYPE m_type;

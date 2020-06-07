@@ -1,9 +1,8 @@
 #pragma once
 #include "Window.h" // for g_windowHeight, g_windowWidth.
 #include "PSO.h"
-#include "DescriptorHeapManager.h"
+// #include "DescriptorHeapManager.h"
 #include "RootSignature.h"
-#include "SamplerManager.h"
 #include "ReadyMadePSO.h"
 
 class ColorBuffer; // for SwapChainResource
@@ -13,6 +12,7 @@ class CommandContextManager;
 class CommandQueueManager;
 class CommandSignature;
 class ContextManager;
+class DescriptorHeapManager;
 
 namespace device
 {
@@ -28,7 +28,6 @@ namespace device
     static IWICImagingFactory*  s_pWICFactory   { nullptr };
     static IDWriteFactory2*     s_pDWriteFactory{ nullptr };
     static ID2D1Factory3*       s_pD2DFactory   { nullptr };
-    static IDWriteTextFormat*   s_pTextFormat   { nullptr };
     static IDXGIAdapter3*       s_pDXGIAdapter  { nullptr };
     static IDXGISwapChain3*     s_pDXGISwapChain{ nullptr };
 
@@ -38,22 +37,19 @@ namespace device
     static ID2D1Device2*        s_pD2DDevice    { nullptr };
     static ID2D1DeviceContext2* s_pD2DContext   { nullptr };
 
+    extern CommandQueueManager   g_commandQueueManager;
+    extern CommandContextManager g_commandContextManager;
+    extern DescriptorHeapManager g_descriptorHeapManager;
+
+    extern custom::RootSignature g_GenerateMipsRS;
+    extern ComputePSO            g_GenerateMipsLinearPSO[4];
+    extern ComputePSO            g_GenerateMipsGammaPSO[4];
     //
     // D2D UI rendering
     //
     static ID2D1SolidColorBrush* s_pTextBrush   { nullptr };
     static IDWriteTextFormat*    s_pTextFormat  { nullptr };
 
-    extern CommandQueueManager   g_commandQueueManager;
-    extern CommandContextManager g_commandContextManager;
-    extern DescriptorHeapManager g_descriptorHeapManager;
-
-    extern RootSignature g_GenerateMipsRS;
-    extern ComputePSO    g_GenerateMipsLinearPSO[4];
-    extern ComputePSO    g_GenerateMipsGammaPSO[4];
-
-    extern uint32_t g_windowWidth;
-    extern uint32_t g_windowHeight;
     static constexpr size_t SWAPCHAIN_BUFFER_COUNT = 3;
     static constexpr size_t STATISTIC_COUNT = 60;
 

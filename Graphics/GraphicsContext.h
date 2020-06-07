@@ -31,20 +31,20 @@ namespace custom
         void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV, D3D12_CPU_DESCRIPTOR_HANDLE DSV) { SetRenderTargets(1, &RTV, DSV); }
         void SetDepthStencilTarget(D3D12_CPU_DESCRIPTOR_HANDLE DSV) { SetRenderTargets(0, nullptr, DSV); }
 
-        void SetViewport(const D3D12_VIEWPORT& vp);
+        void SetViewport(const D3D12_VIEWPORT& Viewport);
         void SetViewport(FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT minDepth = 0.0f, FLOAT maxDepth = 1.0f);
-        void SetScissor(const D3D12_RECT& rect);
-        void SetScissor(UINT left, UINT top, UINT right, UINT bottom);
+        void SetScissor(const D3D12_RECT& Rect);
+        void SetScissor(LONG left, LONG top, LONG right, LONG bottom);
         void SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect);
-        void SetViewportAndScissor(UINT x, UINT y, UINT w, UINT h);
-        void SetStencilRef(UINT StencilRef);
-        void SetBlendFactor(Color BlendFactor);
-        void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology);
+        void SetViewportAndScissor(LONG x, LONG y, LONG w, LONG h);
+        void SetStencilRef(UINT StencilRef) { m_commandList->OMSetStencilRef(StencilRef); }
+        void SetBlendFactor(Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
+        void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) { m_commandList->IASetPrimitiveTopology(Topology); }
 
-        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants);
-        void SetConstants(UINT RootIndex, uint32_t size, uint32_t* X, ...);
+        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) { m_commandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, 0); }
+        void SetConstants(UINT RootIndex, uint32_t size, ...);
 
-        void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV);
+        void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV) { m_commandList->SetComputeRootConstantBufferView(RootIndex, CBV); }
         void SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData);
         void SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset = 0);
         void SetBufferUAV(UINT RootIndex, const UAVBuffer& UAV, UINT64 Offset = 0);
@@ -69,8 +69,11 @@ namespace custom
         void DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation,
             INT BaseVertexLocation, UINT StartInstanceLocation);
         void DrawIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset = 0);
-        void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
-            uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
+        void ExecuteIndirect
+        (
+            CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
+            uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0
+        );
     private:
     };
 }

@@ -8,9 +8,9 @@ namespace device
 }
 
 CommandQueueManager::CommandQueueManager() :
-    m_GraphicsQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
-    m_ComputeQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE),
-    m_CopyQueue(D3D12_COMMAND_LIST_TYPE_COPY)
+    m_graphicsCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
+    m_computeCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE),
+    m_copyCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY)
 {
 }
 
@@ -18,33 +18,33 @@ void CommandQueueManager::Create(ID3D12Device* pDevice)
 {
     ASSERT(pDevice != nullptr);
 
-    m_GraphicsQueue.Create(pDevice);
-    m_ComputeQueue.Create(pDevice);
-    m_CopyQueue.Create(pDevice);
+    m_graphicsCommandQueue.Create(pDevice);
+    m_computeCommandQueue.Create(pDevice);
+    m_copyCommandQueue.Create(pDevice);
 }
 
 void CommandQueueManager::CreateNewCommandList
 (
-    D3D12_COMMAND_LIST_TYPE Type,
     ID3D12GraphicsCommandList** List,
-    ID3D12CommandAllocator** Allocator
+    ID3D12CommandAllocator** Allocator,
+    D3D12_COMMAND_LIST_TYPE Type
 )
 {
     switch (Type)
     {
         case D3D12_COMMAND_LIST_TYPE_DIRECT:
         {
-            *Allocator = m_GraphicsQueue.requestAllocator(); 
+            *Allocator = m_graphicsCommandQueue.requestAllocator(); 
             break;
         }
         case D3D12_COMMAND_LIST_TYPE_COMPUTE: 
         {
-            *Allocator = m_ComputeQueue.requestAllocator(); 
+            *Allocator = m_computeCommandQueue.requestAllocator(); 
             break;
         }
         case D3D12_COMMAND_LIST_TYPE_COPY: 
         {
-            *Allocator = m_CopyQueue.requestAllocator(); 
+            *Allocator = m_copyCommandQueue.requestAllocator(); 
             break;
         }
         default:

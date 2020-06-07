@@ -1,4 +1,7 @@
 #pragma once
+#include "stdafx.h"
+#include "Texture.h"
+
 
 std::wstring MakeWStr(const std::string& str)
 {
@@ -8,8 +11,8 @@ std::wstring MakeWStr(const std::string& str)
 class ManagedTexture : public custom::Texture
 {
 public:
-    ManagedTexture(ID3D12Device* m_Device, custom::CommandContext& CommandContext, DescriptorHeapManager& DescriptorHeapManager, const std::wstring& FileName)
-        : g_pDevice(m_Device), m_rCommandContext(CommandContext), m_rDescriptorHeapManager(DescriptorHeapManager), m_MapKey(FileName), m_IsValid(true)
+    ManagedTexture(const std::wstring& FileName)
+        : m_MapKey(FileName), m_IsValid(true)
     {
     }
 

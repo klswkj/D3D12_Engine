@@ -26,7 +26,7 @@ void DepthBuffer::CreateSamples(const std::wstring& Name, uint32_t Width, uint32
 
 void DepthBuffer::CreateDSV(ID3D12Device* Device, DXGI_FORMAT Format)
 {
-    ID3D12Resource* Resource = m_pResource.Get();
+    ID3D12Resource* Resource = m_pResource;
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
     dsvDesc.Format = GetDSVFormat(Format);

@@ -38,9 +38,6 @@
     <Filter Include="Custom D3D12 Core Interfaces\Header Files">
       <UniqueIdentifier>{34bc3a97-d69d-402f-bc37-faff0b08c1ee}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\Source Files">
-      <UniqueIdentifier>{3fec7fb8-3d81-4582-bf80-66b4d7f5a708}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PreCompiled Header">
       <UniqueIdentifier>{5b346aed-72df-4185-b355-f297b3287d1a}</UniqueIdentifier>
     </Filter>
@@ -95,9 +92,6 @@
     <ClCompile Include="ImguiRenderStage.cpp">
       <Filter>External Source Code Files\Imgui\Current Issue</Filter>
     </ClCompile>
-    <ClCompile Include="RootSignature.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MyKeyboard.cpp">
       <Filter>Graphics\Input Device</Filter>
     </ClCompile>
@@ -128,62 +122,65 @@
     <ClCompile Include="Window.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Color.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandAllocatorPool.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueue.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueueManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SamplerManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LinearAllocator.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UAVBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PixelBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PSO.cpp">
-      <Filter>Custom D3D12 Core Interfaces\1 Tier</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
     <ClCompile Include="Device.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="ColorBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    <ClCompile Include="Color.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="DepthBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    <ClCompile Include="CommandAllocatorPool.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="DynamicDescriptorHeap.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+    <ClCompile Include="CommandContext.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueue.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueueManager.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClCompile>
     <ClCompile Include="ComputeContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicDescriptorHeap.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClCompile>
     <ClCompile Include="GraphicsContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearAllocator.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RootSignature.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SamplerDescriptor.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureManager.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="PSO.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UAVBuffer.cpp">
+      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -210,9 +207,6 @@
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
       <Filter>External Source Code Files\Imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="WinDefine.h">
-      <Filter>Header Files Only\Defines</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
       <Filter>External Source Code Files\D3DX12</Filter>
@@ -280,9 +274,6 @@
     <ClInclude Include="SamplerDescriptor.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SamplerManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DescriptorHandle.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
@@ -340,15 +331,6 @@
     <ClInclude Include="TextureManager.h">
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PSO.h">
-      <Filter>Custom D3D12 Core Interfaces\1 Tier</Filter>
-    </ClInclude>
-    <ClInclude Include="RootSignature.h">
-      <Filter>Custom D3D12 Core Interfaces\0 Tier</Filter>
-    </ClInclude>
-    <ClInclude Include="RootParameter.h">
-      <Filter>Custom D3D12 Core Interfaces\0 Tier</Filter>
-    </ClInclude>
     <ClInclude Include="main.h">
       <Filter>Main</Filter>
     </ClInclude>
@@ -368,7 +350,22 @@
       <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ComputeContext.h">
-      <Filter>Custom D3D12 Core Interfaces\Source Files</Filter>
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PSO.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandSignature.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IndirectParameter.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RootSignature.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RootParameter.h">
+      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

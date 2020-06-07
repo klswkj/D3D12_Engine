@@ -1,6 +1,8 @@
 #pragma once
 #include "stdafx.h"
-
+#include "Device.h"
+#include "GPUResource.h"
+#include "CommandContext.h"
 const uint32_t DDS_MAGIC = 0x20534444; // "DDS "
 
 #define DDS_FOURCC      0x00000004  // DDPF_FOURCC
@@ -904,7 +906,6 @@ static HRESULT CreateD3DResources
 
 static HRESULT CreateTextureFromDDS
 (
-    _In_ custom::CommandContext& commandContext,
     _In_ ID3D12Device* d3dDevice,
     _In_ const DDS_HEADER* header,
     _In_reads_bytes_(bitSize) const uint8_t* bitData,
@@ -1125,7 +1126,7 @@ static HRESULT CreateTextureFromDDS
         if (SUCCEEDED(hr))
         {
             custom::GPUResource DestTexture(d3dDevice, *texture, D3D12_RESOURCE_STATE_COPY_DEST);
-            commandContext.InitializeTexture(DestTexture, subresourceCount, initData.get());
+            custom::CommandContext::InitializeTexture(DestTexture, subresourceCount, initData.get());
         }
     }
 
@@ -1135,7 +1136,6 @@ static HRESULT CreateTextureFromDDS
 _Use_decl_annotations_
 HRESULT CreateDDSTextureFromMemory
 (
-    custom::CommandContext& commandContext,
     ID3D12Device* d3dDevice,
     const uint8_t* ddsData,
     size_t ddsDataSize,
@@ -1197,7 +1197,7 @@ HRESULT CreateDDSTextureFromMemory
 
     HRESULT hr = CreateTextureFromDDS
     (
-        commandContext, d3dDevice,
+        d3dDevice,
         header, ddsData + offset, ddsDataSize - offset, maxsize,
         forceSRGB, texture, textureView
     );
@@ -1280,7 +1280,7 @@ HRESULT CreateDDSTextureFromMemory
 
     HRESULT hr = CreateTextureFromDDS
     (
-        commandContext, d3dDevice,
+        d3dDevice,
         header, ddsData + offset, ddsDataSize - offset, maxsize,
         forceSRGB, texture, textureView
     );

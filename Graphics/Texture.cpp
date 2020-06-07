@@ -1,9 +1,17 @@
 #include "stdafx.h"
 #include "Texture.h"
-#include "DDSTextureLoader.h"
+#include "Device.h"
+#include "Graphics.h"
+#include "CommandContext.h"
+#include "DDSTextureLoader.cpp"
 
 namespace custom
 {
+    static UINT BytesPerPixel(DXGI_FORMAT Format)
+    {
+        return (UINT)::BitsPerPixel(Format) / 8;
+    };
+
     void Texture::Create(size_t Pitch, size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitialData)
     {
         m_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -20,19 +28,19 @@ namespace custom
         texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        D3D12_HEAP_PROPERTIES HeapProps;
-        HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-        HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        HeapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        HeapProps.CreationNodeMask = 1;
-        HeapProps.VisibleNodeMask = 1;
+        D3D12_HEAP_PROPERTIES HeapProperties;
+        HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        HeapProperties.CreationNodeMask = 1;
+        HeapProperties.VisibleNodeMask = 1;
 
         ASSERT_HR
         (
-            g_pDevice->CreateCommittedResource
+            device::g_pDevice->CreateCommittedResource
             (
-                &HeapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-                m_currentState, nullptr, IID_PPV_ARGS(m_pResource.ReleaseAndGetAddressOf())
+                &HeapProperties, D3D12_HEAP_FLAG_NONE, &texDesc,
+                m_currentState, nullptr, IID_PPV_ARGS(&m_pResource)
             )
         );
 
@@ -40,16 +48,16 @@ namespace custom
 
         D3D12_SUBRESOURCE_DATA texResource;
         texResource.pData = InitialData;
-        texResource.RowPitch = Pitch * BytesPerPixel(Format);
+        texResource.RowPitch = Pitch * custom::BytesPerPixel(Format);
         texResource.SlicePitch = texResource.RowPitch * Height;
 
         CommandContext::InitializeTexture(*this, 1, &texResource);
 
 		if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
-			m_hCpuDescriptorHandle = m_rDescriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_hCpuDescriptorHandle = graphics::g_DescriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
-        g_pDevice->CreateShaderResourceView(m_pResource.Get(), nullptr, m_hCpuDescriptorHandle);
+        device::g_pDevice->CreateShaderResourceView(m_pResource, nullptr, m_hCpuDescriptorHandle);
     }
 
     void Texture::CreateTGAFromMemory(const void* _filePtr, size_t, bool sRGB)
@@ -110,12 +118,12 @@ namespace custom
     {
 		if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
-			m_hCpuDescriptorHandle = m_rDescriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			m_hCpuDescriptorHandle = graphics::g_DescriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
         HRESULT hr = CreateDDSTextureFromMemory
         (
-            m_rCommandContext, g_pDevice,
+            device::g_pDevice,
             (const uint8_t*)filePtr, fileSize, 0, sRGB, &m_pResource, m_hCpuDescriptorHandle, nullptr
         );
 
@@ -137,7 +145,7 @@ namespace custom
 
         ASSERT
         (
-            fileSize >= header.Pitch * BytesPerPixel(header.Format) * header.Height + sizeof(Header),
+            fileSize >= header.Pitch * custom::BytesPerPixel(header.Format) * header.Height + sizeof(Header),
             "Raw PIX image dump has an invalid file size"
         );
 

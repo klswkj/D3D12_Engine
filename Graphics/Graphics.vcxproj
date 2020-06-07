@@ -160,7 +160,9 @@
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="imgui.cpp" />
-    <ClCompile Include="ImguiRenderStage.cpp" />
+    <ClCompile Include="ImguiRenderStage.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_dx12.cpp" />
@@ -175,7 +177,7 @@
     <ClCompile Include="OBJMesh.cpp" />
     <ClCompile Include="ObJNode.cpp" />
     <ClCompile Include="RootSignature.cpp" />
-    <ClCompile Include="SamplerManager.cpp" />
+    <ClCompile Include="SamplerDescriptor.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -187,6 +189,7 @@
     <ClInclude Include="CommandContextManager.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="CommandQueueManager.h" />
+    <ClInclude Include="CommandSignature.h" />
     <ClInclude Include="ComputeContext.h" />
     <ClInclude Include="CustomAssert.h" />
     <ClInclude Include="AssetManager.h" />
@@ -197,6 +200,7 @@
     <ClInclude Include="DescriptorHandle.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
     <ClInclude Include="GraphicsContext.h" />
+    <ClInclude Include="IndirectParameter.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="PSO.h" />
@@ -214,7 +218,9 @@
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuiManager.h" />
-    <ClInclude Include="ImguiRenderStage.h" />
+    <ClInclude Include="ImguiRenderStage.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="imgui_impl_dx12.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="imgui_internal.h" />
@@ -233,12 +239,10 @@
     <ClInclude Include="RootParameter.h" />
     <ClInclude Include="RootSignature.h" />
     <ClInclude Include="SamplerDescriptor.h" />
-    <ClInclude Include="SamplerManager.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="SVDescriptor.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="TypeDefine.h" />
-    <ClInclude Include="WinDefine.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>

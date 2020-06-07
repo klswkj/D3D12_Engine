@@ -41,7 +41,7 @@ bool MyMouse::RightIsPressed() const noexcept
 	return rightIsPressed;
 }
 
-MouseEvent MyMouse::Read() noexcept
+MyMouse::MouseEvent MyMouse::Read() noexcept
 {
 	if (0u < buffer.size())
 	{

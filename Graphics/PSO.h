@@ -1,47 +1,54 @@
 #pragma once
+#include "stdafx.h"
+
 //                PSO
 //      忙式式式式式式式式式式扛式式式式式式式式式忖
 // GraphicsPSO           ComputePSO
 
-class RootSignature;
-
-class PSO
+namespace custom
 {
-public:
+    class RootSignature;
+}
 
-    PSO() 
-        : m_RootSignature(nullptr) 
+namespace custom
+{
+    class PSO
     {
-    }
+    public:
+        PSO()
+            : m_RootSignature(nullptr), m_PSO(nullptr)
+        {
+        }
 
-    static void DestroyAll(void);
+        static void DestroyAll(void);
 
-    void SetRootSignature(const RootSignature& BindMappings)
-    {
-        m_RootSignature = &BindMappings;
-    }
+        void SetRootSignature(const RootSignature& BindMappings)
+        {
+            m_RootSignature = &BindMappings;
+        }
 
-    const RootSignature& GetRootSignature(void) const
-    {
-        ASSERT(m_RootSignature != nullptr);
-        return *m_RootSignature;
-    }
+        const RootSignature& GetRootSignature(void) const
+        {
+            ASSERT(m_RootSignature != nullptr);
+            return *m_RootSignature;
+        }
 
-    ID3D12PipelineState* GetPipelineStateObject(void) const 
-    { 
-        return m_PSO; 
-    }
+        ID3D12PipelineState* GetPipelineStateObject(void) const
+        {
+            return m_PSO;
+        }
 
-protected:
-    const RootSignature* m_RootSignature;
-    ID3D12PipelineState* m_PSO;
-};
+    protected:
+        const RootSignature* m_RootSignature;
+        ID3D12PipelineState* m_PSO;
+    };
+}
 
-class GraphicsPSO : public PSO
+class GraphicsPSO : public custom::PSO
 {
     friend class CommandContext;
 public:
-    // Start with empty state
+    // Default state is empty.
     GraphicsPSO();
 
     void SetBlendState(const D3D12_BLEND_DESC& BlendDesc);
@@ -138,7 +145,7 @@ private:
 };
 
 
-class ComputePSO : public PSO
+class ComputePSO : public custom::PSO
 {
     friend class CommandContext;
 public:
@@ -156,4 +163,29 @@ public:
     void Finalize();
 private:
     D3D12_COMPUTE_PIPELINE_STATE_DESC m_PSODesc;
+
+    struct ComputePSOHash
+    {
+        ComputePSOHash() = default;
+
+        void SetHashSeed(D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
+        {
+            pRootSignature = (0x0000ffff | reinterpret_cast<uint64_t>(desc.pRootSignature));
+            pCSByteCode = (0xffff0000 | reinterpret_cast<uint64_t>(desc.CS.pShaderBytecode));
+        }
+
+        union
+        {
+            struct
+            {
+                uint64_t pRootSignature : 32;
+                uint64_t pCSByteCode : 32;
+            };
+            struct
+            {
+                uint64_t Hash0;
+            };
+        };
+    };
+    ComputePSOHash m_hash;
 };

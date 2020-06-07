@@ -1,15 +1,16 @@
 #include "stdafx.h"
+#include "Device.h"
 #include "PSO.h"
+#include "RootSignature.h"
 
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_graphicsPSOHashMap;
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_computePSOHashMap;
 
-void PSO::DestroyAll(void)
+void custom::PSO::DestroyAll(void)
 {
     s_graphicsPSOHashMap.clear();
     s_computePSOHashMap.clear();
 }
-
 
 GraphicsPSO::GraphicsPSO()
 {
@@ -153,13 +154,15 @@ void GraphicsPSO::Finalize()
 
     if (firstCompile)
     {
-        ASSERT_HR(g_Device->CreateGraphicsPipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
+        ASSERT_HR(device::g_pDevice->CreateGraphicsPipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
         s_graphicsPSOHashMap[HashCode].Attach(m_PSO);
     }
     else
     {
-        while (*PSORef == nullptr)
-            this_thread::yield();
+		while (*PSORef == nullptr)
+		{
+			std::this_thread::yield();
+		}
         m_PSO = *PSORef;
     }
 }
@@ -170,13 +173,14 @@ void ComputePSO::Finalize()
     m_PSODesc.pRootSignature = m_RootSignature->GetSignature();
     ASSERT(m_PSODesc.pRootSignature != nullptr);
 
-    size_t HashCode = Utility::HashState(&m_PSODesc);
+    m_hash.SetHashSeed(m_PSODesc);
+    size_t HashCode = Hash::MakeHash(&m_hash.Hash0);
 
     ID3D12PipelineState** PSORef = nullptr;
     bool firstCompile = false;
     {
-        static mutex s_HashMapMutex;
-        lock_guard<mutex> CS(s_HashMapMutex);
+        static std::mutex s_HashMapMutex;
+        std::lock_guard<std::mutex> CS(s_HashMapMutex);
         auto iter = s_computePSOHashMap.find(HashCode);
 
         // Reserve space so the next inquiry will find that someone got here first.
@@ -185,19 +189,23 @@ void ComputePSO::Finalize()
             firstCompile = true;
             PSORef = s_computePSOHashMap[HashCode].GetAddressOf();
         }
-        else
-            PSORef = iter->second.GetAddressOf();
+		else
+		{
+			PSORef = iter->second.GetAddressOf();
+		}
     }
 
     if (firstCompile)
     {
-        ASSERT_SUCCEEDED(g_Device->CreateComputePipelineState(&m_PSODesc, MY_IID_PPV_ARGS(&m_PSO)));
+        ASSERT_HR(device::g_pDevice->CreateComputePipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
         s_computePSOHashMap[HashCode].Attach(m_PSO);
     }
     else
     {
-        while (*PSORef == nullptr)
-            this_thread::yield();
+		while (*PSORef == nullptr)
+		{
+			std::this_thread::yield();
+		}
         m_PSO = *PSORef;
     }
 }

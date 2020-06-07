@@ -3,6 +3,5 @@
 
 BOOL App::InitializeApplication()
 {
-	WND.Initialize(WND.GetInstance(), 1280, 720);
 
 }

@@ -3,6 +3,7 @@
 #include "device.h"
 #include "graphics.h"
 #include "CommandContext.h"
+#include "ComputeContext.h"
 
 void ColorBuffer::CreateResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips)
 {
@@ -61,7 +62,7 @@ void ColorBuffer::CreateResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, 
         m_SRVHandle = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
-    ID3D12Resource* Resource = m_pResource.Get();
+    ID3D12Resource* Resource = m_pResource;
 
     // Create the render target view
     Device->CreateRenderTargetView(Resource, &RTVDesc, m_RTVHandle);
@@ -92,7 +93,7 @@ void ColorBuffer::CreateFromSwapChain(const std::wstring& Name, ID3D12Resource* 
     //Graphics::g_Device->CreateUnorderedAccessView(m_pResource.Get(), nullptr, nullptr, m_UAVHandle[0]);
 
     m_RTVHandle = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    device::g_pDevice->CreateRenderTargetView(m_pResource.Get(), nullptr, m_RTVHandle);
+    device::g_pDevice->CreateRenderTargetView(m_pResource, nullptr, m_RTVHandle);
 }
 
 void ColorBuffer::Create
@@ -139,13 +140,13 @@ void ColorBuffer::CreateArray
     CreateResourceViews(device::g_pDevice, Format, ArrayCount, 1);
 }
 
-void ColorBuffer::GenerateMipMaps(CommandContext& BaseContext)
+void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
 {
     if (m_numMipMaps == 0)
 	{
 		return;
 	}
-    ComputeContext& Context = BaseContext.GetComputeContext();
+    custom::ComputeContext& Context = BaseContext.GetComputeContext();
 
     Context.SetRootSignature(graphics::g_GenerateMipsRS);
 
@@ -154,15 +155,15 @@ void ColorBuffer::GenerateMipMaps(CommandContext& BaseContext)
 
     for (uint32_t TopMip = 0; TopMip < m_numMipMaps; )
     {
-        uint32_t SrcWidth = m_Width >> TopMip;
-        uint32_t SrcHeight = m_Height >> TopMip;
+        uint32_t SrcWidth = m_width >> TopMip;
+        uint32_t SrcHeight = m_height >> TopMip;
         uint32_t DstWidth = SrcWidth >> 1;
         uint32_t DstHeight = SrcHeight >> 1;
 
         // Determine if the first downsample is more than 2:1.  This happens whenever
         // the source width or height is odd.
         uint32_t NonPowerOfTwo = (SrcWidth & 1) | (SrcHeight & 1) << 1;
-        if (m_Format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
+        if (m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
         {
             Context.SetPipelineState(graphics::g_GenerateMipsGammaPSO[NonPowerOfTwo]);
         }
@@ -181,8 +182,8 @@ void ColorBuffer::GenerateMipMaps(CommandContext& BaseContext)
             (unsigned long*)&AdditionalMips,
             (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight)
         );
-        uint32_t NumMips = 1 + (AdditionalMips > 3 ? 3 : AdditionalMips);
-        if (TopMip + NumMips > m_numMipMaps)
+        uint32_t NumMips = 1 + (3 < AdditionalMips ? 3 : AdditionalMips);
+        if (m_numMipMaps < TopMip + NumMips)
         {
             NumMips = m_numMipMaps - TopMip;
         }

@@ -10,7 +10,7 @@ static constexpr uint32_t kAlignedSize = 256u;
 enum class LinearAllocatorType
 {
     GPU_WRITEABLE = 0, // default type. GPU - writeable(via UAV)
-    CPU_WRITEABLE // will be upload resource.
+    CPU_WRITEABLE      // will be upload resource.
 };
 
 struct LinearBuffer
@@ -21,8 +21,8 @@ struct LinearBuffer
     }
 
     custom::GPUResource& buffer;             // The D3D buffer associated with this memory.
-    D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;    // The GPU-visible address
-    void* dataPtr;                           // The CPU-writeable address
+    D3D12_GPU_VIRTUAL_ADDRESS GPUAddress;    // The GPU-visible address
+    void* pData;                           // The CPU-writeable address
 
     size_t offset;            // Offset from start of buffer resource
     size_t size;              // Reserved size of this allocation
@@ -31,8 +31,7 @@ struct LinearBuffer
 class LinearAllocatorPageManager
 {
 public:
-    LinearAllocatorPageManager(ID3D12Device* pDevice, CommandQueueManager& commandQueueManager)
-        : g_pDevice(pDevice), m_commandQueueManager(commandQueueManager)
+    LinearAllocatorPageManager()
     {
     }
     LinearAllocationPage* RequestPage(void);
@@ -58,8 +57,6 @@ private:
     std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deletionQueue;
     std::queue<LinearAllocationPage*> m_availablePages;
 
-    CONTAINED ID3D12Device* g_pDevice;
-    CommandQueueManager& m_commandQueueManager;
     LinearAllocatorType m_allocationType;
     // std::mutex m_Mutex;
 };
@@ -71,8 +68,8 @@ private:
 class LinearAllocator
 {
 public:
-    LinearAllocator(ID3D12Device* pDevice, LinearAllocatorType Type)
-        : g_pDevice(pDevice), m_allocationType(Type), m_pageSize(0), m_currentOffset(~(size_t)0), m_currentPage(nullptr)
+    LinearAllocator(LinearAllocatorType Type)
+        : m_allocationType(Type), m_pageSize(0), m_currentOffset(~(size_t)0), m_currentPage(nullptr)
     {
         m_pageSize = ((Type == LinearAllocatorType::GPU_WRITEABLE) ? (kGpuAllocatorPageSize) : (kCpuAllocatorPageSize));
     }
@@ -95,7 +92,6 @@ private:
     std::vector<LinearAllocationPage*> m_retiredPages;
     std::vector<LinearAllocationPage*> m_largePageList;
 
-    CONTAINED ID3D12Device* g_pDevice;
     LinearAllocatorType m_allocationType;
     LinearAllocationPage* m_currentPage;
     size_t m_pageSize;
