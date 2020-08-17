@@ -155,7 +155,7 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &UAVDesc, m_UAV);
 	}
 
-	void NestedBuffer::CreateUAV(void)
+	void StructuredBuffer::CreateUAV(void)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -177,7 +177,7 @@ namespace custom
 		UAVDesc.Buffer.StructureByteStride = m_elementSize;
 		UAVDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-		m_CounterBuffer.Create(L"NestedBuffer::Counter", 1, 4);
+		m_CounterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
 
 		if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
@@ -212,13 +212,13 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &UAVDesc, m_UAV);
 	}
 
-	const D3D12_CPU_DESCRIPTOR_HANDLE& NestedBuffer::GetCounterSRV(CommandContext& Context)
+	const D3D12_CPU_DESCRIPTOR_HANDLE& StructuredBuffer::GetCounterSRV(CommandContext& Context)
 	{
 		Context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
 		return m_CounterBuffer.GetSRV();
 	}
 
-	const D3D12_CPU_DESCRIPTOR_HANDLE& NestedBuffer::GetCounterUAV(CommandContext& Context)
+	const D3D12_CPU_DESCRIPTOR_HANDLE& StructuredBuffer::GetCounterUAV(CommandContext& Context)
 	{
 		Context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		return m_CounterBuffer.GetUAV();

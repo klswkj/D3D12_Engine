@@ -5,7 +5,7 @@
 #include "CommandContext.h"
 #include "ComputeContext.h"
 
-void ColorBuffer::CreateResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips)
+void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips)
 {
     ASSERT(ArraySize == 1 || NumMips == 1, "We don't support auto-mips on texture arrays");
 
@@ -117,7 +117,7 @@ void ColorBuffer::Create
     ClearValue.Color[3] = m_clearColor.A();
 
     CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    CreateResourceViews(device::g_pDevice, Format, 1, NumMips);
+    createResourceViews(device::g_pDevice, Format, 1, NumMips);
 }
 
 void ColorBuffer::CreateArray
@@ -137,7 +137,7 @@ void ColorBuffer::CreateArray
     ClearValue.Color[3] = m_clearColor.A();
 
     CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    CreateResourceViews(device::g_pDevice, Format, ArrayCount, 1);
+    createResourceViews(device::g_pDevice, Format, ArrayCount, 1);
 }
 
 void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)

@@ -15,6 +15,9 @@ txt에 에러저장
 #include <stdio.h>
 #include <assert.h>
 #include <varargs.h>
+#include <string>
+#include <d3d12.h>
+#include <sstream>
 
 namespace AssertInternal
 {
@@ -93,7 +96,7 @@ namespace AssertInternal
 #define ASSERT(bFalse, ...)                                              \
         if (!(bool)(bFalse))                                             \
         {                                                                \
-            AssertInternal::Print("\nAssertion failed in " STRINGIFY_BUILTIN(__FILE__) " @ " STRINGIFY_BUILTIN(__LINE__) "@" STRINGIFY_BUILTIN(typeid(this).name()) " \n"); \
+            AssertInternal::Print("\nAssertion failed in " STRINGIFY_BUILTIN(__FILE__) " @ \n" "Line : "  STRINGIFY_BUILTIN(__LINE__) "@" " \n"); \
             AssertInternal::PrintSubMessage("\'" #bFalse "\' is false"); \
             AssertInternal::PrintSubMessage(__VA_ARGS__);                \
             AssertInternal::Print("\n");                                 \
@@ -102,14 +105,14 @@ namespace AssertInternal
 
 #define ASSERT_HR( hr, ... ) \
         if (FAILED(hr)) { \
-            AssertInternal::Print("\nHRESULT failed in " STRINGIFY_BUILTIN(__FILE__) " @ " STRINGIFY_BUILTIN(__LINE__) "@" STRINGIFY_BUILTIN(typeid(this).name()) " \n"); \
+            AssertInternal::Print("\nAssertion failed in " STRINGIFY_BUILTIN(__FILE__) " @ \n" "Line : "  STRINGIFY_BUILTIN(__LINE__) "@" " \n"); \
             AssertInternal::PrintSubMessage("hr = 0x%08X", hr); \
             AssertInternal::PrintSubMessage(__VA_ARGS__); \
             AssertInternal::Print("\n"); \
             __debugbreak(); \
         }
 #endif
-
+/*
 inline std::wstring AnsiToWString(const std::string& str)
 {
     wchar_t buffer[512];
@@ -141,6 +144,13 @@ void SetName(ID3D12Object* d3dObject, std::string FileName, std::string Function
     d3dObject->SetName(name.c_str());
 }
 
+#if defined (_DEBUG)
+#define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
+#else
+#define SET_NAME(X) {}
+#endif
+*/
+/*
 std::wstring ToWString(const std::string& str)
 {
     std::wstringstream cls;
@@ -148,9 +158,4 @@ std::wstring ToWString(const std::string& str)
     std::wstring total = cls.str();
     return total;
 }
-
-#if defined (_DEBUG)
-#define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define SET_NAME(X) {}
-#endif
+*/

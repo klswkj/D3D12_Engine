@@ -7,10 +7,9 @@
 #include "CommandContextManager.h"
 #include "CommandSignature.h"
 
-namespace device
-{
-	extern CommandContextManager g_commandContextManager;
-}
+// namespace-device
+// CommandContextManager g_commandContextManager;
+
 namespace custom
 {
     ComputeContext& ComputeContext::Begin(const std::wstring& ID, bool Async)
@@ -159,12 +158,15 @@ namespace custom
 
     inline void ComputeContext::DispatchIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
     {
-        ExecuteIndirect(graphics::DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+        ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
     }
-
+    /*
+    void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
+            uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
+    */
     inline void ComputeContext::ExecuteIndirect(CommandSignature& CommandSig,
-        UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset,
-        uint32_t MaxCommands, UAVBuffer* CommandCounterBuffer, uint64_t CounterOffset)
+        UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset /*= 0*/,
+        uint32_t MaxCommands/*= 1*/, UAVBuffer* CommandCounterBuffer /*= nullptr*/, uint64_t CounterOffset/*= 0*/)
     {
         FlushResourceBarriers();
         m_DynamicViewDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);

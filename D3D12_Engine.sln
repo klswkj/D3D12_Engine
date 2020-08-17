@@ -18,11 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Memo", "Memo", "{9C9E4A60-D
 		Coding Standard(Kor).txt = Coding Standard(Kor).txt
 		D3D12Debugging 관련.txt = D3D12Debugging 관련.txt
 		Data type Definitions Rules.txt = Data type Definitions Rules.txt
-		Documentation.txt = Documentation.txt
-		TextFile1.txt = TextFile1.txt
-		TextFile2.txt = TextFile2.txt
-		TextFile3.txt = TextFile3.txt
 		TextFile4.txt = TextFile4.txt
+		TextFile5.txt = TextFile5.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deadly", "Deadly", "{EC2D4899-1B33-4BB1-B34D-B05B99CE7203}"

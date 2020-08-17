@@ -2,10 +2,8 @@
 #include "Device.h"
 #include "CommandQueueManager.h"
 
-namespace device
-{
-    extern ID3D12Device* g_pDevice;
-}
+// namespace-device
+// ID3D12* g_pDevice;
 
 CommandQueueManager::CommandQueueManager() :
     m_graphicsCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),

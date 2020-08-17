@@ -17,7 +17,7 @@ namespace custom
         ~CommandQueue();
 
         void Create(ID3D12Device* pDevice);
-        void CleanUp();
+        void Shutdown();
 
         uint64_t IncrementFence(void);
         bool IsFenceComplete(uint64_t FenceValue);

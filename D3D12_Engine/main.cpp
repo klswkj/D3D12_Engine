@@ -7,7 +7,7 @@
 #include <dxgidebug.h>
 #include <thread>
 
-#include "../Graphics/Game.h"
+// #include "../Graphics/Game.h"
 #include "GameLoader.h"
 #include "FileWatcher.h"
 
@@ -17,6 +17,12 @@ static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /ta
 #else
 static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /target:Game /p:Platform=x64 /property:Configuration=Release";
 #endif
+
+//
+#include <DirectXMath.h>
+#include <intrin.h>
+#include "../Graphics/MathBasic.h"
+//
 
 int main()
 {
@@ -37,6 +43,7 @@ int main()
 		}
 	}
 
+	/*
 	{
 		GameLoader gameLoader;
 		gameLoader.LoadGameLibrary(gameDll);
@@ -113,6 +120,13 @@ int main()
 		pDebug->Release();
 	}
 #endif
+*/
+
+	Math::OrthogonalTransform a;
+
+	DirectX::XMFLOAT3 b = { 1.0f, 20.0f, 300.0f };
+
+	a.SetRotation(b);
 
 	return 0;
 }

@@ -6,7 +6,7 @@
 class ColorBuffer : public PixelBuffer
 {
 public:
-    ColorBuffer(Color ClearColor = Color(0.0f, 0.0f, 0.0f, 0.0f))
+    ColorBuffer(custom::Color ClearColor = custom::Color(0.0f, 0.0f, 0.0f, 0.0f))
         : m_clearColor(ClearColor), m_numMipMaps(0), m_fragmentCount(1), m_sampleCount(1)
     {
         m_SRVHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -44,7 +44,7 @@ public:
         return m_UAVHandle[0]; 
     }
 
-    void SetClearColor(Color ClearColor) 
+    void SetClearColor(custom::Color ClearColor) 
     { 
         m_clearColor = ClearColor; 
     }
@@ -56,11 +56,11 @@ public:
         m_sampleCount = NumCoverageSamples;
     }
 
-    Color GetClearColor(void) const { return m_clearColor; }
+    custom::Color GetClearColor(void) const 
+    { 
+        return m_clearColor; 
+    }
 
-    // This will work for all texture sizes, but it's recommended for speed and quality
-    // that you use dimensions with powers of two (but not necessarily square.)  Pass
-    // 0 for ArrayCount to reserve space for mips at creation time.
     void GenerateMipMaps(custom::CommandContext& Context);
 
 protected:
@@ -86,10 +86,10 @@ protected:
         _BitScanReverse((unsigned long*)&HighBit, Width | Height);
         return HighBit + 1;
     }
+    void createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips = 1);
 
-    void CreateResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips = 1);
-
-    Color m_clearColor;
+protected:
+    custom::Color m_clearColor;
     D3D12_CPU_DESCRIPTOR_HANDLE m_SRVHandle;
     D3D12_CPU_DESCRIPTOR_HANDLE m_RTVHandle;
     D3D12_CPU_DESCRIPTOR_HANDLE m_UAVHandle[12];

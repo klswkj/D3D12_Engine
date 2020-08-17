@@ -10,7 +10,7 @@ void DepthBuffer::Create(const std::wstring& Name, uint32_t Width, uint32_t Heig
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
     CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    CreateDSV(device::g_pDevice, Format);
+    createDSV(device::g_pDevice, Format);
 }
 
 void DepthBuffer::CreateSamples(const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t Samples, DXGI_FORMAT Format)
@@ -21,15 +21,17 @@ void DepthBuffer::CreateSamples(const std::wstring& Name, uint32_t Width, uint32
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = Format;
     CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    CreateDSV(device::g_pDevice, Format);
+    createDSV(device::g_pDevice, Format);
 }
 
-void DepthBuffer::CreateDSV(ID3D12Device* Device, DXGI_FORMAT Format)
+void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
 {
     ID3D12Resource* Resource = m_pResource;
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
     dsvDesc.Format = GetDSVFormat(Format);
+    m_Format = dsvDesc.Format;
+
     if (Resource->GetDesc().SampleDesc.Count == 1)
     {
         dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;

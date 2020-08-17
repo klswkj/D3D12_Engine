@@ -1,14 +1,14 @@
 #include "stdafx.h"
 #include "Device.h"
+#include "RootSignature.h"
 #include "DynamicDescriptorHeap.h"
+#include "DescriptorHandle.h"
 #include "CommandQueueManager.h"
 #include "CommandContext.h"
 
-namespace device
-{
-    extern ID3D12Device* g_pDevice;
-    extern CommandQueueManager g_commandQueueManager;
-}
+// namespace-device
+// ID3D12Device* g_pDevice;
+// CommandQueueManager g_commandQueueManager;
 
 namespace custom
 {
@@ -288,9 +288,14 @@ namespace custom
         ASSERT(Offset + NumHandles <= m_rootDescriptorTable[RootIndex].tableSize);
 
         DescriptorTableCache& TableCache = m_rootDescriptorTable[RootIndex];
+
         D3D12_CPU_DESCRIPTOR_HANDLE* CopyDest = TableCache.pTableStart + Offset;
-        for (UINT i = 0; i < NumHandles; ++i)
-            CopyDest[i] = Handles[i];
+
+		for (UINT i = 0; i < NumHandles; ++i)
+		{
+			CopyDest[i] = Handles[i];
+		}
+
         TableCache.assignedHandlesBitMap |= ((1 << NumHandles) - 1) << Offset;
         m_staleRootParamsBitMap |= (1 << RootIndex);
     }
@@ -302,8 +307,11 @@ namespace custom
         ASSERT(RootSig.m_numRootParameters <= 16, "Maybe we need to support something greater");
 
         m_staleRootParamsBitMap = 0;
-        m_rootDescriptorTablesBitMap = (Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ?
-            RootSig.m_staticSamplerTableBitMap : RootSig.m_descriptorTableBitMap);
+        m_rootDescriptorTablesBitMap = 
+            (
+                Type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER ?
+            RootSig.m_staticSamplerTableBitMap : RootSig.m_descriptorTableBitMap
+                );
 
         unsigned long TableParams = m_rootDescriptorTablesBitMap;
         unsigned long RootIndex;

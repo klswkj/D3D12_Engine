@@ -38,7 +38,7 @@ namespace custom
         void SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect);
         void SetViewportAndScissor(LONG x, LONG y, LONG w, LONG h);
         void SetStencilRef(UINT StencilRef) { m_commandList->OMSetStencilRef(StencilRef); }
-        void SetBlendFactor(Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
+        void SetBlendFactor(custom::Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
         void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) { m_commandList->IASetPrimitiveTopology(Topology); }
 
         void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) { m_commandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, 0); }
@@ -75,5 +75,6 @@ namespace custom
             uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0
         );
     private:
+        
     };
 }

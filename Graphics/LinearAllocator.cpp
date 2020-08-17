@@ -3,7 +3,19 @@
 #include "CommandQueueManager.h"
 #include "LinearAllocator.h"
 
-LinearAllocationPage* LinearAllocatorPageManager::RequestPage()
+LinearAllocatorType LinearAllocator::LinearAllocationPageManager::sm_autoType = LinearAllocatorType::GPU_WRITEABLE;
+
+LinearAllocator::LinearAllocationPageManager::LinearAllocationPageManager()
+{
+    m_allocationType = sm_autoType;
+    sm_autoType = (LinearAllocatorType)((uint32_t)sm_autoType + 1);
+    ASSERT(sm_autoType <= LinearAllocatorType::COUNT);
+}
+
+
+LinearAllocator::LinearAllocationPageManager LinearAllocator::sm_pageManager[2];
+
+LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::RequestPage()
 {
     // lock_guard<mutex> LockGuard(m_Mutex);
 
@@ -29,16 +41,16 @@ LinearAllocationPage* LinearAllocatorPageManager::RequestPage()
     return PagePtr;
 }
 
-void LinearAllocatorPageManager::DiscardPages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& UsedPages)
+void LinearAllocator::LinearAllocationPageManager::DiscardPages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& UsedPages)
 {
-	// lock_guard<mutex> LockGuard(m_Mutex);
-	for (auto iter = UsedPages.begin(); iter != UsedPages.end(); ++iter)
-	{
+    // lock_guard<mutex> LockGuard(m_Mutex);
+    for (auto iter = UsedPages.begin(); iter != UsedPages.end(); ++iter)
+    {
         m_retiredPages.push({ FenceValue, *iter });
-	}
+    }
 }
 
-void LinearAllocatorPageManager::FreeLargePages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& LargePages)
+void LinearAllocator::LinearAllocationPageManager::FreeLargePages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& LargePages)
 {
     // lock_guard<mutex> LockGuard(m_Mutex);
 
@@ -55,7 +67,7 @@ void LinearAllocatorPageManager::FreeLargePages(uint64_t FenceValue, const std::
     }
 }
 
-LinearAllocationPage* LinearAllocatorPageManager::CreateNewPage(size_t PageSize)
+LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPage(size_t PageSize /* = 0*/)
 {
     D3D12_HEAP_PROPERTIES HeapProps;
     HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -94,10 +106,10 @@ LinearAllocationPage* LinearAllocatorPageManager::CreateNewPage(size_t PageSize)
     ID3D12Resource* pBuffer;
     ASSERT_HR
     (
-		device::g_pDevice->CreateCommittedResource
-		(
-			&HeapProps, D3D12_HEAP_FLAG_NONE,
-			&ResourceDesc, DefaultUsage, nullptr, IID_PPV_ARGS(&pBuffer)
+        device::g_pDevice->CreateCommittedResource
+        (
+            &HeapProps, D3D12_HEAP_FLAG_NONE,
+            &ResourceDesc, DefaultUsage, nullptr, IID_PPV_ARGS(&pBuffer)
         )
     );
 
@@ -107,9 +119,7 @@ LinearAllocationPage* LinearAllocatorPageManager::CreateNewPage(size_t PageSize)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-
 ///////////////////////////////////////////////////////////////////////////////////
-
 
 void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
 {
@@ -149,10 +159,10 @@ LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment)
     // Align the allocation
     const size_t AlignedSize = HashInternal::AlignUpWithMask(SizeInBytes, AlignmentMask);
 
-	if (m_pageSize < AlignedSize)
-	{
-		return allocateLargePage(AlignedSize);
-	}
+    if (m_pageSize < AlignedSize)
+    {
+        return allocateLargePage(AlignedSize);
+    }
     m_currentOffset = HashInternal::AlignUp(m_currentOffset, Alignment);
 
     if (m_pageSize < m_currentOffset + AlignedSize)

@@ -18,7 +18,7 @@ public:
     }
 
 private:
-    void CleanUp()
+    void Shutdown()
     {
         for (size_t i{ 0 }; i < m_allocatorPool.size(); ++i)
         {

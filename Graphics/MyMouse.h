@@ -4,12 +4,8 @@
 #include <optional>
 #include <Windows.h>
 
-class Window;
-
 class MyMouse
 {
-	friend class Window;
-
 	class MouseEvent
 	{
 	public:
@@ -30,8 +26,7 @@ class MyMouse
 
 	public:
 		MouseEvent(Type Type, MyMouse parent) noexcept
-			:
-			type(Type)
+			: type(Type)
 		{
 			leftIsPressed = parent.leftIsPressed;
 			rightIsPressed = parent.rightIsPressed;

@@ -2,14 +2,12 @@
 #include "Device.h"
 #include "CommandAllocatorPool.h"
 
-namespace device
-{
-    extern ID3D12Device* g_pDevice;
-}
+// namespace-device
+// ID3D12Device* g_pDevice;
 
 CommandAllocatorPool::~CommandAllocatorPool()
 {
-	CleanUp();
+	Shutdown();
 }
 
 ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t CompletedFenceValue)

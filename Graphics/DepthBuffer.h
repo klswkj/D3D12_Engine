@@ -5,8 +5,11 @@
 class DepthBuffer : public PixelBuffer
 {
 public:
+    friend class RenderTarget;
+    friend class DepthStencil;
+
     DepthBuffer(float ClearDepth = 0.0f, uint8_t ClearStencil = 0)
-        : m_ClearDepth(ClearDepth), m_ClearStencil(ClearStencil)
+        : m_ClearDepth(ClearDepth), m_ClearStencil(ClearStencil), m_Format(DXGI_FORMAT_UNKNOWN)
     {
         m_hDSV[0].ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
         m_hDSV[1].ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -19,6 +22,7 @@ public:
     void Create(const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format);
 
     void CreateSamples(const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t NumSamples, DXGI_FORMAT Format);
+
 
     // Get pre-created CPU-visible descriptor handles
     const D3D12_CPU_DESCRIPTOR_HANDLE& GetDSV() const 
@@ -54,13 +58,20 @@ public:
     { 
         return m_ClearStencil; 
     }
+    DXGI_FORMAT GetFormat() const
+    {
+        return m_Format;
+    }
 
 private:
-    void CreateDSV(ID3D12Device* Device, DXGI_FORMAT Format);
+    void createDSV(ID3D12Device* Device, DXGI_FORMAT Format);
 
+protected:
     float m_ClearDepth;
     uint8_t m_ClearStencil;
-    D3D12_CPU_DESCRIPTOR_HANDLE m_hDSV[4];
+    DXGI_FORMAT m_Format;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE m_hDSV[4]; // -> DSV(0), DSV_DepthReadOnly(1), DSV_StencilReadOnly(2),  DSV_ReadOnly(3)
     D3D12_CPU_DESCRIPTOR_HANDLE m_hDepthSRV;
     D3D12_CPU_DESCRIPTOR_HANDLE m_hStencilSRV;
 };

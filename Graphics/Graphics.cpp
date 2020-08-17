@@ -6,7 +6,6 @@
 namespace graphics
 {
     GraphicsPSO s_BlendUIPSO;
-
     GraphicsPSO PresentSDRPS;
     GraphicsPSO PresentHDRPS;
     GraphicsPSO MagnifyPixelsPS;
@@ -24,6 +23,21 @@ namespace graphics
 
 	DescriptorHeapManager g_DescriptorHeapManager;
 
-    custom::CommandSignature DispatchIndirectCommandSignature(1);
-    custom::CommandSignature DrawIndirectCommandSignature(1);
+    custom::CommandSignature g_DispatchIndirectCommandSignature(1); // goto ReadyMadePSO
+    custom::CommandSignature g_DrawIndirectCommandSignature(1);     // goto ReadyMadePSO
+
+    // CommandSignature는 ComputeContext::DispatchIndirect에서 계속 재활용
 }
+
+namespace
+{
+    float s_FrameTime = 0.0f;
+    uint64_t s_FrameIndex = 0;
+    int64_t s_FrameStartTick = 0;
+}
+
+void graphics::Initialize()
+{
+
+}
+

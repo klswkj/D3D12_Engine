@@ -1,6 +1,8 @@
 #include "Color.h"
 #include <algorithm>
 
+using namespace custom;
+
 inline Color::Color(DirectX::FXMVECTOR vec)
 {
     m_value.v = vec;

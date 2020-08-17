@@ -31,14 +31,16 @@ namespace custom
             Create(Width, Width, Height, Format, InitData);
         }
 
-        void CreateTGAFromMemory(const void* memBuffer, size_t fileSize, bool sRGB);
-        bool CreateDDSFromMemory(const void* memBuffer, size_t fileSize, bool sRGB);
+        void CreateTGAFromMemory(const void* memBuffer, size_t fileSize, bool bStandardRGB);
+        bool CreateDDSFromMemory(const void* memBuffer, size_t fileSize, bool bStandardRGB);
         void CreatePIXImageFromMemory(const void* memBuffer, size_t fileSize);
+        bool CreateWICFromMemory(const std::wstring& fileName);
 
         virtual void Destroy() override
         {
             GPUResource::Destroy();
-            // This leaks descriptor handles.  We should really give it back to be reused.
+            // This leaks descriptor handles. 
+            // We should really give it back to be reused.
             m_hCpuDescriptorHandle.ptr = 0;
         }
 

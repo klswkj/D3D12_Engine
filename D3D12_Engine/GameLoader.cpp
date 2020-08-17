@@ -1,5 +1,5 @@
 #include "GameLoader.h"
-#include "Game.h"
+/*#include "Game.h"
 
 void GameLoader::InitializeLoader(EngineContext* context)
 {
@@ -13,7 +13,7 @@ void GameLoader::LoadSystems(Engine* game, IAllocator* allocator)
 	loadSystemsFunc(manager, allocator);
 	manager->Initialize();
 }
-
+*/
 Engine* GameLoader::CreateGame(IAllocator* allocator)
 {
 	return (Engine*)createGameFunc(allocator);

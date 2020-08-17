@@ -14,7 +14,7 @@
 //        弛                                         弛
 //        弛                                    ShadowBuffer
 //        戍式式式式式式式式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式忖
-// ByteAddressBuffer        ReadyBackBuffer       TypedBuffer       NestedBuffer   TypedBuffer
+// ByteAddressBuffer        ReadyBackBuffer       TypedBuffer       StructuredBuffer   TypedBuffer
 //        弛
 // DispatchIndirectBuffer
 
@@ -128,10 +128,10 @@ namespace custom
 	class ByteAddressBuffer : public UAVBuffer
 	{
 	public:
-		virtual void CreateUAV(void) override;
+		virtual void CreateUAV() override;
 	};
 
-	class NestedBuffer : public UAVBuffer
+	class StructuredBuffer : public UAVBuffer
 	{
 	public:
 		virtual void CreateUAV(void) override;
@@ -153,10 +153,11 @@ namespace custom
 		ByteAddressBuffer m_CounterBuffer;
 	};
 
+	// // For Dispatch Indirect
 	class IndirectArgsBuffer : public ByteAddressBuffer
 	{
 	public:
-		IndirectArgsBuffer(void)
+		IndirectArgsBuffer()
 		{
 		}
 	};

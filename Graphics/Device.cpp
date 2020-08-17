@@ -1,15 +1,20 @@
 #include "stdafx.h"
 #include "Device.h"
+#include "Window.h"
+#include "PreMadePSO.h"
+#include "BufferManager.h"
 #include "CommandQueueManager.h"
 #include "CommandContextManager.h"
+#include "CommandContext.h"
+#include "Rootsignature.h"
 #include "DescriptorHeapManager.h"
+#include "DynamicDescriptorHeap.h"
+#include "SystemTime.h"
+#include "GpuTime.h"
 
 namespace device
 {
-	uint32_t g_windowHeight{ 720 };
-	uint32_t g_windowWidth{ 480 };
-
-	inline LPCSTR GetFeatureLevelName(D3D_FEATURE_LEVEL FeatureLevel)
+	inline const char* GetFeatureLevelName(D3D_FEATURE_LEVEL FeatureLevel)
 	{
 		switch (FeatureLevel)
 		{
@@ -28,28 +33,41 @@ namespace device
 	}
 
 	// Global variable declarations here.
-	ID3D12Device*         g_pDevice{ nullptr };
+	ID3D12Device* g_pDevice{ nullptr };
 	CommandQueueManager   g_commandQueueManager;
 	CommandContextManager g_commandContextManager;
 	DescriptorHeapManager g_descriptorHeapManager;
-	
+
+	ColorBuffer g_DisplayBuffer[3];
+
+	D3D_FEATURE_LEVEL g_D3DFeatureLevel;
+	D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
+	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT g_GpuVaSupport;
 	DXGI_QUERY_VIDEO_MEMORY_INFO g_LocalVideoMemoryInfo;
 	DXGI_QUERY_VIDEO_MEMORY_INFO g_NonLocalVideoMemoryInfo;
 
+	IDXGISwapChain3* g_pDXGISwapChain{ nullptr };
+
+	bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT{ false };
+	bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT{ false };
+	// bool g_bEnableHDROutput{  };
+
+
 	uint32_t g_DescriptorSize[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-	/*
-	enum D3D12_DESCRIPTOR_HEAP_TYPE
-	{
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV	= 0,
-		D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER	= ( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV + 1 ) ,
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV	= ( D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER + 1 ) ,
-		D3D12_DESCRIPTOR_HEAP_TYPE_DSV	= ( D3D12_DESCRIPTOR_HEAP_TYPE_RTV + 1 ) ,
-		D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES	= ( D3D12_DESCRIPTOR_HEAP_TYPE_DSV + 1 )
-	} 	D3D12_DESCRIPTO
-	*/
+#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+	Platform::Agile<Windows::UI::Core::CoreWindow>  g_window;
+#endif
 
-	extern HWND g_hwnd;
+	static constexpr UINT SWAP_CHAIN_BUFFER_COUNT{ 3ul };
+	UINT g_DisplayBufferCount{ SWAP_CHAIN_BUFFER_COUNT };
+
+	static bool s_DropRandomFrame{ false };
+	static bool s_LimitTo30Hz{ false };
+	static bool s_EnableVSync{ false };
+	static float s_FrameTime = 0.0f;
+	static uint64_t s_FrameIndex = 0;
+	static int64_t s_FrameStartTick = 0;
 
 	HRESULT Initialize()
 	{
@@ -73,72 +91,156 @@ namespace device
 			wprintf(L"\nDebug layer is %senabled\n\n", bDebugLayerEnabled ? L"" : L"NOT ");
 		}
 #endif
-		ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&s_pDXGIFactory)));
+		GraphicsDeviceManager::createDeviceDependentStateInternal();
+		
+		g_commandQueueManager.Create(g_pDevice);
 
-		// QPC information for framerate tracking.
-		// QueryPerformanceFrequency(&m_PerformanceFrequency);
-		// QueryPerformanceCounter(&m_LastFrameCounter);
+		premade::Initialize();
+		GpuTime::Initialize();
 
-		// Initialize WIC.
-		// 
-		ASSERT_HR(CoInitialize(nullptr));
-
-		ASSERT_HR(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&s_pWICFactory)));
-
-		// Initialize D2D and DWrite device independent interfaces.
-		//
-		ASSERT_HR(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(s_pDWriteFactory), (IUnknown**)&s_pDWriteFactory));
-
-		ASSERT_HR(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, IID_PPV_ARGS(&s_pD2DFactory)));
-
-		ASSERT_HR(createDeviceIndependentState());
-
-		return S_OK;
+		// TODO : 
+		// TextRender Init
+		// LDR세팅, 화면 그릴 PSO는 앱이나, PASS선에서.
 	}
 
-	HRESULT createDeviceIndependentState()
+	// Try to handle displayBuffer Index.
+	HRESULT Resize(uint32_t width, uint32_t height)
 	{
-		HRESULT hardwareResult;
+		ASSERT(g_pDXGISwapChain != nullptr);
 
-		ASSERT_HR
-		(
-			s_pDWriteFactory->CreateTextFormat
-			(
-				L"Verdana",
-				nullptr,
-				DWRITE_FONT_WEIGHT_NORMAL,
-				DWRITE_FONT_STYLE_NORMAL,
-				DWRITE_FONT_STRETCH_NORMAL,
-				11.0f,
-				L"en-us",
-				&s_pTextFormat
-			)
-		);
+		// Check for invalid window dimensions
+		if (width == 0 || height == 0)
+			return;
 
-		s_pTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-		s_pTextFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+		// Check for an unneeded resize
+		if (width == window::g_windowWidth && height == window::g_windowHeight)
+		{
+			return;
+		}
+		g_commandQueueManager.IdleGPU();
 
-		return S_OK;
+		window::g_windowWidth = width;
+		window::g_windowHeight = height;
+
+		printf("Changing display resolution to %ux%u", width, height);
+
+		// g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
+
+		for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
+		{
+			g_DisplayBuffer[i].Destroy();
+		}
+
+		ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, DXGI_FORMAT_R10G10B10A2_UNORM, 0));
+
+		for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
+		{
+			Microsoft::WRL::ComPtr<ID3D12Resource> DisplayPlane;
+			ASSERT_HR(g_pDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&DisplayPlane)));
+			g_DisplayBuffer[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
+		}
+
+		// g_CurrentBuffer = 0;
+
+		g_commandQueueManager.IdleGPU();
 	}
+
+	void Terminate()
+	{
+		g_commandQueueManager.IdleGPU();
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+		g_pDXGISwapChain->SetFullscreenState(FALSE, nullptr);
+#endif
+	}
+	void Shutdown()
+	{
+		custom::CommandContext::DestroyAllContexts();
+		g_commandQueueManager.Shutdown();
+		GpuTime::Shutdown();
+		g_pDXGISwapChain->Release();
+		custom::PSO::DestroyAll();
+		custom::RootSignature::DestroyAll();
+		custom::DynamicDescriptorHeap::DestroyAll();
+
+		premade::Shutdown(); // There is nothing yet.
+		bufferManager::DestroyRenderingBuffers();
+	}
+
+	void Present()
+	{
+		//////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////
+
+
+
+		uint64_t CurrentTick = SystemTime::GetCurrentTick();
+
+		if (s_EnableVSync)
+		{
+			// With VSync enabled, the time step between frames becomes a multiple of 16.666 ms.  We need
+			// to add logic to vary between 1 and 2 (or 3 fields).  This delta time also determines how
+			// long the previous frame should be displayed (i.e. the present interval.)
+			s_FrameTime = (s_LimitTo30Hz ? 2.0f : 1.0f) / 60.0f;
+			if (s_DropRandomFrame)
+			{
+				if (std::rand() % 50 == 0)
+					s_FrameTime += (1.0f / 60.0f);
+			}
+		}
+		else
+		{
+			// When running free, keep the most recent total frame time as the time step for
+			// the next frame simulation.  This is not super-accurate, but assuming a frame
+			// time varies smoothly, it should be close enough.
+			s_FrameTime = (float)SystemTime::TimeBetweenTicks(s_FrameStartTick, CurrentTick);
+		}
+
+		s_FrameStartTick = CurrentTick;
+
+		++s_FrameIndex;
+	}
+
+	uint64_t GetFrameCount()
+	{
+		return s_FrameIndex;
+	}
+	float GetFrameTime()
+	{
+		return s_FrameTime;
+	}
+	float GetFrameRate()
+	{
+		return s_FrameTime == 0.0f ? 0.0f : 1.0f / s_FrameTime;
+	}
+}
+
+namespace GraphicsDeviceManager
+{
+	HRESULT queryCaps();
 
 	HRESULT createDeviceDependentStateInternal()
 	{
+		ASSERT(device::g_pDXGISwapChain == nullptr, "Graphics has already been initialized");
+
 		HRESULT hardwareResult;
+		
+		Microsoft::WRL::ComPtr<IDXGIFactory2> s_pDXGIFactory{ nullptr };
+		IDXGIAdapter3* s_pDXGIAdapter{ nullptr };
 		{
 			// Have the user select the desired graphics adapter.
 			// 
-			IDXGIAdapter* pTempAdapter;
 			uint32_t AdapterOrdinal = 0;
 
 			printf("Available Adapters:\n");
-			while (s_pDXGIFactory->EnumAdapters(AdapterOrdinal, &pTempAdapter) != DXGI_ERROR_NOT_FOUND)
+			while (s_pDXGIFactory->EnumAdapters(AdapterOrdinal, ((IDXGIAdapter**)&s_pDXGIAdapter)) != DXGI_ERROR_NOT_FOUND)
 			{
 				DXGI_ADAPTER_DESC Desc;
-				pTempAdapter->GetDesc(&Desc);
+				s_pDXGIAdapter->GetDesc(&Desc);
 
 				printf("  [%d] %ls\n", AdapterOrdinal, Desc.Description);
 
-				pTempAdapter->Release();
+				s_pDXGIAdapter->Release();
 				++AdapterOrdinal;
 			}
 
@@ -157,10 +259,10 @@ namespace device
 					}
 				}
 
-				ASSERT_HR(s_pDXGIFactory->EnumAdapters(AdapterOrdinal, &pTempAdapter));
+				ASSERT_HR(s_pDXGIFactory->EnumAdapters(AdapterOrdinal, ((IDXGIAdapter**)&s_pDXGIAdapter)));
 
-				ASSERT_HR(pTempAdapter->QueryInterface(&s_pDXGIAdapter));
-				pTempAdapter->Release();
+				ASSERT_HR(s_pDXGIAdapter->QueryInterface(&s_pDXGIAdapter));
+				s_pDXGIAdapter->Release();
 
 				break;
 			}
@@ -168,15 +270,44 @@ namespace device
 
 		// Obtain the default video memory information for the local and non-local segment groups.
 		//
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &g_LocalVideoMemoryInfo));
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &g_NonLocalVideoMemoryInfo));
+		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &::device::g_LocalVideoMemoryInfo));
+		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &::device::g_NonLocalVideoMemoryInfo));
 
-		ASSERT_HR(D3D12CreateDevice(s_pDXGIAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&g_pDevice)));
+		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&::device::g_pDevice)));
+
+		// See Dynamic frequency scaling and Throttling.
+#ifndef RELEASE
+		{
+			bool DeveloperModeEnabled = false;
+
+			// Look in the Windows Registry to determine if Developer Mode is enabled
+			HKEY hKey;
+			LSTATUS result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock", 0, KEY_READ, &hKey);
+			if (result == ERROR_SUCCESS)
+			{
+				DWORD keyValue, keySize = sizeof(DWORD);
+				result = RegQueryValueEx(hKey, L"AllowDevelopmentWithoutDevLicense", 0, NULL, (byte*)&keyValue, &keySize);
+				if (result == ERROR_SUCCESS && keyValue == 1)
+				{
+					DeveloperModeEnabled = true;
+				}
+				RegCloseKey(hKey);
+			}
+
+			ASSERT(DeveloperModeEnabled, "Enable Developer Mode on Windows 10 to get consistent profiling results");
+
+			// Prevent the GPU from overclocking or underclocking to get consistent timings
+			if (DeveloperModeEnabled)
+			{
+				device::g_pDevice->SetStablePowerState(TRUE);
+			}
+		}
+#endif
 
 #if defined(_DEBUG)
 		ID3D12InfoQueue* pInfoQueue = nullptr;
 
-		ASSERT_HR(g_pDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue)));
+		ASSERT_HR(device::g_pDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue)));
 
 		{
 			D3D12_MESSAGE_SEVERITY Severities[] =
@@ -202,125 +333,73 @@ namespace device
 			pInfoQueue->Release();
 		}
 #endif
-
 		// Cache the descriptor sizes.
 		//
 		for (size_t i{ 0 }; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
-			g_DescriptorSize[i] = g_pDevice->GetDescriptorHandleIncrementSize((D3D12_DESCRIPTOR_HEAP_TYPE)i);
+			device::g_DescriptorSize[i] = ::device::g_pDevice->GetDescriptorHandleIncrementSize((D3D12_DESCRIPTOR_HEAP_TYPE)i);
+		}
+
+		D3D12_FEATURE_DATA_D3D12_OPTIONS FeatureData = {};
+		if (SUCCEEDED(device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &FeatureData, sizeof(FeatureData))))
+		{
+			if (FeatureData.TypedUAVLoadAdditionalFormats)
+			{
+				D3D12_FEATURE_DATA_FORMAT_SUPPORT Support =
+				{
+					DXGI_FORMAT_R11G11B10_FLOAT, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE
+				};
+
+				if (SUCCEEDED(device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &Support, sizeof(Support))) &&
+					(Support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) != 0)
+				{
+					device::g_bTypedUAVLoadSupport_R11G11B10_FLOAT = true;
+				}
+
+				Support.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+				if (SUCCEEDED(device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &Support, sizeof(Support))) &&
+					(Support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD) != 0)
+				{
+					device::g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = true;
+				}
+			}
 		}
 
 		ASSERT_HR(queryCaps());
 
 		// Create a basic Flip-Discard swapchain.
 		//
-		DXGI_SWAP_CHAIN_DESC1 SwapChainDesc = {};
-		SwapChainDesc.BufferCount = SWAPCHAIN_BUFFER_COUNT;
+		DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
+		ZeroMemory(&SwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
+		SwapChainDesc.Height = window::g_windowHeight;
+		SwapChainDesc.Width = window::g_windowWidth;
 		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		SwapChainDesc.BufferCount = device::SWAP_CHAIN_BUFFER_COUNT;
 		SwapChainDesc.SampleDesc.Count = 1;
 		SwapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		SwapChainDesc.Scaling = DXGI_SCALING_NONE;
-		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		SwapChainDesc.Height = g_windowHeight;
-		SwapChainDesc.Width = g_windowWidth;
-		SwapChainDesc.Flags = 0;
 
 		//
-		// The swap chain is created as an IDXGISwapChain1 interface, but we then query
-		// the IDXGISwapchain3 interface from it.
+		// The swap chain is created as an IDXGISwapChain1 interface, 
+		// but we then query the IDXGISwapchain3 interface from it.
 		//
+        #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) // Win32
 		IDXGISwapChain1* pSwapChain;
-		ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(g_pDevice, g_hwnd, &SwapChainDesc, nullptr, nullptr, &pSwapChain));
-
-		ASSERT_HR(pSwapChain->QueryInterface(&s_pDXGISwapChain));
+		ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(device::g_pDevice, window::g_hWnd, &SwapChainDesc, nullptr, nullptr, &pSwapChain));
+		ASSERT_HR(pSwapChain->QueryInterface(&device::g_pDXGISwapChain));
 		pSwapChain->Release();
+        #else // when running platform is UWP.
+        ASSERT(WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP), "Invalid Platform.");
+        #endif
 
-		// Create 11On12 state to enable D2D rendering on D3D12.
-		//
-		IUnknown* pRenderCommandQueue = g_commandQueueManager.GetGraphicsQueue().GetCommandQueue();
-		ASSERT_HR
-		(
-			D3D11On12CreateDevice
-			(
-				g_pDevice, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-				nullptr, 0, &pRenderCommandQueue, 1, 0, &s_p11Device, &s_p11Context, nullptr
-			)
-		);
-
-		ASSERT_HR(s_p11Device->QueryInterface(&s_p11On12Device));
-
-		// Create D2D/DWrite components.
-		//
+		for (uint32_t i = 0; i < device::SWAP_CHAIN_BUFFER_COUNT; ++i)
 		{
-			D2D1_DEVICE_CONTEXT_OPTIONS DeviceOptions = D2D1_DEVICE_CONTEXT_OPTIONS_NONE;
-			IDXGIDevice* pDxgiDevice;
-			ASSERT_HR(s_p11On12Device->QueryInterface(&pDxgiDevice));
-
-			ASSERT_HR(s_pD2DFactory->CreateDevice(pDxgiDevice, &s_pD2DDevice));
-			pDxgiDevice->Release();
-
-			ASSERT_HR(s_pD2DDevice->CreateDeviceContext(DeviceOptions, &s_pD2DContext));
-		}
-
-		// Create the resources to enable D2D to access the swap chain.
-		//
-		ASSERT_HR(createSwapChainResources());
-
-		ASSERT_HR(s_pD2DContext->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &s_pTextBrush));
-
-		return S_OK;
-	}
-
-	HRESULT createSwapChainResources()
-	{
-		float dpiX;
-		float dpiY;
-		//m_pD2DFactory->GetDesktopDpi(&dpiX, &dpiY);
-		D2D1_BITMAP_PROPERTIES1 bitmapProperties = D2D1::BitmapProperties1
-		(
-			D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
-			D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED),
-			800, 600
-		);
-
-		// For each buffer in the swapchain, we need to create a wrapped resource, and create
-		// a D2D render target object to enable D2D rendering for the UI.
-		//
-		for (size_t n = 0; n < SWAPCHAIN_BUFFER_COUNT; n++)
-		{
-			ASSERT_HR(s_pDXGISwapChain->GetBuffer(n, IID_PPV_ARGS(&m_pRenderTargets[n])));
-
-			CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_pRtvHeap->GetCPUDescriptorHandleForHeapStart(), n, m_DescriptorInfo.RtvDescriptorSize);
-			g_pDevice->CreateRenderTargetView(m_pRenderTargets[n], nullptr, handle);
-
-			D3D11_RESOURCE_FLAGS d3d11Flags = { D3D11_BIND_RENDER_TARGET };
-			hr = m_p11On12Device->CreateWrappedResource(
-				m_pRenderTargets[n],
-				&d3d11Flags,
-				D3D12_RESOURCE_STATE_RENDER_TARGET,
-				D3D12_RESOURCE_STATE_PRESENT,
-				IID_PPV_ARGS(&m_pWrappedBackBuffers[n]));
-			if (FAILED(hr))
-			{
-				LOG_ERROR("Failed create 11On12 wrapped resource for render target %d, hr=0x%.8x", n, hr);
-				return hr;
-			}
-
-			IDXGISurface* pSurface;
-			hr = m_pWrappedBackBuffers[n]->QueryInterface(&pSurface);
-			if (FAILED(hr))
-			{
-				LOG_ERROR("Failed to query IDXGISurface from wrapped back buffer, hr=0x%.8x", hr);
-				return hr;
-			}
-
-			hr = m_pD2DContext->CreateBitmapFromDxgiSurface(pSurface, &bitmapProperties, &m_pD2DRenderTargets[n]);
-			pSurface->Release();
-			if (FAILED(hr))
-			{
-				LOG_ERROR("Failed to create D2D bitmap from back buffer surface, hr=0x%.8x", hr);
-				return hr;
-			}
+			Microsoft::WRL::ComPtr<ID3D12Resource> DisplayPlane;
+			ASSERT_HR(device::g_pDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&DisplayPlane)));
+			device::g_DisplayBuffer[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
 		}
 
 		return S_OK;
@@ -328,12 +407,13 @@ namespace device
 
 	HRESULT queryCaps()
 	{
-		ASSERT_HR(g_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_Options, sizeof(m_Options)));
+		ASSERT_HR(::device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &::device::g_Options, sizeof(::device::g_Options)));
 
-		ASSERT_HR(g_pDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &m_GpuVaSupport, sizeof(m_GpuVaSupport)));
+		ASSERT_HR(::device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &::device::g_GpuVaSupport, sizeof(::device::g_GpuVaSupport)));
 
 		D3D12_FEATURE_DATA_FEATURE_LEVELS FeatureLevels = {};
-		D3D_FEATURE_LEVEL FeatureLevelsList[] = {
+		D3D_FEATURE_LEVEL FeatureLevelsList[] = 
+		{
 			D3D_FEATURE_LEVEL_11_0,
 			D3D_FEATURE_LEVEL_11_1,
 			D3D_FEATURE_LEVEL_12_0,
@@ -342,19 +422,19 @@ namespace device
 		FeatureLevels.NumFeatureLevels = ARRAYSIZE(FeatureLevelsList);
 		FeatureLevels.pFeatureLevelsRequested = FeatureLevelsList;
 
-		ASSERT_HR(g_pDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &FeatureLevels, sizeof(FeatureLevels)));
+		ASSERT_HR(::device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &FeatureLevels, sizeof(FeatureLevels)));
 
 		printf("\n");
 		printf("--- Device details --------------------\n");
 		printf("  GPU Virtual Address Info:\n");
-		printf("    Max Process Size:      %I64d GB\n", (1ULL << m_GpuVaSupport.MaxGPUVirtualAddressBitsPerProcess) / 1024 / 1024 / 1024);
-		printf("    Max Resource Size:     %I64d GB\n", (1ULL << m_GpuVaSupport.MaxGPUVirtualAddressBitsPerResource) / 1024 / 1024 / 1024);
+		printf("    Max Process Size:      %I64d GB\n", (1ULL << ::device::g_GpuVaSupport.MaxGPUVirtualAddressBitsPerProcess) / 1024 / 1024 / 1024);
+		printf("    Max Resource Size:     %I64d GB\n", (1ULL << ::device::g_GpuVaSupport.MaxGPUVirtualAddressBitsPerResource) / 1024 / 1024 / 1024);
 		printf("  Feature Level Info:\n");
-		printf("    Max Feature Level:     %s\n", GetFeatureLevelName(FeatureLevels.MaxSupportedFeatureLevel));
+		printf("    Max Feature Level:     %s\n", device::GetFeatureLevelName(FeatureLevels.MaxSupportedFeatureLevel));
 		printf("  Additional Info:\n");
-		printf("    Resource Binding Tier: Tier %d\n", m_Options.ResourceBindingTier);
-		printf("    Resource Heap Tier:    Tier %d\n", m_Options.ResourceHeapTier);
-		printf("    Tiled Resource Tier:   Tier %d\n", m_Options.TiledResourcesTier);
+		printf("    Resource Binding Tier: Tier %d\n", ::device::g_Options.ResourceBindingTier);
+		printf("    Resource Heap Tier:    Tier %d\n", ::device::g_Options.ResourceHeapTier);
+		printf("    Tiled Resource Tier:   Tier %d\n", ::device::g_Options.TiledResourcesTier);
 		printf("\n");
 
 		return S_OK;
@@ -362,8 +442,7 @@ namespace device
 
 	HRESULT recreateDeviceDependentState()
 	{
-		// 다 파괴하고 다시
-		// Init()부르기
+		return S_OK;
 	}
 
-}
+} // end namespace GraphicsDeviceManager

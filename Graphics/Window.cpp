@@ -1,12 +1,20 @@
 #include "stdafx.h"
 #include "Window.h"
-
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#include "MyMouse.h"
+#include "MyKeyboard.h"
+#include "imgui_impl_win32.h"
 
 namespace window
 {
 	uint32_t g_windowWidth{ 720 };
 	uint32_t g_windowHeight{ 480 };
+
+	HWND g_hWnd = nullptr;
+
+	MyKeyboard        g_Keyboard;
+	MyMouse           g_Mouse;
+
+	// LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept
 	{
@@ -282,8 +290,6 @@ namespace window
 		int ShowWnd                 // = 1
 	) noexcept
 	{
-		HWND g_hWnd = nullptr;
-
 		HRESULT hardwareResult = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
 		ASSERT_HR(hardwareResult);

@@ -9,8 +9,8 @@ class IAssetManager
 public:
 	IAssetManager() = default;
 	IAssetManager(const char* pathName);
-	virtual ~IAssetManager() = default;
-	void Init();
+	virtual ~IAssetManager();
+	void Initialize();
 
 protected:
 	virtual void setFormat() = 0;
@@ -26,7 +26,7 @@ IAssetManager::IAssetManager(const char* pathName)
 {
 }
 
-void IAssetManager::Init()
+void IAssetManager::Initialize()
 {
 	setFormat();
 
@@ -41,7 +41,7 @@ void IAssetManager::Init()
 		}
 	}
 }
-// °íÃÄ¾ßµÊ.
+
 void IAssetManager::setFormat()
 {
 	const char* typestring = typeid(this).name();

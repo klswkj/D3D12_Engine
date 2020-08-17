@@ -2,28 +2,40 @@
 #include "Device.h"
 #include "RootSignature.h"
 
+// 같은 D3D12Device로 컴파일하면 중복되는거 반환해줘도
+// 나중에 해제시킬 떄를 위한 static한 자료구조 필요함.
+// Finalize할 때 추가시키자.
+
+static std::vector<ID3D12RootSignature*> s_RootSignatureContainer; // Convert to std::map
+static std::map<size_t, ID3D12RootSignature*> s_RootSignatureMap;
+
+void custom::RootSignature::DestroyAll()
+{
+    s_RootSignatureContainer.clear();
+}
+
 void custom::RootSignature::InitStaticSampler
 (
     uint32_t Register,
     const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
-    D3D12_SHADER_VISIBILITY Visibility // = D3D12_SHADER_VISIBILITY_ALL
+    D3D12_SHADER_VISIBILITY Visibility /* = D3D12_SHADER_VISIBILITY_ALL */
     )
 {
     ASSERT(m_numInitializedStaticSamplers < m_numStaticSamplers);
     D3D12_STATIC_SAMPLER_DESC& StaticSamplerDesc = m_staticSamplerArray[m_numInitializedStaticSamplers++];
 
-    StaticSamplerDesc.Filter = NonStaticSamplerDesc.Filter;
-    StaticSamplerDesc.AddressU = NonStaticSamplerDesc.AddressU;
-    StaticSamplerDesc.AddressV = NonStaticSamplerDesc.AddressV;
-    StaticSamplerDesc.AddressW = NonStaticSamplerDesc.AddressW;
-    StaticSamplerDesc.MipLODBias = NonStaticSamplerDesc.MipLODBias;
-    StaticSamplerDesc.MaxAnisotropy = NonStaticSamplerDesc.MaxAnisotropy;
+    StaticSamplerDesc.Filter         = NonStaticSamplerDesc.Filter;
+    StaticSamplerDesc.AddressU       = NonStaticSamplerDesc.AddressU;
+    StaticSamplerDesc.AddressV       = NonStaticSamplerDesc.AddressV;
+    StaticSamplerDesc.AddressW       = NonStaticSamplerDesc.AddressW;
+    StaticSamplerDesc.MipLODBias     = NonStaticSamplerDesc.MipLODBias;
+    StaticSamplerDesc.MaxAnisotropy  = NonStaticSamplerDesc.MaxAnisotropy;
     StaticSamplerDesc.ComparisonFunc = NonStaticSamplerDesc.ComparisonFunc;
-    StaticSamplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-    StaticSamplerDesc.MinLOD = NonStaticSamplerDesc.MinLOD;
-    StaticSamplerDesc.MaxLOD = NonStaticSamplerDesc.MaxLOD;
+    StaticSamplerDesc.BorderColor    = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+    StaticSamplerDesc.MinLOD         = NonStaticSamplerDesc.MinLOD;
+    StaticSamplerDesc.MaxLOD         = NonStaticSamplerDesc.MaxLOD;
     StaticSamplerDesc.ShaderRegister = Register;
-    StaticSamplerDesc.RegisterSpace = 0;
+    StaticSamplerDesc.RegisterSpace  = 0;
     StaticSamplerDesc.ShaderVisibility = Visibility;
 
     if (StaticSamplerDesc.AddressU == D3D12_TEXTURE_ADDRESS_MODE_BORDER ||
@@ -63,7 +75,6 @@ void custom::RootSignature::InitStaticSampler
         }
 		else
 		{
-
 			StaticSamplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
 		}
     }
@@ -131,6 +142,8 @@ void custom::RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNAT
             1, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)
         )
     );
+
+    s_RootSignatureContainer.push_back(m_rootSignature);
 
     SET_NAME(m_rootSignature);
 	m_finalized = true;

@@ -1,0 +1,34 @@
+내가 원하는 것.
+1. Model을 간단하게 추가하는 것.
+2. 모든 Pass들을 화면의 ImGui에서 조작. (enable, coefficient 다)
+3. 모든 Entity를 화면에서 조종
+
+
+그러면 D3D11의 복잡한 방법이 필요한가 -> No.
+그러면 CachingPixelConstantBuffer의 방식은? -> No.
+가져올 방식은 Model Loading 방식과, 기존에 있던 개념, 틀만 가져오기(Pass들이나, Technique, 한 컨테이너 묶기)
+
+먼저 Imgui보여주고, 그 다음에 렌더링.
+
+==============================================================================
+
+
+https://www.slideshare.net/DICEStudio/framegraph-extensible-rendering-architecture-in-frostbite
+기반 해야할 것.
+
+1. MemoryPool 작성
+
+만약 GPUResource 클래스 같은 경우에는 DynamicDescriptorPoolHeap처럼 .Create()될 때, Pool에서 할당되는 것과 같은 방식으로 만들기.
+
+2. MemoryPool 작성되면, 
+한 Pass에 같이 묶이는 것들을 한 MemoryPool에 선언하고, MemoryPool은 여러개로 배열형식으로 만들 것. 
+malloc으로 크게 하나 하고, 그 안에서 생성자 선언해서 배열형식으로 여러개
+
+3. MemoryPool.Initialize(size_t 갯수, size_t 사이즈)로 받고, MemoryPool.m_currentHeapNum으로 사이즈/갯수 만큼, 
+사이즈는 갯수의 배수로만 받기. 아니면 에러.
+
+
+ShaderFile 클래스도 만들어서, 컴파일된 shaderbyteCode 읽어서, RootParameter가 몇개이고, 어떤 Register를 사용해야하고, 
+각 파라미터는 Register번호가 몇개인지 알아내서, PSO만들 때 사용되게 하고싶다.
+
+그러면 이 기능들 완벽하게 만들려면 PSO 클래스안의 기능들도 추가해야겠지?

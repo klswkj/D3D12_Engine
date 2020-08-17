@@ -323,10 +323,30 @@ const int DEFAULT_BUFER_SIZE = 65536;
 constexpr int DEFAULT_BUFER_SIZE = 65536;
 «<미정: constexpr
 
-«<미정: Lambda
 
-«<미정: do not use shared_ptr
-3. 프로젝트 설정 및 프로젝트 구조
-Visual C++: 프로젝트 설정을 변경하려면 항상 속성 시트(property sheets)에서 변경 한다.
 
-프로젝트 설정에서 컴파일 경고를 비활성화 하지 않는다. 그 대신, 코드에서 #pragma 를 사용한다.
+===========================================================================
+
+1. Parameter는 직접 정의해서 제공한다.
+
+namespace custom
+{
+    struct Param
+    {
+        DWParam( FLOAT f ) : Float(f) {}
+        DWParam( UINT u ) : Uint(u) {}
+        DWParam( INT i ) : Int(i) {}
+
+        void operator= ( FLOAT f ) { Float = f; }
+        void operator= ( UINT u ) { Uint = u; }
+        void operator= ( INT i ) { Int = i; }
+
+        union
+        {
+            FLOAT Float;
+            UINT Uint;
+            INT Int;
+        };
+    };
+}
+처럼.

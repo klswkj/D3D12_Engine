@@ -4,8 +4,8 @@
 class OBJAssetManager : public IAssetManager
 {
 public:
-
 	~OBJAssetManager() noexcept;
+
 private:
 
 private:

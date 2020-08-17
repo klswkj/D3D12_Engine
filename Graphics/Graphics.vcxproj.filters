@@ -1,257 +1,416 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="Header Files Only">
       <UniqueIdentifier>{ec739b3a-d966-4131-95c4-e54419ea1d37}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="External Source Code Files">
-      <UniqueIdentifier>{7611c217-d63f-4025-8102-393e3612b535}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="External Source Code Files\Imgui">
-      <UniqueIdentifier>{10edd79d-44e4-4a95-a4ff-3b3e8088b1f8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="External Source Code Files\Imgui\Current Issue">
-      <UniqueIdentifier>{10377a6a-9b87-4bb7-8053-52a10ac307a1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files Only\Allocator">
       <UniqueIdentifier>{4a840ea9-910b-4475-be7d-62e866e180ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="External Source Code Files\D3DX12">
-      <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files Only\Defines">
       <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files\Icon">
-      <UniqueIdentifier>{ea895217-495e-4bbb-81fb-4154003f580b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files\Shader">
-      <UniqueIdentifier>{37023f8f-66cc-4cc6-a266-7cce6e98e984}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces">
-      <UniqueIdentifier>{2d3d62b3-5c1a-4b2d-9b47-fb25de1e9ed6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\Header Files">
-      <UniqueIdentifier>{34bc3a97-d69d-402f-bc37-faff0b08c1ee}</UniqueIdentifier>
     </Filter>
     <Filter Include="PreCompiled Header">
       <UniqueIdentifier>{5b346aed-72df-4185-b355-f297b3287d1a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Main">
+      <UniqueIdentifier>{ef4adc24-e2a1-4d39-8fa2-8c258cc0da64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph">
+      <UniqueIdentifier>{6526d67e-c26a-4445-b6fd-07535667644f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Model">
+      <UniqueIdentifier>{b6ff10d0-620e-4e55-90e0-6e9f52328e6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer">
+      <UniqueIdentifier>{f6a2ba26-c188-42a2-a962-ff9cf5446f51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\Component">
+      <UniqueIdentifier>{92db14d1-f294-4df0-96bb-46b875befd8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\imgui Window">
+      <UniqueIdentifier>{dd5e08b5-87ae-4972-994a-09396061577f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Buffer%28Temporary%29">
+      <UniqueIdentifier>{7aa1ced2-3e2b-40d2-8acf-278c75f0408e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass">
+      <UniqueIdentifier>{9190b773-8ad5-4eb1-940e-a6224f734356}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\DisplaySurface">
+      <UniqueIdentifier>{1d8dba03-a71c-496a-80bc-0e6c034d6af1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderingResource">
+      <UniqueIdentifier>{f3574731-d9df-463c-abee-fa6581bde4cf}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Graphics">
+      <UniqueIdentifier>{be1de0e3-a0d0-4657-8ff6-e90a67693317}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces">
+      <UniqueIdentifier>{2d3d62b3-5c1a-4b2d-9b47-fb25de1e9ed6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\D3D12Resource">
+      <UniqueIdentifier>{6bfb3077-6cbb-4c0f-96e2-2668742c9960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\D3D12Resource\UAV">
+      <UniqueIdentifier>{24fef168-ebeb-4506-85e9-b6b1c98c4e6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Global Range">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Graphics\Input Device">
+    <Filter Include="Graphics\Global Range\Input Device">
       <UniqueIdentifier>{44b735cb-b1b0-4363-979e-388f30a224e5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Model">
-      <UniqueIdentifier>{b6ff10d0-620e-4e55-90e0-6e9f52328e6e}</UniqueIdentifier>
+    <Filter Include="Header Files Only\Math">
+      <UniqueIdentifier>{8aa4fd9b-c7fa-467c-8aa5-c98cc6841bc8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\Header Files\D3D12Resource">
-      <UniqueIdentifier>{6bfb3077-6cbb-4c0f-96e2-2668742c9960}</UniqueIdentifier>
+    <Filter Include="Resource Files%28Icon, Shader%29">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV">
-      <UniqueIdentifier>{24fef168-ebeb-4506-85e9-b6b1c98c4e6a}</UniqueIdentifier>
+    <Filter Include="Resource Files%28Icon, Shader%29\Icon">
+      <UniqueIdentifier>{ea895217-495e-4bbb-81fb-4154003f580b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\0 Tier">
-      <UniqueIdentifier>{02bda487-86e8-456a-82e4-4201d7a6748c}</UniqueIdentifier>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader">
+      <UniqueIdentifier>{37023f8f-66cc-4cc6-a266-7cce6e98e984}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\1 Tier">
-      <UniqueIdentifier>{c2cde65a-582e-4e7e-99b9-f8742ab8530b}</UniqueIdentifier>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter">
+      <UniqueIdentifier>{efd8f828-9737-4a44-9dc0-8c2ec5d73064}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Custom D3D12 Core Interfaces\2 Tier">
-      <UniqueIdentifier>{5e9fa64a-ca07-4201-9edc-dc3ed38acdb6}</UniqueIdentifier>
+    <Filter Include="Time">
+      <UniqueIdentifier>{f67ad87d-f144-4e8f-bf27-e8b391f6cadd}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Main">
-      <UniqueIdentifier>{ef4adc24-e2a1-4d39-8fa2-8c258cc0da64}</UniqueIdentifier>
+    <Filter Include="Graphics\D3D12Resource\Texture">
+      <UniqueIdentifier>{c1908052-0ebc-4c73-b307-eb8fffcc9da6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Camera">
+      <UniqueIdentifier>{4968f34c-124a-4ff5-b1a8-51df4bdc467c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files Only\Math\Basic">
+      <UniqueIdentifier>{07dcc19b-2889-4223-a0dd-6904396b2a6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Flat">
+      <UniqueIdentifier>{db76728b-6a03-4140-b4d6-4331024581f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Camera\CameraComponent">
+      <UniqueIdentifier>{fc2ae76e-b26a-4e96-bcdb-031fe1a3f419}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer">
+      <UniqueIdentifier>{bb1959db-2d26-4aee-906d-d1331a00c2a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility">
+      <UniqueIdentifier>{45889cd4-fbba-4643-80a2-cd5d17154326}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader">
+      <UniqueIdentifier>{83a642f8-5db6-49b5-8807-a36552de7f1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader">
+      <UniqueIdentifier>{73c9fa4d-df9c-4c98-ac6c-d8d7587fc082}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Dependencies">
+      <UniqueIdentifier>{7611c217-d63f-4025-8102-393e3612b535}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Dependencies\Imgui">
+      <UniqueIdentifier>{10edd79d-44e4-4a95-a4ff-3b3e8088b1f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Dependencies\Imgui\Current Issue">
+      <UniqueIdentifier>{10377a6a-9b87-4bb7-8053-52a10ac307a1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Dependencies\D3DX12">
+      <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_demo.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_impl_dx12.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_impl_win32.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_widgets.cpp">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="ImguiRenderStage.cpp">
-      <Filter>External Source Code Files\Imgui\Current Issue</Filter>
+      <Filter>External Dependencies\Imgui\Current Issue</Filter>
     </ClCompile>
     <ClCompile Include="MyKeyboard.cpp">
-      <Filter>Graphics\Input Device</Filter>
+      <Filter>Graphics\Global Range\Input Device</Filter>
     </ClCompile>
     <ClCompile Include="MyMouse.cpp">
-      <Filter>Graphics\Input Device</Filter>
+      <Filter>Graphics\Global Range\Input Device</Filter>
     </ClCompile>
     <ClCompile Include="OBJAssetManager.cpp">
-      <Filter>Graphics\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="ObjectModel.cpp">
-      <Filter>Graphics\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJMaterial.cpp">
-      <Filter>Graphics\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJMesh.cpp">
-      <Filter>Graphics\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="ObJNode.cpp">
-      <Filter>Graphics\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="App.cpp">
-      <Filter>Graphics</Filter>
+      <Filter>SceneGraph\Model</Filter>
     </ClCompile>
     <ClCompile Include="Graphics.cpp">
-      <Filter>Graphics</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="Window.cpp">
-      <Filter>Graphics</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Main</Filter>
     </ClCompile>
     <ClCompile Include="Device.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
-    <ClCompile Include="Color.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandAllocatorPool.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueue.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueueManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ComputeContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicDescriptorHeap.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsContext.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LinearAllocator.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RootSignature.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SamplerDescriptor.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureManager.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="ColorBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClCompile>
     <ClCompile Include="DepthBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClCompile>
     <ClCompile Include="PixelBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="PSO.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClCompile>
     <ClCompile Include="UAVBuffer.cpp">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV</Filter>
+      <Filter>Graphics\D3D12Resource\UAV</Filter>
+    </ClCompile>
+    <ClCompile Include="Color.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandAllocatorPool.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueue.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueueManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputeContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicDescriptorHeap.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="PSO.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="RootSignature.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="SamplerDescriptor.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity.cpp">
+      <Filter>SceneGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelPart.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentWindow.cpp">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
+    </ClCompile>
+    <ClCompile Include="RawBuffer.cpp">
+      <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowBuffer.cpp">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneGraph.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearAllocator.cpp">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicUploadBuffer.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="Sink.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTarget.cpp">
+      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexBuffer.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferManager.cpp">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthOfFieldPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>PreCompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeapManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="PreMadePSO.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="SystemTime.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuTime.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="TextRenderer.cpp">
+      <Filter>Graphics\Global Range</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureManager.cpp">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="ManagedTexture.cpp">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="FileReader.cpp">
+      <Filter>External Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="PassWindow.cpp">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
+    </ClCompile>
+    <ClCompile Include="App.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraManager.cpp">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="IBaseCamera.cpp">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowCamera.cpp">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Frustum.cpp">
+      <Filter>Header Files Only\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraEntity.cpp">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraFrustum.cpp">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClCompile>
+    <ClCompile Include="Technique.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="BindingPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthStencil.cpp">
+      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectFilterFlag.cpp">
+      <Filter>SceneGraph\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Step.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Job.cpp">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderQueuePass.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClCompile>
+    <ClCompile Include="eLayoutFlags.cpp">
+      <Filter>SceneGraph\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraProjector.cpp">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowInput.cpp">
+      <Filter>Graphics\Global Range\Input Device</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphRenderer.cpp">
+      <Filter>Graphics\Global Range</Filter>
+    </ClCompile>
+    <ClCompile Include="MasterRenderGraph.cpp">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_dx12.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_impl_win32.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imgui_internal.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_rectpack.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_textedit.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="imstb_truetype.h">
-      <Filter>External Source Code Files\Imgui</Filter>
+      <Filter>External Dependencies\Imgui</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
-      <Filter>External Source Code Files\D3DX12</Filter>
+      <Filter>External Dependencies\D3DX12</Filter>
     </ClInclude>
     <ClInclude Include="ImguiRenderStage.h">
-      <Filter>External Source Code Files\Imgui\Current Issue</Filter>
+      <Filter>External Dependencies\Imgui\Current Issue</Filter>
     </ClInclude>
     <ClInclude Include="MyKeyboard.h">
-      <Filter>Graphics\Input Device</Filter>
+      <Filter>Graphics\Global Range\Input Device</Filter>
     </ClInclude>
     <ClInclude Include="MyMouse.h">
-      <Filter>Graphics\Input Device</Filter>
+      <Filter>Graphics\Global Range\Input Device</Filter>
     </ClInclude>
     <ClInclude Include="Window.h">
-      <Filter>Graphics</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="IAllocator.h">
       <Filter>Header Files Only\Allocator</Filter>
     </ClInclude>
-    <ClInclude Include="Timer.h">
-      <Filter>Header Files Only</Filter>
-    </ClInclude>
     <ClInclude Include="ImGuiManager.h">
       <Filter>Header Files Only</Filter>
     </ClInclude>
-    <ClInclude Include="AssetManager.h">
-      <Filter>Header Files Only</Filter>
-    </ClInclude>
     <ClInclude Include="OBJAssetManager.h">
-      <Filter>Graphics\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="ObjectModel.h">
-      <Filter>Graphics\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="OBJMesh.h">
-      <Filter>Graphics\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="ObJNode.h">
-      <Filter>Graphics\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="OBJMaterial.h">
-      <Filter>Graphics\Model</Filter>
+      <Filter>SceneGraph\Model</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Resource Files\Icon</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Icon</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>PreCompiled Header</Filter>
@@ -262,125 +421,367 @@
     <ClInclude Include="CustomAssert.h">
       <Filter>Header Files Only\Defines</Filter>
     </ClInclude>
-    <ClInclude Include="App.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
-    <ClInclude Include="Color.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SamplerDescriptor.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHandle.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="Hash.h">
       <Filter>Header Files Only</Filter>
     </ClInclude>
-    <ClInclude Include="SVDescriptor.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ReadyMadePSO.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandContextManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandContext.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="GPUResource.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
     <ClInclude Include="LinearAllocationPage.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
     <ClInclude Include="LinearAllocator.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandQueue.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandAllocatorPool.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandQueueManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHeapManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
     <ClInclude Include="UAVBuffer.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource\UAV</Filter>
+      <Filter>Graphics\D3D12Resource\UAV</Filter>
     </ClInclude>
     <ClInclude Include="PixelBuffer.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="Texture.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
     <ClInclude Include="DDSTextureLoader.cpp">
-      <Filter>External Source Code Files\D3DX12</Filter>
+      <Filter>External Dependencies\D3DX12</Filter>
     </ClInclude>
     <ClInclude Include="DDS.h">
-      <Filter>External Source Code Files\D3DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureManager.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>External Dependencies\D3DX12</Filter>
     </ClInclude>
     <ClInclude Include="main.h">
       <Filter>Main</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
-      <Filter>Graphics</Filter>
+      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="ColorBuffer.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
     <ClInclude Include="DepthBuffer.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files\D3D12Resource</Filter>
+      <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
-    <ClInclude Include="DynamicDescriptorHeap.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    <ClInclude Include="Color.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="GraphicsContext.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    <ClInclude Include="CommandAllocatorPool.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="ComputeContext.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    <ClInclude Include="CommandContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="PSO.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    <ClInclude Include="CommandContextManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueue.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueueManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="CommandSignature.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHandle.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeapManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicDescriptorHeap.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="IndirectParameter.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="RootSignature.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+    <ClInclude Include="PSO.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="RootParameter.h">
-      <Filter>Custom D3D12 Core Interfaces\Header Files</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="RootSignature.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="SamplerDescriptor.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="SVDescriptor.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="AssetManager.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity.h">
+      <Filter>SceneGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelPart.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentWindow.h">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
+    </ClInclude>
+    <ClInclude Include="RawBuffer.h">
+      <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
+    </ClInclude>
+    <ClInclude Include="LayoutCodex.h">
+      <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
+    </ClInclude>
+    <ClInclude Include="Job.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowBuffer.h">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneGraph.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="UpdateConstantBuffer.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicUploadBuffer.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Sink.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="Source.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthStencil.h">
+      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderTarget.h">
+      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderingResource.h">
+      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
+    </ClInclude>
+    <ClInclude Include="IDisplaySurface.h">
+      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurPass.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexBuffer.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PSOResource.h">
+      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContextResource.h">
+      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
+    </ClInclude>
+    <ClInclude Include="RootSignatureResource.h">
+      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthOfFieldPass.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferManager.h">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="MathCommon.h">
+      <Filter>Header Files Only\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="PreMadePSO.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemTime.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuTime.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="TextRenderer.h">
+      <Filter>Graphics\Global Range</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureManager.h">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="ManagedTexture.h">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="FileReader.h">
+      <Filter>External Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="PassWindow.h">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraManager.h">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="IBaseCamera.h">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowCamera.h">
+      <Filter>SceneGraph\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Frustum.h">
+      <Filter>Header Files Only\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Quaternion.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="Scalar.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="BoundingPlane.h">
+      <Filter>Header Files Only\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="MathBasic.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="MathFunctions.inl">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="BoundingSphere.h">
+      <Filter>Header Files Only\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="CompressedQuaternion.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraEntity.h">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraFrustum.h">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClInclude>
+    <ClInclude Include="Technique.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Step.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderQueuePass.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="BindingPass.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
+    </ClInclude>
+    <ClInclude Include="TechniqueWindow.h">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectFilterFlag.h">
+      <Filter>SceneGraph\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="eLayoutFlags.h">
+      <Filter>SceneGraph\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="VariableConstantBuffer.h">
+      <Filter>SceneGraph\Renderer\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraProjector.h">
+      <Filter>SceneGraph\Camera\CameraComponent</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix4.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix3.h">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowInput.h">
+      <Filter>Graphics\Global Range\Input Device</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphRenderer.h">
+      <Filter>Graphics\Global Range</Filter>
+    </ClInclude>
+    <ClInclude Include="MasterRenderGraph.h">
+      <Filter>SceneGraph\Renderer\Pass</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IconResource.rc">
-      <Filter>Resource Files\Icon</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Icon</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Icon\ksk3.ico">
-      <Filter>Resource Files\Icon</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Icon</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config">
-      <Filter>Resource Files</Filter>
+      <Filter>Resource Files%28Icon, Shader%29</Filter>
     </None>
+    <None Include="GeneralPurposeRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Utility\ViewerRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Utility\LightData.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Utility\ShadowFunctions.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Pixel Shader\ModelPS_Common.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Vertex Shader\ModelVS_Common.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="GeneralPurposeVS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </FxCompile>
+    <FxCompile Include="GeneralPurposePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SobelFilter\Composite.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SobelFilter\Sobel.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_Basic.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexCoord.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexNormal.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_Basic.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexCoord.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexNormal.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

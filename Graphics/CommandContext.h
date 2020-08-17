@@ -5,9 +5,18 @@
 #include "UAVBuffer.h"
 #include "LinearAllocator.h"
 #include "DynamicDescriptorHeap.h"
+#include "CameraManager.h"
 
 class CommandContextManager;
+class CommandQueueManager;
 class PixelBuffer;
+
+#define CLASS_NO_COPY(className)                         \
+    private :                                            \
+        className(const className&) = delete;            \
+        className(className&&) = delete;                 \
+        className& operator=(const className&) = delete; \
+        className& operator=(className&&) = delete;
 
 namespace custom
 {
@@ -17,15 +26,13 @@ namespace custom
     class CommandContext
     {
         friend CommandContextManager;
+        // CLASS_NO_COPY(CommandContext);
     private:
         CommandContext(D3D12_COMMAND_LIST_TYPE Type);
-        CommandContext(const CommandContext&) = delete;
-        CommandContext& operator=(const CommandContext&) = delete;
-
+        // CommandContext(const CommandContext&);
         void Reset(void);
 
     public:
-
         ~CommandContext(void);
 
         static void DestroyAllContexts(void);
@@ -60,14 +67,14 @@ namespace custom
         void CopyBuffer(GPUResource& Dest, GPUResource& Src);
         void CopyBufferRegion(GPUResource& Dest, size_t DestOffset, GPUResource& Src, size_t SrcOffset, size_t NumBytes);
         void CopySubresource(GPUResource& Dest, UINT DestSubIndex, GPUResource& Src, UINT SrcSubIndex);
-        void CopyCounter(GPUResource& Dest, size_t DestOffset, NestedBuffer& Src);
-        void ResetCounter(NestedBuffer& Buf, uint32_t Value = 0);
+        void CopyCounter(GPUResource& Dest, size_t DestOffset, StructuredBuffer& Src);
+        void ResetCounter(StructuredBuffer& Buf, uint32_t Value = 0);
 
         LinearBuffer ReserveUploadMemory(size_t SizeInBytes)
         {
             return m_CPULinearAllocator.Allocate(SizeInBytes);
         }
-
+        
         static void InitializeTexture(GPUResource& Dest, UINT NumSubresources, D3D12_SUBRESOURCE_DATA SubData[]);
         static void InitializeBuffer(GPUResource& Dest, const void* Data, size_t NumBytes, size_t Offset = 0);
         static void InitializeTextureArraySlice(GPUResource& Dest, UINT SliceIndex, GPUResource& Src);
@@ -92,11 +99,11 @@ namespace custom
         void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr);
         void SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[]);
 
-        // Not used.
+        // Will not be used.
         void SetPredication(ID3D12Resource* Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op);
 
     protected:
-        void bindDescriptorHeaps(void);
+        void bindDescriptorHeaps();
 
     protected:
         CommandQueueManager* m_owningManager;
@@ -107,13 +114,15 @@ namespace custom
         ID3D12PipelineState* m_CurPipelineState;
         ID3D12RootSignature* m_pCurrentComputeRootSignature;
 
-        custom::DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // For HEAP_TYPE_CBV_SRV_UAV
-        custom::DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
+        DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // For HEAP_TYPE_CBV_SRV_UAV
+        DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
 
         D3D12_RESOURCE_BARRIER m_resourceBarriers[16];
         size_t m_numStandByBarriers;
 
         ID3D12DescriptorHeap* m_pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+
+        CameraManager m_CameraManager;
 
         LinearAllocator m_CPULinearAllocator;
         LinearAllocator m_GPULinearAllocator;
@@ -124,3 +133,7 @@ namespace custom
         D3D12_COMMAND_LIST_TYPE m_type;
     };
 }
+
+// CameraManager 가져오는 이유 : 
+// m_viewPort,
+// GetProjectionMatrix-> FXMATRIX -> At VertexShader b0.modelToProjection

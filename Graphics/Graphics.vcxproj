@@ -101,6 +101,9 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,6 +134,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,19 +145,63 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="BindingPass.cpp" />
+    <ClCompile Include="BlurPass.cpp" />
+    <ClCompile Include="BufferManager.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CameraEntity.cpp" />
+    <ClCompile Include="CameraFrustum.cpp" />
+    <ClCompile Include="CameraManager.cpp" />
+    <ClCompile Include="CameraProjector.cpp" />
     <ClCompile Include="Color.cpp" />
     <ClCompile Include="ColorBuffer.cpp" />
     <ClCompile Include="CommandAllocatorPool.cpp" />
     <ClCompile Include="CommandContext.cpp" />
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="CommandQueueManager.cpp" />
+    <ClCompile Include="ComponentWindow.cpp" />
     <ClCompile Include="ComputeContext.cpp" />
     <ClCompile Include="DepthBuffer.cpp" />
+    <ClCompile Include="DepthOfFieldPass.cpp" />
+    <ClCompile Include="DepthStencil.cpp" />
+    <ClCompile Include="DescriptorHeapManager.cpp" />
     <ClCompile Include="DynamicDescriptorHeap.cpp" />
+    <ClCompile Include="DynamicUploadBuffer.cpp" />
+    <ClCompile Include="eLayoutFlags.cpp" />
+    <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="FileReader.cpp" />
+    <ClCompile Include="Frustum.cpp" />
+    <ClCompile Include="GpuTime.cpp" />
+    <ClCompile Include="GraphRenderer.cpp" />
+    <ClCompile Include="IBaseCamera.cpp" />
+    <ClCompile Include="Job.cpp" />
+    <ClCompile Include="MasterRenderGraph.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="ObjectFilterFlag.cpp" />
+    <ClCompile Include="Pass.cpp" />
+    <ClCompile Include="PassWindow.cpp" />
+    <ClCompile Include="PreMadePSO.cpp" />
+    <ClCompile Include="RenderQueuePass.cpp" />
+    <ClCompile Include="SceneGraph.cpp" />
+    <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="GraphicsContext.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ManagedTexture.cpp" />
+    <ClCompile Include="ModelPart.cpp" />
     <ClCompile Include="PixelBuffer.cpp" />
     <ClCompile Include="PSO.cpp" />
+    <ClCompile Include="RawBuffer.cpp" />
+    <ClCompile Include="RenderTarget.cpp" />
+    <ClCompile Include="ShadowBuffer.cpp" />
+    <ClCompile Include="ShadowCamera.cpp" />
+    <ClCompile Include="Sink.cpp" />
+    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="Step.cpp" />
+    <ClCompile Include="SystemTime.cpp" />
+    <ClCompile Include="Technique.cpp" />
+    <ClCompile Include="TextRenderer.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="UAVBuffer.cpp" />
@@ -172,24 +220,34 @@
     <ClCompile Include="MyKeyboard.cpp" />
     <ClCompile Include="MyMouse.cpp" />
     <ClCompile Include="OBJAssetManager.cpp" />
-    <ClCompile Include="ObjectModel.cpp" />
-    <ClCompile Include="OBJMaterial.cpp" />
-    <ClCompile Include="OBJMesh.cpp" />
-    <ClCompile Include="ObJNode.cpp" />
     <ClCompile Include="RootSignature.cpp" />
     <ClCompile Include="SamplerDescriptor.cpp" />
+    <ClCompile Include="VertexBuffer.cpp" />
     <ClCompile Include="Window.cpp" />
+    <ClCompile Include="WindowInput.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="App.h" />
+    <ClInclude Include="BindingPass.h" />
+    <ClInclude Include="BlurPass.h" />
+    <ClInclude Include="BoundingPlane.h" />
+    <ClInclude Include="BoundingSphere.h" />
+    <ClInclude Include="BufferManager.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="CameraEntity.h" />
+    <ClInclude Include="CameraFrustum.h" />
+    <ClInclude Include="CameraManager.h" />
+    <ClInclude Include="CameraProjector.h" />
     <ClInclude Include="Color.h" />
     <ClInclude Include="ColorBuffer.h" />
     <ClInclude Include="CommandAllocatorPool.h" />
     <ClInclude Include="CommandContext.h" />
     <ClInclude Include="CommandContextManager.h" />
+    <ClInclude Include="CommandContextResource.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="CommandQueueManager.h" />
     <ClInclude Include="CommandSignature.h" />
+    <ClInclude Include="ComponentWindow.h" />
+    <ClInclude Include="CompressedQuaternion.h" />
     <ClInclude Include="ComputeContext.h" />
     <ClInclude Include="CustomAssert.h" />
     <ClInclude Include="AssetManager.h" />
@@ -197,15 +255,61 @@
     <ClInclude Include="DDS.h" />
     <ClInclude Include="DDSTextureLoader.cpp" />
     <ClInclude Include="DepthBuffer.h" />
+    <ClInclude Include="DepthOfFieldPass.h" />
+    <ClInclude Include="DepthStencil.h" />
     <ClInclude Include="DescriptorHandle.h" />
+    <ClInclude Include="eLayoutFlags.h" />
+    <ClInclude Include="FileReader.h" />
+    <ClInclude Include="Frustum.h" />
+    <ClInclude Include="GpuTime.h" />
+    <ClInclude Include="GraphRenderer.h" />
+    <ClInclude Include="MasterRenderGraph.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="MathFunctions.inl" />
+    <ClInclude Include="IBaseCamera.h" />
+    <ClInclude Include="IDisplaySurface.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
+    <ClInclude Include="DynamicUploadBuffer.h" />
+    <ClInclude Include="Entity.h" />
+    <ClInclude Include="Job.h" />
+    <ClInclude Include="LayoutCodex.h" />
+    <ClInclude Include="MathBasic.h" />
+    <ClInclude Include="MathCommon.h" />
+    <ClInclude Include="Matrix3.h" />
+    <ClInclude Include="Matrix4.h" />
+    <ClInclude Include="ObjectFilterFlag.h" />
+    <ClInclude Include="Pass.h" />
+    <ClInclude Include="PassWindow.h" />
+    <ClInclude Include="PSOResource.h" />
+    <ClInclude Include="Quaternion.h" />
+    <ClInclude Include="RenderingResource.h" />
+    <ClInclude Include="RenderQueuePass.h" />
+    <ClInclude Include="RootSignatureResource.h" />
+    <ClInclude Include="Scalar.h" />
+    <ClInclude Include="SceneGraph.h" />
+    <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="GraphicsContext.h" />
     <ClInclude Include="IndirectParameter.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="ManagedTexture.h" />
+    <ClInclude Include="ModelPart.h" />
     <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="PSO.h" />
+    <ClInclude Include="RawBuffer.h" />
+    <ClInclude Include="RenderTarget.h" />
+    <ClInclude Include="ShadowBuffer.h" />
+    <ClInclude Include="ShadowCamera.h" />
+    <ClInclude Include="Sink.h" />
+    <ClInclude Include="Source.h" />
+    <ClInclude Include="Step.h" />
+    <ClInclude Include="SystemTime.h" />
+    <ClInclude Include="Technique.h" />
+    <ClInclude Include="TechniqueWindow.h" />
+    <ClInclude Include="TextRenderer.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="Transform.h" />
     <ClInclude Include="UAVBuffer.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="Hash.h" />
@@ -230,22 +334,28 @@
     <ClInclude Include="MyKeyboard.h" />
     <ClInclude Include="MyMouse.h" />
     <ClInclude Include="OBJAssetManager.h" />
-    <ClInclude Include="ObjectModel.h" />
-    <ClInclude Include="OBJMaterial.h" />
-    <ClInclude Include="OBJMesh.h" />
-    <ClInclude Include="ObJNode.h" />
-    <ClInclude Include="ReadyMadePSO.h" />
+    <ClInclude Include="PreMadePSO.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="RootParameter.h" />
     <ClInclude Include="RootSignature.h" />
     <ClInclude Include="SamplerDescriptor.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="SVDescriptor.h" />
-    <ClInclude Include="Timer.h" />
     <ClInclude Include="TypeDefine.h" />
+    <ClInclude Include="UpdateConstantBuffer.h" />
+    <ClInclude Include="VariableConstantBuffer.h" />
+    <ClInclude Include="Vector.h" />
+    <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="Window.h" />
+    <ClInclude Include="WindowInput.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Shader\Viewer\Pixel Shader\ModelPS_Common.hlsli" />
+    <None Include="..\Shader\Viewer\Utility\LightData.hlsli" />
+    <None Include="..\Shader\Viewer\Utility\ShadowFunctions.hlsli" />
+    <None Include="..\Shader\Viewer\Utility\ViewerRS.hlsli" />
+    <None Include="..\Shader\Viewer\Vertex Shader\ModelVS_Common.hlsli" />
+    <None Include="GeneralPurposeRS.hlsli" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -253,6 +363,52 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IconResource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Shader\SobelFilter\Composite.hlsl" />
+    <FxCompile Include="..\Shader\SobelFilter\Sobel.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_Basic.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexCoord.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexNormal.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_Basic.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexCoord.hlsl" />
+    <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexNormal.hlsl" />
+    <FxCompile Include="GeneralPurposePS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ObjectFileOutput>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename)</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ObjectFileOutput>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
+    </FxCompile>
+    <FxCompile Include="GeneralPurposeVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ObjectFileOutput>
+      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename)</VariableName>
+      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ObjectFileOutput>
+      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
@@ -262,6 +418,8 @@
     <Import Project="..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets" Condition="Exists('..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets')" />
     <Import Project="..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets" Condition="Exists('..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets')" />
     <Import Project="..\packages\WinPixEventRuntime.1.0.200127001\build\WinPixEventRuntime.targets" Condition="Exists('..\packages\WinPixEventRuntime.1.0.200127001\build\WinPixEventRuntime.targets')" />
+    <Import Project="..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets" Condition="Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" />
+    <Import Project="..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets" Condition="Exists('..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -273,5 +431,7 @@
     <Error Condition="!Exists('..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets'))" />
     <Error Condition="!Exists('..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets'))" />
     <Error Condition="!Exists('..\packages\WinPixEventRuntime.1.0.200127001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\WinPixEventRuntime.1.0.200127001\build\WinPixEventRuntime.targets'))" />
+    <Error Condition="!Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets'))" />
+    <Error Condition="!Exists('..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets'))" />
   </Target>
 </Project>

@@ -1,6 +1,6 @@
 #pragma once
+#include "stdafx.h"
 #include "Device.h"
-// #include "CommandContext.h"
 #include "DescriptorHandle.h"
 
 namespace custom
@@ -8,7 +8,7 @@ namespace custom
 	// This class is a linear allocation system for dynamically generated descriptor tables.  It internally caches
 	// CPU descriptor handles so that when not enough space is available in the current heap, necessary descriptors
 	// can be re-copied to the new heap.
-
+	class RootSignature;
 	class CommandContext;
 
 	class DynamicDescriptorHeap
@@ -58,7 +58,7 @@ namespace custom
 		}
 
 		// Bypass the cache and upload directly to the shader-visible heap
-		D3D12_GPU_DESCRIPTOR_HANDLE UploadDirect(D3D12_CPU_DESCRIPTOR_HANDLE Handles);
+		D3D12_GPU_DESCRIPTOR_HANDLE UploadDirect(D3D12_CPU_DESCRIPTOR_HANDLE Handle);
 
 		// Deduce cache layout needed to support the descriptor tables needed by the root signature.
 		void ParseGraphicsRootSignature(const custom::RootSignature& RootSig)
@@ -97,7 +97,7 @@ namespace custom
 			const std::vector<ID3D12DescriptorHeap*>& UsedHeaps
 		);
 
-		bool hasSpace(uint32_t Count)
+		bool hasSpace(uint32_t Count = 1)
 		{
 			return (m_pCurrentHeap != nullptr && m_currentOffset + Count <= kNumDescriptorsPerHeap);
 		}

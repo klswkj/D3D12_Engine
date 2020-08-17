@@ -21,9 +21,7 @@ public:
 	};
 public:
 	KeyboardEvent(Type type, unsigned char code) noexcept
-		:
-		type(type),
-		code(code)
+		: type(type), code(code)
 	{
 	}
 	bool IsPress() const noexcept
@@ -45,7 +43,6 @@ private:
 
 class MyKeyboard
 {
-	friend class Window;
 public:
 	MyKeyboard()                             = default;
 	MyKeyboard(const MyKeyboard&)            = delete;

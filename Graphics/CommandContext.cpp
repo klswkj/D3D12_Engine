@@ -9,15 +9,6 @@
 #include "UAVBuffer.h"
 #include "DynamicDescriptorHeap.h"
 
-// 
-
-
-/*
-namespace device
-{
-    extern CommandContextManager g_commandContextManager;
-}
-*/
 namespace custom
 {
     CommandContext::CommandContext(D3D12_COMMAND_LIST_TYPE Type) :
@@ -106,7 +97,7 @@ namespace custom
         bindDescriptorHeaps();
     }
 
-    inline void CommandContext::FlushResourceBarriers(void)
+    void CommandContext::FlushResourceBarriers(void)
     {
         if (m_numStandByBarriers > 0)
         {
@@ -188,7 +179,7 @@ namespace custom
             FlushResourceBarriers();
         }
     }
-
+    
     void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
     {
         D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
@@ -342,7 +333,7 @@ namespace custom
         Context.Finish(true);
     }
 
-    inline void CommandContext::CopyBuffer(GPUResource& Dest, GPUResource& Src)
+    void CommandContext::CopyBuffer(GPUResource& Dest, GPUResource& Src)
     {
         TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
         TransitionResource(Src, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -350,7 +341,7 @@ namespace custom
         m_commandList->CopyResource(Dest.GetResource(), Src.GetResource());
     }
 
-    inline void CommandContext::CopyBufferRegion
+    void CommandContext::CopyBufferRegion
     (
         GPUResource& Dest, size_t DestOffset, GPUResource& Src, 
         size_t SrcOffset, size_t NumBytes
@@ -383,7 +374,7 @@ namespace custom
         m_commandList->CopyTextureRegion(&DestLocation, 0, 0, 0, &SrcLocation, nullptr);
     }
 
-    inline void CommandContext::CopyCounter(GPUResource& Dest, size_t DestOffset, NestedBuffer& Src)
+    void CommandContext::CopyCounter(GPUResource& Dest, size_t DestOffset, StructuredBuffer& Src)
     {
         TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
         TransitionResource(Src.GetCounterBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -391,7 +382,7 @@ namespace custom
         m_commandList->CopyBufferRegion(Dest.GetResource(), DestOffset, Src.GetCounterBuffer().GetResource(), 0, 4);
     }
 
-    inline void CommandContext::ResetCounter(NestedBuffer& Buf, uint32_t Value)
+    inline void CommandContext::ResetCounter(StructuredBuffer& Buf, uint32_t Value)
     {
         FillBuffer(Buf.GetCounterBuffer(), 0, Value, sizeof(uint32_t));
         TransitionResource(Buf.GetCounterBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -434,7 +425,7 @@ namespace custom
         InitContext.Finish(true);
     }
 
-    inline void CommandContext::SetPipelineState(const PSO& PSO)
+    void CommandContext::SetPipelineState(const PSO& PSO)
     {
         ID3D12PipelineState* PipelineState = PSO.GetPipelineStateObject();
 		if (PipelineState == m_CurPipelineState)
@@ -446,7 +437,7 @@ namespace custom
         m_CurPipelineState = PipelineState;
     }
 
-    inline void CommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr)
+    void CommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr)
     {
         if (m_pCurrentDescriptorHeaps[Type] != HeapPtr)
         {
@@ -455,7 +446,7 @@ namespace custom
         }
     }
 
-    inline void CommandContext::SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[])
+    void CommandContext::SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[])
     {
         bool bAnyChanged = false;
 
@@ -474,13 +465,15 @@ namespace custom
 		}
     }
 
-    inline void CommandContext::InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, UINT QueryIdx)
+    void CommandContext::InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, UINT QueryIdx)
     {
+        // For Gpu Profiling.
         m_commandList->EndQuery(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryIdx);
     }
 
-    inline void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, UINT NumQueries)
+    void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, UINT NumQueries)
     {
+        // For Gpu Profiling.
         m_commandList->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
     }
 
@@ -505,7 +498,7 @@ namespace custom
 #endif
     }
 
-    void CommandContext::bindDescriptorHeaps(void)
+    void CommandContext::bindDescriptorHeaps()
     {
         UINT NonNullHeaps = 0;
         ID3D12DescriptorHeap* HeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
@@ -532,4 +525,6 @@ namespace custom
     {
         m_commandList->SetPredication(Buffer, BufferOffset, Op);
     }
+
+
 }

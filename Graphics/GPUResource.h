@@ -10,7 +10,7 @@
 //        弛                                         弛
 //        弛                                    ShadowBuffer
 //        戍式式式式式式式式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式成式式式式式式式式式式式式式式式式忖
-// ByteAddressBuffer        ReadyBackBuffer       TypedBuffer       NestedBuffer   TypedBuffer
+// ByteAddressBuffer        ReadyBackBuffer       TypedBuffer       StructuredBuffer   TypedBuffer
 //        弛
 // DispatchIndirectBuffer
 

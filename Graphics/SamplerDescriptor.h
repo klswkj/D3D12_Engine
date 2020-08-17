@@ -32,7 +32,7 @@ namespace custom
 			AddressW = AddressMode;
 		}
 
-		void SetBorderColor(Color Border)
+		void SetBorderColor(custom::Color Border)
 		{
 			BorderColor[0] = Border.R();
 			BorderColor[1] = Border.G();

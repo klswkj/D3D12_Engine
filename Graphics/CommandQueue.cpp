@@ -14,10 +14,10 @@ namespace custom
     }
     CommandQueue::~CommandQueue()
     {
-        CleanUp();
+        Shutdown();
     }
 
-    void CommandQueue::CleanUp()
+    void CommandQueue::Shutdown()
     {
         m_allocatorPool.~CommandAllocatorPool();
 

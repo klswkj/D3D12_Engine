@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "PSO.h"
 #include "RootSignature.h"
+#include "CommandContext.h"
 
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_graphicsPSOHashMap;
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_computePSOHashMap;
@@ -20,6 +21,15 @@ GraphicsPSO::GraphicsPSO()
     m_PSODesc.SampleDesc.Count = 1;
     m_PSODesc.InputLayout.NumElements = 0;
 }
+
+ComputePSO::ComputePSO()
+{
+    ZeroMemory(&m_PSODesc, sizeof(m_PSODesc));
+    m_PSODesc.NodeMask = 1;
+}
+
+#pragma region GraphicsPSOSetter
+
 void GraphicsPSO::SetVertexShader(const void* Binary, size_t Size)
 {
     m_PSODesc.VS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
@@ -81,15 +91,11 @@ void GraphicsPSO::SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE Topolog
     ASSERT(TopologyType != D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, "Can't draw with undefined topology");
     m_PSODesc.PrimitiveTopologyType = TopologyType;
 }
-void GraphicsPSO::SetPrimitiveRestart(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps)
-{
-    m_PSODesc.IBStripCutValue = IBProps;
-}
-void GraphicsPSO::SetRenderTargetFormat(DXGI_FORMAT RTVFormat, DXGI_FORMAT DSVFormat, UINT MsaaCount, UINT MsaaQuality)
+void GraphicsPSO::SetRenderTargetFormat(DXGI_FORMAT RTVFormat, DXGI_FORMAT DSVFormat, UINT MsaaCount /* = 1*/, UINT MsaaQuality /* = 0*/)
 {
     SetRenderTargetFormats(1, &RTVFormat, DSVFormat, MsaaCount, MsaaQuality);
 }
-void GraphicsPSO::SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFormats, DXGI_FORMAT DSVFormat, UINT MsaaCount, UINT MsaaQuality)
+void GraphicsPSO::SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFormats, DXGI_FORMAT DSVFormat, UINT MsaaCount /* = 1*/, UINT MsaaQuality /* = 0*/)
 {
     ASSERT(NumRTVs == 0 || RTVFormats != nullptr, "Null format array conflicts with non-zero length");
     for (size_t i = 0; i < NumRTVs; ++i)
@@ -119,6 +125,21 @@ void GraphicsPSO::SetInputLayout(UINT NumElements, const D3D12_INPUT_ELEMENT_DES
 	{
 		m_inputLayouts = nullptr;
 	}
+}
+void GraphicsPSO::SetIBStripCutValue(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps)
+{
+    m_PSODesc.IBStripCutValue = IBProps;
+}
+#pragma endregion GraphicsPSOSetter
+
+void GraphicsPSO::Bind(custom::CommandContext& BaseContext)
+{
+    BaseContext.SetPipelineState(*this);
+}
+
+void ComputePSO::Bind(custom::CommandContext& BaseContext)
+{
+    BaseContext.SetPipelineState(*this);
 }
 
 void GraphicsPSO::Finalize()
@@ -210,8 +231,3 @@ void ComputePSO::Finalize()
     }
 }
 
-ComputePSO::ComputePSO()
-{
-    ZeroMemory(&m_PSODesc, sizeof(m_PSODesc));
-    m_PSODesc.NodeMask = 1;
-}

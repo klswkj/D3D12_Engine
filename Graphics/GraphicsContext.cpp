@@ -11,8 +11,10 @@ namespace custom
 
     inline void GraphicsContext::SetRootSignature(const RootSignature& RootSig)
     {
-        if (RootSig.GetSignature() == m_pCurrentGraphicsRootSignature)
-            return;
+		if (RootSig.GetSignature() == m_pCurrentGraphicsRootSignature)
+		{
+			return;
+		}
 
         m_commandList->SetGraphicsRootSignature(m_pCurrentGraphicsRootSignature = RootSig.GetSignature());
 
@@ -87,7 +89,7 @@ namespace custom
 
     void GraphicsContext::SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect)
     {
-        ASSERT(rect.left < rect.right&& rect.top < rect.bottom);
+        ASSERT(rect.left < rect.right && rect.top < rect.bottom);
         m_commandList->RSSetViewports(1, &vp);
         m_commandList->RSSetScissorRects(1, &rect);
     }
@@ -288,6 +290,6 @@ namespace custom
 
     inline void GraphicsContext::DrawIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
     {
-        ExecuteIndirect(graphics::DrawIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+        ExecuteIndirect(graphics::g_DrawIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
     }
 }

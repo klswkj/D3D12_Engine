@@ -1,8 +1,239 @@
 D3D11 그대로 가고, 
 
-
 Assimp의 aiScene에서 데이터 뽑아내고, vertex, index, Material
 
 그 다음에, 리소스뷰랑, 업데이트, 타일매핑, 밉맵생성(이거 다 만들어야됨.... 어떻하냐...)->DX12TK참고도하고, 이 폴더에 Lesson4도 참고
 
 렌더링스테이지 맞게 만들어야함.
+
+/////////////////////////////
+Pass를 짜다가 느낀점
+
+어차피, 결국은 RootSignature, DescriptorTable, DescriptorRange, 
+DescriptorHeap, ResourceView, ResourceHeap(ID3D12Resource),
+D3D12_CPU_HANDLE, D3D12_GPU_HANDLE을 바인딩
+////////////////////////////////////////
+
+정의
+
+Sink        - Pass에 Source를 바인딩하는 역할(Validate 확인 역할도 하고, 디버깅역할)
+Source     - Buffer들 위에 한번더 래핑한 템플릿 클래스
+Step        - PSO의 일부만 따옴. 예를 들어, texture Raw Data, Rasterize_Desc, Transform,
+              VertexShader Code, InputLayout(Input_Element아님), PixelShader Code, 등등...
+              거의 CommandContext에 바인딩되는거의 광범위하게 바인딩함. 
+              이것들을 다 모은 것 중에 가장 작은 단위.
+              Material.cpp 참고.
+Technique - Lamertian, OutlineDraw 같은 렌더링테크닉 같은것. Step들을 한번에 모음.
+                Cube, Frustum, Material(Model)에 각자 다르게 적용됨.
+                Camera, Light 범위, ShadowMap, Phong, Solid, Shade, Outline, 
+Job          - 한 물체의 한번의 DrawCall을 담당한다.
+               Job은 Drawable(Entity)와 Step으로 나눠져 있어서, 
+               D3D12에서 어떻게 나눌지 여기서가 가장 중요!
+               Job에서 Execute할 때 Drawable->Bind, Step->Bind, DrawIndexed하는데
+               D3D12에서는 여기 아래에 써져있는게 실제로 바인딩되니까 한번더 생각해서
+               단계 나눠야함.
+Pass   -        한번의 DrawCall(실은 나눠서 할 수도있지만 보통은 한번에 드로우하는걸로, 
+                유영천님 "D3D12 최적화"PPT 참고)의 단계단계를 구성.
+                한 패스, 패스마다 모든 Entity들이 해당됨.
+                  
+Graph -         모든 이펙트, 드로우들을 한 컨테이너에 묶어서 한번에 관리.
+                Global Range것들을 여기서 모두 한꺼번에 정의하고, 컨테이너에 집어놓고.
+
+
+
+// [Execute Navigator]
+//
+// called by App.cpp
+// BlurOutlineRenderGraph : RenderGraph
+// 
+// 1.    BlurOutlineRenderGraph.Execute()-> All vector<Pass*>->Execute() ->
+//    
+// 2-1.  RenderQueuePass경우 AllbindingResource에서 DepthBuffer or RenderTarget 하나 잡음.
+// 2-2.  그 후, Pass의 binds벡터 순회해서 모두 GraphicsCommandList에 묶는거처럼 저장되어 있는거 모두 묶음.
+//       RenderTarget. DepthStencil, Sampler, Blender, ConstantBuffer, IndexBuffer, Inputlayout, NullPixelShader,
+//       ShadowSampler, Stencil, UpdateConstantBuffer, Topology, Rasterizer, ShaderCameraCBuf       ^
+//       D3D12같은 경우에는 위의 PSO조합을 모두 만들어야하겠지.                                         │
+// 3.    그 후, 아직 Pass의 vector<Job*>을 모두 순회하면서, Job->Execute()호출                         │
+//                                                                                                  │
+// 4-1.  Job에서는 Execute()가 호출되면, Drawable->bind()호출                                         │
+//       CameraIndicator, Frustum, Mesh, TestCube들의 Topology, Index, Vertex의 기본적인 것들 묶음.   │
+// 4-2.  그 다음에 Step->bind()호출해서 Bindable ─────────────────────────────────────────────────────┘
+//       Drawable을 그리기 위한 Bindable묶고 드로우함. 여기서 Execute 끝.
+
+
+// [Submit Navigator]
+// Submit은 PointLight, TestCube : public Drawable, Model에서 가장 큰 단위가 Submit을 함으로써 시작.
+// 
+// 1. PointLight::Submit()
+// 2-1. 위치 정함. 그 후, 멤버변수 SolidSphere : public Drawable의 Submit(size_t channelFilter)호출
+// 2-2. Drawable::Submit(size_t channelFilter)에서는 Technique(구체그리기) Submit(*this, channelFilter)호출
+// 2-3. Technique::Submit(const Drawable& drawable, size_t channelFilter)에서는 if (active && ((channels & channelFilter) != 0))로 
+//      imgui에서 active했는지 체크, channel(테크닉 생성시 고유값,원본그리기 or 그림자그리기)에서는 
+//      원본 그리기 인지, 그림자 그리기인지 체크해서, Step.Submit(Drawable) 호출
+// 3.   Step에서는 pTargetPass->Accept(Rgph::Job{ this, &drawable }) 호출해서,
+//      Step에 해당되는 Pass에 Job을 (Step, Drawable)을 페어로 짝지어서 Accept시킴.
+// 4.   RenderQueuePass에서는 해당되는 Job들을 모두 Vector안에 저장.
+// *.   후에 RenderGraph에서는 Execute하고, Execute는 모든 ChildPasses들을 Execute. 
+//      RenderQueuePass에서는 Job들을 모두 Execute함.
+//      Job::Execute() ┌─ pDrawable->Bind(gfx);
+//                     └─ pStep->Bind(gfx);
+
+// * Submit할 때, Drawable::Submit을 거치면 다 똑같은 순서 거침.
+
+// [ Model::Accept Navigator ]
+// 1. Accept는 ModelProbe(ComponentWindow)내에서 Model이 Model::Accept(*this[ModelProbe])를 호출하면서 시작.
+// 2. Model의 pRoot(Node[ModelPart])가 Node::Accept(ModelProbe)호출.
+// 3. 그러면 Model의 하위 노드들 모두 PushNode(Recursive)로 있는지 확인한 후, Vector<Node>들 모두 Push.
+// 4. Imgui로 원소들 세팅후. Technique::Accept호출.
+
+
+
+// 코딩원칙.
+// 1. 효율적 네이밍, 제한 키워드로 코드 가독성(코드 이름만 봐도 그 안의 내용을 안봐도 된다!.) 높여, 코딩스탠다드를 잘지키기.
+// 2. ASSERT나, 할당할 떄, 반드시 커스텀된 전술한 것들을 사용.
+// 3. 기본적으로 제공되는 D3D12 API들은 별도의 클래스나 구조체로, 디버깅하기 쉽게 관리.
+// 4. (먼저 내가 원하는 기능을 설계하고, 미리 만들어놓은 클래스, 구조체를 조립)
+
+
+D3D12엔진개발-CommandList 사용 실수       pixelShader null
+https://megayuchi.com/2016/01/24/1412/
+
+/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////
+
+Position, P2, DXGI_FORMAT_R32G32_FLOAT, XMFLOAT2
+Position, P3, DXGI_FORMAT_R32G32B32_FLOAT, XMFLOAT3
+Texcoord, T2, DXGI_FORMAT_R32G32_FLOAT, XMFLOAT2
+Normal, N, DXGI_FORMAT_R32G32B32_FLOAT, XMFLOAT3
+Tangent, Nt, DXGI_FORMAT_R32G32B32_FLOAT, XMFLOAT3
+Bitangent, Nb, DXGI_FORMAT_R32G32B32_FLOAT, XMFLOAT3
+Color, C4, DXGI_FORMAT_R32G32B32A32_FLOAT, XMFLOAT4
+Color, C8, DXGI_FORMAT_R8G8B8A8_UNORM, BGRAColor
+!INVALID!, !INV!, DXGI_FORMAT_UNKOWN, long double
+
+POSITION, TEXCOORD, NORMAL, TANGENT, BITANGENT
+
+
+/*
+#include "ReadyMadePSO.h"
+
+
+class MyKeyboard;
+class MyMouse;
+
+class DescriptorHeapAllocator;
+
+#include "MyKeyboard.h"
+#include "MyMouse.h"
+
+#include "RootParameter.h"
+#include "RootSignature.h"
+#include "Color.h"
+
+#include "SamplerDescriptor.h"
+#include "DescriptorHeapManager.h"
+#include "SamplerManager.h"
+
+#include "GPUResource.h"
+#include "PixelBuffer.h"
+#include "UAVBuffer.h"
+
+#include "LinearAllocationPage.h"
+#include "LinearAllocator.h"
+
+#include "CommandContext.h"
+#include "DDSTextureLoader.cpp"
+#include "Texture.h"
+#include "TextureManager.h"
+
+#include "CommandAllocatorPool.h"
+#include "CommandQueue.h"
+#include "CommandQueueManager.h"
+
+#include "DescriptorHandle.h"
+#include "DescriptorHeap.h"
+#include "SVDescriptor.h"
+#include "GraphicsDeviceManager.h"
+
+#include "CommandContextManager.h"
+
+#include "Graphics.h"
+#include "Window.h"
+
+struct pair_hash
+{
+	template <class T1, class T2>
+	std::size_t operator() (const std::pair<T1, T2>& pair) const
+	{
+		return (std::hash<T1>()(pair.first) ^ std::hash<T2>()(pair.second)) << (std::hash<T2>()((pair.second) | 0xff));
+	}
+};
+
+struct GraphicsPSOHash
+{
+	GraphicsPSOHash() = default;
+	GraphicsPSOHash(D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
+	{
+		pRootSignature = reinterpret_cast<uint64_t>(desc.pRootSignature);
+		VS = desc.VS.BytecodeLength;
+		PS = desc.PS.BytecodeLength;
+		DS = desc.DS.BytecodeLength;
+		HS = desc.HS.BytecodeLength;
+
+		BlendState = (desc.BlendState.RenderTarget[0].BlendEnable << 17ull)   |
+			         (desc.BlendState.RenderTarget[0].LogicOpEnable << 16ull) |
+			         (desc.BlendState.RenderTarget[0].BlendOp << 13ull)       |
+			         (desc.BlendState.RenderTarget[0].BlendOpAlpha << 10ull)  |
+			         (desc.BlendState.RenderTarget[0].SrcBlend << 5ull)       |
+			         (desc.BlendState.RenderTarget[0].DestBlend);
+
+		DepthStencilState = (desc.DepthStencilState.DepthEnable << 4ull)    |
+						    (desc.DepthStencilState.DepthWriteMask << 3ull) |
+						    (desc.DepthStencilState.DepthFunc - 1ull);
+
+		RasterizerState = (desc.RasterizerState.FillMode) << 30ull |
+						  (desc.RasterizerState.CullMode) << 28ull |
+						  (desc.RasterizerState.MultisampleEnable) << 27ull |
+						  (desc.RasterizerState.FrontCounterClockwise) << 26ull |
+						  (*reinterpret_cast<uint64_t*>(&desc.RasterizerState.SlopeScaledDepthBias) >> 19ull) << 13ull |
+						  (*reinterpret_cast<uint64_t*>(&desc.RasterizerState.DepthBias) >> 19ull);
+
+        InputLayout     = *reinterpret_cast<uint64_t*>(&desc.InputLayout.pInputElementDescs);
+		RTVFormat       = *desc.RTVFormats;
+		DSVFormat       = desc.DSVFormat;
+		PrimitiveTopologyType = desc.PrimitiveTopologyType;
+	}
+	union
+	{
+		// http://timjones.io/blog/archive/2015/09/02/parsing-direct3d-shader-bytecode
+		struct
+		{
+			uint64_t pRootSignature : 8;           // 32 or 64 -> 8    (8)
+			uint64_t VS : 8;                       // 4k -> 8          (16)
+			uint64_t PS : 8;                       // 4k -> 8          (24)
+			uint64_t DS : 8;                       // 4k -> 8          (32)
+			uint64_t HS : 8;                       // 4k -> 8          (40)
+			uint64_t BlendState            : 18;   // 2 + 44 -> 8     (58)
+			uint64_t DepthStencilState     : 5;    // DepthEnable(1), DepthWriteMask(1), DepthFunc(3) -> 5 (63)
+			uint64_t RasterizerState       : 31;   // Fillmode(1), CullMode(2), MultiSamplerEnable(1) 
+												   // FrontCounterClockwise(1), sloperScaledDepthBias(13), DepthBias(13) -> 31 (94)
+			uint64_t InputLayout           : 8;    // 32 or 64 -> 9    (102)
+			uint64_t RTVFormat             : 8;    // 9 -> 8           (110)
+			uint64_t DSVFormat             : 8;    // 9 -> 8           (118)
+			uint64_t PrimitiveTopologyType : 3;    // 3 -> 3           (121)
+			uint64_t _Pad7 : 7;
+		};
+		struct
+		{
+			uint64_t Hash0;
+			uint64_t Hash1;
+		};
+	};
+};
+
+struct RootSignatureHash
+{
+	// RootSignature는 D3D12 Device 내부적으로 똑같은게 있으면, RefCount 올려주고 같은 걸 넘겨주므로 패스
+};
+
+*/

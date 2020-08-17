@@ -1,3 +1,0 @@
-Techinique : Rendering Techinque
-
-and whereunder Step : ex) generate mask, actually draw outline. One Techinque has couple of step.

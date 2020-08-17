@@ -1,5 +1,4 @@
 
-
 1. MS쪽에서 정의한 구조체는 사용목적으로 덧붙여서 기존 구조체의 이름이 반드시 들어가게끔 다시 재정의한다.
 ID3D12Resource -> CONSTANT_BUFFER_POST_EFFECT
 

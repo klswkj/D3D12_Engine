@@ -50,7 +50,7 @@ public:
 	}
 
 private:
-	std::vector<std::unique_ptr<custom::CommandContext> > sm_ContextPool[4];
+	std::vector<std::unique_ptr<custom::CommandContext>> sm_ContextPool[4];
 	std::queue<custom::CommandContext*> sm_AvailableContexts[4];
 	std::mutex sm_ContextAllocationMutex;
 };

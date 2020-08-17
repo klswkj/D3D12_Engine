@@ -16,6 +16,7 @@ namespace window
 		BOOL g_fullscreen = false, 
 		int ShowWnd = 1
 	);
+
 	HWND				GetWindowHandle() noexcept;
 	void				StartMessagePump(std::function<void()> callback);
 
@@ -30,13 +31,14 @@ namespace window
 	void hideCursor() noexcept;
 	void enableImGuiMouse() noexcept;
 	void disableImGuiMouse() noexcept;
+	// extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	extern HWND g_hWnd;
 
 	std::vector<byte> rawInputData;
 
-	MyKeyboard        g_Keyboard;
-	MyMouse           g_Mouse;
+	extern MyKeyboard        g_Keyboard;
+	extern MyMouse           g_Mouse;
 
 	constexpr static BOOL		g_fullscreen{ false };
 	static BOOL                 g_bCursorEnabled{ true };

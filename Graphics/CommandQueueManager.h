@@ -15,7 +15,7 @@ public:
     CommandQueueManager();
     ~CommandQueueManager()
     {
-        CleanUp();
+        Shutdown();
     }
 
     void Create(ID3D12Device* pDevice);
@@ -27,11 +27,11 @@ public:
         D3D12_COMMAND_LIST_TYPE Type
     );
 
-    void CleanUp()
+    void Shutdown()
     {
-        m_graphicsCommandQueue.CleanUp();
-        m_computeCommandQueue.CleanUp();
-        m_copyCommandQueue.CleanUp();
+        m_graphicsCommandQueue.Shutdown();
+        m_computeCommandQueue.Shutdown();
+        m_copyCommandQueue.Shutdown();
     }
 
     custom::CommandQueue& GetGraphicsQueue() 
