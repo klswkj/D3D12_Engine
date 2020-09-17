@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "MyMouse.h"
 
 POINT MyMouse::GetPos() const noexcept

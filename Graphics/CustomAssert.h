@@ -59,7 +59,7 @@ namespace AssertInternal
 #ifndef RELEASE
     inline void PrintSubMessage(const char* format, ...)
     {
-        Print("--> ");
+        // Print("--> ");
         char buffer[256];
         va_list ap;
         va_start(ap, format);
@@ -69,7 +69,7 @@ namespace AssertInternal
     }
     inline void PrintSubMessage(const wchar_t* format, ...)
     {
-        Print("--> ");
+        // Print("--> ");
         wchar_t buffer[256];
         va_list ap;
         va_start(ap, format);

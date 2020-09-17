@@ -20,7 +20,7 @@ public:
 	void SetRotation(const DirectX::XMFLOAT3& RollPitchYaw);
 
 	void Submit(eObjectFilterFlag Filter) const;
-	void LinkTechniques(/*Rgph::RenderGraph& rg*/);
+	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
 	void Reset();
 private:
 	float m_aspectHeightOverWidth;

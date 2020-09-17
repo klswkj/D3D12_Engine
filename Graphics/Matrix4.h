@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstdio>
 #include "Transform.h"
 
 namespace Math

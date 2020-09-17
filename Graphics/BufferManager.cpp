@@ -1,8 +1,11 @@
 #include "stdafx.h"
+
 #include "BufferManager.h"
 #include "CommandContext.h"
+
 #include "Window.h"
 #include "Graphics.h"
+#include "Color.h"
 
 namespace bufferManager
 {
@@ -15,11 +18,13 @@ namespace bufferManager
      ColorBuffer  g_VelocityBuffer;    // R10G10B10  (3D velocity)
      ShadowBuffer g_ShadowBuffer;
 
-     ColorBuffer g_SSAOFullScreen;    // R8_UNORM
+     ColorBuffer g_StencilBuffer;
+
+     ColorBuffer g_SSAOFullScreen(custom::Color(1.0f, 1.0f, 1.0f));    // R8_UNORM
      ColorBuffer g_LinearDepth[2];    // Normalized planar distance (0 at eye, 1 at far plane) computed from the SceneDepthBuffer
-     ColorBuffer g_MinMaxDepth8;        // Min and max depth values of 8x8 tiles
-     ColorBuffer g_MinMaxDepth16;        // Min and max depth values of 16x16 tiles
-     ColorBuffer g_MinMaxDepth32;        // Min and max depth values of 16x16 tiles
+     ColorBuffer g_MinMaxDepth8;      // Min and max depth values of 8x8 tiles
+     ColorBuffer g_MinMaxDepth16;     // Min and max depth values of 16x16 tiles
+     ColorBuffer g_MinMaxDepth32;     // Min and max depth values of 16x16 tiles
      ColorBuffer g_DepthDownsize1;
      ColorBuffer g_DepthDownsize2;
      ColorBuffer g_DepthDownsize3;
@@ -63,12 +68,22 @@ namespace bufferManager
      custom::ByteAddressBuffer g_Histogram;
      custom::ByteAddressBuffer g_FXAAWorkCounters;
      custom::ByteAddressBuffer g_FXAAWorkQueue;
-     custom::TypedBuffer g_FXAAColorQueue;
+     custom::TypedBuffer g_FXAAColorQueue(DXGI_FORMAT_R11G11B10_FLOAT);
 
      // For testing GenerateMipMaps()
      ColorBuffer g_GenMipsBuffer;
 
-     constexpr static DXGI_FORMAT DefaultColorFormat{ DXGI_FORMAT_R11G11B11_FLOAT };
+     std::vector<LightData>     g_Lights;
+     std::vector<Math::Matrix4> g_LightShadowMatrixes;
+
+     custom::StructuredBuffer   g_LightBuffer;      // lightBuffer         : register(t66);
+     ColorBuffer                g_LightShadowArray; // lightShadowArrayTex : register(t67);
+     ShadowBuffer               g_CumulativeShadowBuffer;
+
+     custom::ByteAddressBuffer  g_LightGrid;        // lightGrid           : register(t68);
+     custom::ByteAddressBuffer  g_LightGridBitMask; // lightGridBitMask    : register(t69);
+
+     constexpr static DXGI_FORMAT DefaultColorFormat{ DXGI_FORMAT_R11G11B10_FLOAT };
 }
 
 void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
@@ -93,7 +108,7 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
         bufferHeight[i] = bufferHeight[i - 1] >> 1;
     }
 
-    custom::GraphicsContext graphicsContext = custom::GraphicsContext::Begin(L"Buffer Manager Initialize");
+    custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(L"Buffer Manager Initialize");
 
     g_SceneColorBuffer.Create(L"Main Color Buffer", bufferWidth[0], bufferHeight[0], 1, DefaultColorFormat);
     g_VelocityBuffer.Create(L"Motion Vectors", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R32_UINT);
@@ -107,7 +122,7 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
 
     g_SceneDepthBuffer.Create(L"Scene Depth Buffer", bufferWidth[0], bufferHeight[0], DXGI_FORMAT_D32_FLOAT);
 
-    g_SSAOFullScreen.Create(L"SSAO Full Res", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R8_UNORM);
+    g_SSAOFullScreen.Create(L"SSAO Full Resolution", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R8_UNORM);
 
     g_DepthDownsize1.Create(L"Depth Down-Sized 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R32_FLOAT);
     g_DepthDownsize2.Create(L"Depth Down-Sized 2", bufferWidth[2], bufferHeight[2], 1, DXGI_FORMAT_R32_FLOAT);
@@ -130,6 +145,8 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_AOHighQuality4.Create(L"AO High Quality 4", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R8_UNORM);
 
     g_ShadowBuffer.Create(L"Shadow Map", 2048, 2048);
+
+    g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_B8G8R8A8_UNORM);
 
     g_DoFTileClass[0].Create(L"DoF Tile Classification Buffer 0", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
     g_DoFTileClass[1].Create(L"DoF Tile Classification Buffer 1", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
@@ -179,7 +196,7 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_OverlayBuffer.Create(L"UI Overlay", window::g_windowWidth, window::g_windowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
     g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_windowWidth, bufferHeight[0], 1, DefaultColorFormat);
 
-    graphicsContext.Finish();
+    ((custom::CommandContext)graphicsContext).Finish();
 }
 
 void bufferManager::DestroyRenderingBuffers()

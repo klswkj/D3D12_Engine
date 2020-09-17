@@ -1,16 +1,22 @@
+#include "stdafx.h"
 #include "PreMadePSO.h"
+#include "Color.h"
 
 namespace premade
 {
-    custom::SamplerDescriptor g_SamplerLinearWrapDesc;
-    custom::SamplerDescriptor g_SamplerAnisotropyWrapDesc;
-    custom::SamplerDescriptor g_SamplerShadowDesc;
-    custom::SamplerDescriptor g_SamplerLinearClampDesc;
-    custom::SamplerDescriptor g_SamplerVolumeWrapDesc;
-    custom::SamplerDescriptor g_SamplerPointClampDesc;
-    custom::SamplerDescriptor g_SamplerPointBorderDesc;
-    custom::SamplerDescriptor g_SamplerLinearBorderDesc;
+    using namespace custom;
+    
+    SamplerDescriptor g_DefaultSamplerDesc;
+    SamplerDescriptor g_SamplerLinearWrapDesc;
+    SamplerDescriptor g_SamplerAnisotropyWrapDesc;
+    SamplerDescriptor g_SamplerShadowDesc;
+    SamplerDescriptor g_SamplerLinearClampDesc;
+    SamplerDescriptor g_SamplerVolumeWrapDesc;
+    SamplerDescriptor g_SamplerPointClampDesc;
+    SamplerDescriptor g_SamplerPointBorderDesc;
+    SamplerDescriptor g_SamplerLinearBorderDesc;
 
+    D3D12_CPU_DESCRIPTOR_HANDLE g_DefaultSampler;
     D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerLinearWrap;
     D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerAnisotropyWrap;
     D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerShadow;
@@ -22,11 +28,11 @@ namespace premade
 
     D3D12_INPUT_ELEMENT_DESC g_InputElements[5];
 
-    D3D12_INPUT_ELEMENT_DESC& g_InputElementPosition;
-    D3D12_INPUT_ELEMENT_DESC& g_InputElementTexcoord;
-    D3D12_INPUT_ELEMENT_DESC& g_InputElementNormal;
-    D3D12_INPUT_ELEMENT_DESC& g_InputElementTangent;
-    D3D12_INPUT_ELEMENT_DESC& g_InputElementBitangent;
+    D3D12_INPUT_ELEMENT_DESC& g_InputElementPosition = g_InputElements[0];
+    D3D12_INPUT_ELEMENT_DESC& g_InputElementTexcoord = g_InputElements[1];
+    D3D12_INPUT_ELEMENT_DESC& g_InputElementNormal = g_InputElements[2];
+    D3D12_INPUT_ELEMENT_DESC& g_InputElementTangent = g_InputElements[3];
+    D3D12_INPUT_ELEMENT_DESC& g_InputElementBitangent = g_InputElements[4];
 
     D3D12_RASTERIZER_DESC g_RasterizerDefault;    // Counter-clockwise
     D3D12_RASTERIZER_DESC g_RasterizerDefaultWire;
@@ -40,21 +46,25 @@ namespace premade
     D3D12_RASTERIZER_DESC g_RasterizerShadowCW;
     D3D12_RASTERIZER_DESC g_RasterizerShadowTwoSided;
 
-    ::D3D12_BLEND_DESC g_BlendNoColorWrite;
-    ::D3D12_BLEND_DESC g_BlendDisable;
-    ::D3D12_BLEND_DESC g_BlendPreMultiplied;
-    ::D3D12_BLEND_DESC g_BlendTraditional;
-    ::D3D12_BLEND_DESC g_BlendAdditive;
-    ::D3D12_BLEND_DESC g_BlendTraditionalAdditive;
+    D3D12_BLEND_DESC g_BlendNoColorWrite;
+    D3D12_BLEND_DESC g_BlendDisable;
+    D3D12_BLEND_DESC g_BlendPreMultiplied;
+    D3D12_BLEND_DESC g_BlendTraditional;
+    D3D12_BLEND_DESC g_BlendAdditive;
+    D3D12_BLEND_DESC g_BlendTraditionalAdditive;
 
     D3D12_DEPTH_STENCIL_DESC g_DepthStateDisabled;
     D3D12_DEPTH_STENCIL_DESC g_DepthStateReadWrite;
     D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnly;
+    D3D12_DEPTH_STENCIL_DESC g_StencilStateWriteOnly;
     D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnlyReversed;
     D3D12_DEPTH_STENCIL_DESC g_DepthStateTestEqual;
 
     void Initialize()
     {
+        g_DefaultSamplerDesc.MaxAnisotropy = 8;
+        g_DefaultSampler = g_DefaultSamplerDesc.RequestHandle();
+
         g_SamplerLinearWrapDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         g_SamplerLinearWrap = g_SamplerLinearWrapDesc.RequestHandle();
 
@@ -79,12 +89,12 @@ namespace premade
 
         g_SamplerLinearBorderDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
         g_SamplerLinearBorderDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_BORDER);
-        g_SamplerLinearBorderDesc.SetBorderColor(custom::Color(0.0f, 0.0f, 0.0f, 0.0f));
+        g_SamplerLinearBorderDesc.SetBorderColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
         g_SamplerLinearBorder = g_SamplerLinearBorderDesc.RequestHandle();
 
         g_SamplerPointBorderDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
         g_SamplerPointBorderDesc.SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE_BORDER);
-        g_SamplerPointBorderDesc.SetBorderColor(custom::Color(0.0f, 0.0f, 0.0f, 0.0f));
+        g_SamplerPointBorderDesc.SetBorderColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
         g_SamplerPointBorder = g_SamplerPointBorderDesc.RequestHandle();
 
         // Default rasterizer states
@@ -159,6 +169,14 @@ namespace premade
         g_DepthStateTestEqual = g_DepthStateReadOnly;
         g_DepthStateTestEqual.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 
+        // Here
+        g_StencilStateWriteOnly.DepthEnable = FALSE;
+        g_StencilStateWriteOnly.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        g_StencilStateWriteOnly.StencilEnable = TRUE;
+        g_StencilStateWriteOnly.StencilReadMask = 0xFF;
+        g_StencilStateWriteOnly.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+        g_StencilStateWriteOnly.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+
         D3D12_BLEND_DESC alphaBlend = {};
         alphaBlend.IndependentBlendEnable = FALSE;
         alphaBlend.RenderTarget[0].BlendEnable = FALSE;
@@ -193,5 +211,7 @@ namespace premade
         g_InputElements[4] = g_InputElementBitangent = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
     }
 
-    void Shutdown() {}
+    void Shutdown() 
+    {
+    }
 }

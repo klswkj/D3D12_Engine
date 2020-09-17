@@ -17,10 +17,6 @@ namespace graphics
     void Terminate();
     void ShutDown();
 
-    uint64_t GetFrameCount();
-    float GetFrameTime();
-    float GetFrameRate();
-
     // Device
     /*
     extern ID3D12Device* g_Device;
@@ -38,7 +34,8 @@ namespace graphics
     }
     */
 
-    extern custom::RootSignature g_GenerateMipsRS;
+    extern custom::RootSignature g_GenerateMipsRootSignature;
+    extern custom::RootSignature g_PresentRootSignature;
     extern ComputePSO            g_GenerateMipsLinearPSO[4];
     extern ComputePSO            g_GenerateMipsGammaPSO[4];
 

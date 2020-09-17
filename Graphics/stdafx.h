@@ -2,7 +2,11 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+
+#if 201402L < __cplusplus
+// See : https://docs.microsoft.com/en-us/cpp/build/reference/zc-cplusplus?view=vs-2019
 #include <filesystem>
+#endif
 
 #include <windowsx.h>
 #include <Windows.h>
@@ -34,6 +38,7 @@
 #include <dwrite_2.h>
 #include <d2d1_3.h>
 
+#include <dxgiformat.h>
 #include <dxgi1_4.h>
 #include <d3d12.h>
 #include "d3dx12.h"
@@ -61,6 +66,12 @@
 #include "TypeDefine.h"
 #include "CustomAssert.h"
 
+#if defined(DEBUG) || defined(_DEBUG)
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+#endif
+
 #define DEBUG_EXCEPT noexcept(!_DEBUG)
 
 #define D3D11
@@ -70,6 +81,10 @@
 
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
+
+#ifndef _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
+#define _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
+#endif
 
 template<typename T>
 inline void SafeRelease(T*& rpInterface)
@@ -100,15 +115,20 @@ inline void SafeDelete(T*& rpObject)
 void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t NumQuadwords);
 void SIMDMemFill(void* __restrict _Dest, __m128 FillVector, size_t NumQuadwords);
 
-
 template<class Iter>
 void SplitStringIter(const std::string& s, const char* delim, Iter out);
 std::vector<std::string> SplitString(const std::string& s, const char* delim);
-inline std::wstring StringToWString(const std::string& str); // inline std::wstringAnsiToWString(const std::string& str);
-inline std::wstring AnsiToWString(const char* str);
+std::wstring StringToWString(const std::string& str); // inline std::wstringAnsiToWString(const std::string& str);
+std::wstring AnsiToWString(const char* str);
 void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t LineNumber);
 
-#if defined (_DEBUG)
+DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix);
+
+DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix);
+
+DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale);
+
+#ifndef RELEASE
 #define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
 #else
 #define SET_NAME(X) {}

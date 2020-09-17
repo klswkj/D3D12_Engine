@@ -4,28 +4,8 @@
 #include "device.h"
 #include "RenderingResource.h"
 #include "CommandContext.h"
-#include "GraphicsContext.h"
+
 #include "DynamicUploadBuffer.h"
-
-// 원래 용도 : 
-// VerticalBlurPass, HorizontalBlurPass  std::shared_ptr<Bind::CachingPixelConstantBufferEx> direction;
-// 
-// TestCube auto buf = Dcb::Buffer(std::move(lay));
-//          buf["color"] = DirectX::XMFLOAT4{ 1.0f,0.4f,0.4f,1.0f };
-//          draw.AddBindable(std::make_shared<Bind::CachingPixelConstantBufferEx>(gfx, buf, 1u));
-//
-// Material buf["useNormalMap"].SetIfExists(true);
-//          buf["normalMapWeight"].SetIfExists(1.0f);
-//          step.AddBindable(std::make_unique<Bind::CachingPixelConstantBufferEx>(gfx, std::move(buf), 1u));
-//
-// MasterRenderGraph  std::shared_ptr<Bind::CachingPixelConstantBufferEx> blurKernel;      // Imgui coefficient
-//                    std::shared_ptr<Bind::CachingPixelConstantBufferEx> blurDirection;   // Imgui coefficient
-
-// UpdateConstantBuffer -> LinearAllocationPage : public GPUResource 
-//                      -> DynamicUploadBuffer
-//                      -> ReadBackBuffer이거는 좀 아닌듯.
-
-// UpdateConstantBuffer부터 개조 시작.
 
 class UpdateConstantBuffer : public RenderingResource
 {
@@ -155,46 +135,3 @@ private:
 	bool bDirty = false;
 	RawBuffer rawBuffer;
 };
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-class CachingVertexConstantBufferEx : public UpdateVertexConstantBuffer
-{
-public:
-	CachingVertexConstantBufferEx(const ManagedLayout& layout, UINT slot)
-		: UpdateVertexConstantBuffer(*layout.ShareRoot(), slot, nullptr), rawBuffer(RawBuffer(layout))
-	{
-	}
-	CachingVertexConstantBufferEx(const RawBuffer& _RawBuffer, UINT slot)
-		: UpdateVertexConstantBuffer(_RawBuffer.GetRootLayoutElement(), slot, &_RawBuffer), rawBuffer(_RawBuffer)
-	{
-	}
-	const IPolymorphData& GetRootLayoutElement() const noexcept override
-	{
-		return rawBuffer.GetRootLayoutElement();
-	}
-	const RawBuffer& GetBuffer() const noexcept
-	{
-		return rawBuffer;
-	}
-	void SetBuffer(const RawBuffer& buf_in)
-	{
-		rawBuffer.CopyFrom(buf_in);
-		dirty = true;
-	}
-	void Bind() DEBUG_EXCEPT override
-	{
-		if (dirty)
-		{
-			UpdateVertexConstantBuffer::Update(rawBuffer);
-			dirty = false;
-		}
-		UpdateVertexConstantBuffer::Bind();
-	}
-private:
-	bool dirty = false;
-	RawBuffer rawBuffer;
-};
-*/

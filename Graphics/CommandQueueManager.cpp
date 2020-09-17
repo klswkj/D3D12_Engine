@@ -16,6 +16,8 @@ void CommandQueueManager::Create(ID3D12Device* pDevice)
 {
     ASSERT(pDevice != nullptr);
 
+    m_pDevice = pDevice;
+
     m_graphicsCommandQueue.Create(pDevice);
     m_computeCommandQueue.Create(pDevice);
     m_copyCommandQueue.Create(pDevice);

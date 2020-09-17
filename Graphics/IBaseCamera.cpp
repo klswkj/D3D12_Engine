@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "IBaseCamera.h"
 #include "Quaternion.h"
 
@@ -5,8 +6,12 @@ void IBaseCamera::Update()
 {
 	m_PreviousViewProjMatrix = m_ViewProjMatrix;
 
+	// Same as  DirectX::XMMatrixLookToLH(DirectX::XMVECTOR(position), DirectX::XMVECTOR(orientation.GetZ()), DirectX::XMVECTOR(orientation.GetY()));
+	// ~m_CameraToWorld <-> m_CameraToWorld
 	const Math::Matrix4 ViewMatrix = Math::Matrix4(~m_CameraToWorld);
 
+	// m_ViewProjMatrix = ViewMatrix * m_ProjMatrix; -> Black
+	// m_ViewProjMatrix = Frustum * ViewMatrix
 	m_ViewProjMatrix = m_ProjMatrix * ViewMatrix;
 	// m_ViewProjMatrix = DirectX::XMMatrixLookToLH
 	// (
@@ -35,6 +40,7 @@ void IBaseCamera::SetLookDirection(Math::Vector3 forward, Math::Vector3 up)
 	Math::Vector3 right = Cross(forward, up);
 	Math::Scalar rightLenSq = LengthSquare(right);
 	right = Select(right * RecipSqrt(rightLenSq), Math::Quaternion(Math::Vector3(Math::EYUnitVector::kYUnitVector), -DirectX::XM_PIDIV2) * forward, rightLenSq < Math::Scalar(0.000001f));
+	//             Vec3  *  Salar               , Quaternion * forward => XMVector3Rotate(forward, Quat),
 
 	// Compute actual up vector
 	up = Cross(right, forward);

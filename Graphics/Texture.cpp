@@ -168,6 +168,7 @@ namespace custom
         ASSERT_HR(hr, "Invalid Creating WIC Request from ", fileName, ".");
 
         CommandContext::InitializeTexture(*this, 1, &subresource);
+
         if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
 			m_hCpuDescriptorHandle = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);

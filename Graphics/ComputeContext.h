@@ -12,7 +12,7 @@ namespace custom
 
         void SetRootSignature(const RootSignature& RootSig);
 
-        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants);
+        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset = 0);
         void SetConstant(UINT RootIndex, UINT Val, UINT Offset = 0);
         void SetConstants(UINT RootIndex, uint32_t size, ...);
 

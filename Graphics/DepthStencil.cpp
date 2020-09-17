@@ -1,9 +1,12 @@
 #include "stdafx.h"
 #include "DepthStencil.h"
 #include "DepthBuffer.h"
-#include "GraphicsContext.h"
+
 #include "ShadowBuffer.h"
 #include "RenderTarget.h"
+#include "Matrix4.h"
+#include "ShaderConstantsTypeDefinitions.h"
+#include "ObjectFilterFlag.h"
 
 DepthStencil::DepthStencil(ShadowBuffer& shadowBuffer)
 	: m_DepthBuffer(shadowBuffer) {}
@@ -12,7 +15,7 @@ void DepthStencil::BindAsBuffer(custom::CommandContext& BaseContext) DEBUG_EXCEP
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.TransitionResource(m_DepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.SetDepthStencilTarget(GetDSV());
+	graphicsContext.SetOnlyDepthStencil(GetDSV());
 }
 
 void DepthStencil::BindAsBuffer(custom::CommandContext& BaseContext, IDisplaySurface* _RenderTarget) DEBUG_EXCEPT
@@ -34,18 +37,27 @@ DepthBuffer& DepthStencil::GetDepthBuffer()
 { 
 	return m_DepthBuffer; 
 }
-D3D12_CPU_DESCRIPTOR_HANDLE& DepthStencil::GetDSV()
+
+const D3D12_CPU_DESCRIPTOR_HANDLE& DepthStencil::GetDSV()
 { 
-	m_DepthBuffer.GetDSV_DepthReadOnly(); 
+	return m_DepthBuffer.GetDSV_DepthReadOnly(); 
+}
+
+void ShaderInputDepthStencil::SetMatrix(Math::Matrix4& ViewProjMatrix)
+{
+	m_ViewProjMatrix = ViewProjMatrix;
 }
 
 void ShaderInputDepthStencil::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
-	// TODO : 여기 RootSignature랑 PSO 언제 받아야할지 감이 안오네.
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
-	graphicsContext.TransitionResource(m_DepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	graphicsContext.SetDynamicDescriptor((m_IndexBitMap >> 6) & 0x3f, m_IndexBitMap & 0x3f, m_DepthBuffer.GetSRV());
+	VSConstants vsConstants;
+	vsConstants.modelToProjection = m_ViewProjMatrix;                   // TODO : 
+	// vsConstants.modelToShadow = m_SunShadow.GetShadowMatrix();       !!!!!!!!!!!!!!!!!!!!!!!!!!!! ShadowCamera 어떻게???????
+	// XMStoreFloat3(&vsConstants.viewerPos, m_Camera.GetPosition());   !!!!!!!!!!!!!!!!!!!!!!!!!!!! CameraPosition 어떻게?????
+
+	graphicsContext.SetDynamicConstantBufferView(0, sizeof(vsConstants), &vsConstants);
 }
 
 void OutputOnlyDepthStencil::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT

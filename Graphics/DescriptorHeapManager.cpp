@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "DescriptorHeapManager.h"
 
 std::mutex DescriptorHeapAllocator::sm_AllocationMutex;

@@ -69,7 +69,7 @@ private:
     std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deletionQueue;
 
     LinearAllocatorType m_allocationType;
-    // std::mutex m_Mutex;
+    std::mutex m_Mutex;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +107,7 @@ public:
         std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deletionQueue;
 
         LinearAllocatorType m_allocationType;
-        // std::mutex m_Mutex;
+        std::mutex m_Mutex;
     }; // class LinearAllocationPageManager
 
     LinearAllocator(LinearAllocatorType Type)

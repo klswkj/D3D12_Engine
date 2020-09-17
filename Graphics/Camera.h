@@ -4,6 +4,7 @@
 #include "CameraProjector.h"
 
 enum class eObjectFilterFlag;
+class MasterRenderGraph;
 
 #ifndef BOOL
 #define BOOL int
@@ -12,13 +13,14 @@ enum class eObjectFilterFlag;
 // Camera ─┬─ CameraProjector ── CameraFrustum 
 //         └  CameraEntity (the thing that made of line list.)
 
-// TODO : LinkTechniques(), Submit(), GetName() 구현
+// TODO : Submit(), GetName() 구현
 class Camera : public IBaseCamera
 {
 public:
 	using IBaseCamera::IBaseCamera;
 
-	Camera();
+	Camera(char* Name = nullptr, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
+	Camera(const char* Name = nullptr, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
 
 	// Controls the view-to-projection matrix
 	void SetPerspectiveMatrix(float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip);
@@ -35,16 +37,17 @@ public:
 
 	//////////////////////////////////////////////////
 	//////////////////////////////////////////////////
-	D3D11 void SetPitch(float _Pitch) { m_Pitch = _Pitch; }
-	D3D11 void SetYaw(float _Yaw) { m_Yaw = _Yaw; }
-	D3D11 float GetPitch() const { return m_Pitch; }
-	D3D11 float GetYaw() const { return m_Yaw; }
-	D3D11 void Reset();
-	D3D11 void Submit(eObjectFilterFlag Filter);
+	void SetPitch(float _Pitch) { m_Pitch = _Pitch; }
+	void SetYaw(float _Yaw) { m_Yaw = _Yaw; }
+	float GetPitch() const { return m_Pitch; }
+	float GetYaw() const { return m_Yaw; }
+	void Reset();
+	void Submit(eObjectFilterFlag Filter);
+	void LinkTechniques(MasterRenderGraph& _RenderGraph);
 
 	// D3D11 void BindToCommandContext(); -> Camera가 빛으로 쓰일 수 있으니까 지금은 패스.
-	D3D11 void RenderWindow() noexcept;
-	D3D11 const char* GetName() const noexcept;
+	void RenderWindow() noexcept;
+	std::string& GetName() noexcept;
 
 protected:
 	void UpdateProjMatrix();
@@ -68,17 +71,11 @@ protected:
 	float m_InitPitch;  // 상하 ( +되면 아래로 숙임)
 	float m_InitYaw;   // 좌우  ( +되면 오른쪽으로)
 
-    bool m_bTethered;
+	bool m_bTethered{ false };
     bool m_bDrawCamera{ true };
     bool m_bDrawProjector{ true };
-    const char* m_Name; // -> TODO : Convert To FastName.
+	std::string m_Name;
 };
-
-inline Camera::Camera()// : m_ReverseZ(true)
-	: m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f)
-{
-	SetPerspectiveMatrix(DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f); // Camera Frustum
-}
 
 inline void Camera::SetPerspectiveMatrix(float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip)
 {
@@ -91,7 +88,3 @@ inline void Camera::SetPerspectiveMatrix(float verticalFovRadians, float aspectH
 
 	m_PreviousViewProjMatrix = m_ViewProjMatrix;
 }
-
-#ifdef BOOL
-#pragma pop_macro("BOOL")
-#endif

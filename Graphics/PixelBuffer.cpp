@@ -355,5 +355,7 @@ void PixelBuffer::CreateTextureResource
     m_currentState = D3D12_RESOURCE_STATE_COMMON;
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 
+
+
     SET_NAME(m_pResource);
 }

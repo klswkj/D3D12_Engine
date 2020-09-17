@@ -5,6 +5,8 @@
 
 namespace custom
 {
+	std::unordered_map<size_t, D3D12_CPU_DESCRIPTOR_HANDLE> SamplerDescriptor::sm_samplerDescriptorHashMap;
+
 	D3D12_CPU_DESCRIPTOR_HANDLE SamplerDescriptor::RequestHandle()
 	{
 		auto iter = sm_samplerDescriptorHashMap.find(makeHash());

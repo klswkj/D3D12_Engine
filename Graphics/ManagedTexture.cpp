@@ -3,11 +3,9 @@
 #include "FileReader.h"
 #include "ManagedTexture.h"
 #include "TextureManager.h"
-
 #include "CommandContext.h"
-#include "GraphicsContext.h"
 
-void ManagedTexture::WaitForLoad(void) const
+void ManagedTexture::WaitForLoad() const
 {
     volatile D3D12_CPU_DESCRIPTOR_HANDLE& VolHandle = (volatile D3D12_CPU_DESCRIPTOR_HANDLE&)m_hCpuDescriptorHandle;
 
@@ -19,7 +17,7 @@ void ManagedTexture::WaitForLoad(void) const
 	}
 }
 
-void ManagedTexture::SetToInvalidTexture(void)
+void ManagedTexture::SetToInvalidTexture()
 {
     m_hCpuDescriptorHandle = TextureManager::GetMagentaTex2D().GetSRV();
     m_IsValid = false;
@@ -29,11 +27,7 @@ void ManagedTexture::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
     custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
-    // m_ShaderInputFlag를 다른 방법으로 정제해서 사용할지 아니면
-    // Texture에서 바인딩을 불러오지않고, Mesh에서 Bind()해서 한번에 
-    // graphicsContext.SetDynamicDescriptor(RootIndex, offse, count, D3D12_CPU_DESCRIPTOR_HANDLE*[])로 한번에 할지
-    // 후에 결정.
-    graphicsContext.SetDynamicDescriptor(m_ShaderInputFlag, 0, m_hCpuDescriptorHandle);
+    graphicsContext.SetDynamicDescriptor(m_RootParameterIndex, m_ShaderOffset, m_hCpuDescriptorHandle);
 }
 
 
@@ -147,7 +141,7 @@ const ManagedTexture* TextureManager::LoadPIXImageFromFile(const std::wstring& f
 
 const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileName, bool bStandardRGB/* = false*/)
 {
-    auto ManagedTex = FindOrLoadTexture(fileName);
+    std::pair<ManagedTexture*, bool> ManagedTex = FindOrLoadTexture(fileName);
 
     ManagedTexture* ManTex = ManagedTex.first;
     const bool RequestsLoad = ManagedTex.second;
@@ -155,6 +149,7 @@ const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileNa
     if (!RequestsLoad)
     {
         ManTex->WaitForLoad();
+        ASSERT(RequestsLoad, "");
         return ManTex;
     }
 

@@ -10,10 +10,7 @@ namespace custom
 
 class ManagedTexture;
 
-std::wstring MakeWStr(const std::string& str)
-{
-    return std::wstring(str.begin(), str.end());
-}
+std::wstring MakeWStr(const std::string& str);
 
 namespace TextureManager
 {
@@ -30,7 +27,6 @@ namespace TextureManager
     const ManagedTexture* LoadWICFromFile(const std::wstring& fileName, bool bStandardRGB = false);
     // https://www.gamedev.net/forums/topic/702319-how-to-upload-alpha-texture-to-compute-shader/
     // https://github.com/microsoft/DirectXTK12/wiki/WICTextureLoader
-
 
     inline const ManagedTexture* LoadFromFile(const std::string& fileName, bool bStandardRGB = false)
     {
@@ -54,7 +50,8 @@ namespace TextureManager
 
     inline const ManagedTexture* LoadWICImageFromFile(const std::string& fileName, bool bStandardRGB = false)
     {
-        LoadWICImageFromFile(MakeWStr(fileName), bStandardRGB);
+        // modified from const LoadWICImageFromFile(MakeWStr(fileName), bStandardRGB). 
+        return LoadWICFromFile(MakeWStr(fileName), bStandardRGB);
     }
 
     const custom::Texture& GetBlackTex2D();

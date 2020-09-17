@@ -1,6 +1,7 @@
 #pragma once
-#include "MyKeyboard.h"
-#include "MyMouse.h"
+
+class MyKeyboard;
+class MyMouse;
 
 namespace window
 {
@@ -34,9 +35,6 @@ namespace window
 	// extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 	extern HWND g_hWnd;
-
-	std::vector<byte> rawInputData;
-
 	extern MyKeyboard        g_Keyboard;
 	extern MyMouse           g_Mouse;
 

@@ -148,7 +148,7 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
 	}
     custom::ComputeContext& Context = BaseContext.GetComputeContext();
 
-    Context.SetRootSignature(graphics::g_GenerateMipsRS);
+    Context.SetRootSignature(graphics::g_GenerateMipsRootSignature);
 
     Context.TransitionResource(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     Context.SetDynamicDescriptor(1, 0, m_SRVHandle);

@@ -35,7 +35,7 @@ protected:
 	Step* m_pStep           { nullptr };
 	Technique* m_pTechnique { nullptr };
 
-	size_t m_TechniqueIndex { -1 };
-	size_t m_StepIndex      { -1 };
-	size_t m_BufferIndex    { -1 };
+	size_t m_TechniqueIndex = -1;
+	size_t m_StepIndex      = -1;
+	size_t m_BufferIndex    = -1;
 };

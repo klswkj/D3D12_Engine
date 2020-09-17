@@ -34,7 +34,7 @@ namespace custom
             return *m_RootSignature;
         }
 
-        ID3D12PipelineState* GetPipelineStateObject(void) const { return m_PSO; }
+        ID3D12PipelineState* GetPipelineStateObject() const { return m_PSO; }
 
     protected:
         const RootSignature* m_RootSignature;

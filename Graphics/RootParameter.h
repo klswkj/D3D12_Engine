@@ -1,13 +1,10 @@
 #pragma once
 
-
-
 namespace custom
 {
 	class RootParameter
 	{
 		friend class RootSignature;
-
 	public:
 		RootParameter()
 		{
@@ -22,7 +19,9 @@ namespace custom
 		void Clear()
 		{
 			if (m_RootParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+			{
 				delete[] m_RootParam.DescriptorTable.pDescriptorRanges;
+			}
 
 			m_RootParam.ParameterType = (D3D12_ROOT_PARAMETER_TYPE)0xFFFFFFFF;
 		}
@@ -84,7 +83,7 @@ namespace custom
 			range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		}
 
-		const D3D12_ROOT_PARAMETER& operator() (void) const 
+		const D3D12_ROOT_PARAMETER& operator() () const 
 		{ 
 			return m_RootParam; 
 		}

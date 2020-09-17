@@ -5,7 +5,6 @@
 #include "GPUResource.h"
 #include "UAVBuffer.h"
 #include "CommandContext.h"
-#include "GraphicsContext.h"
 #include "ComputeContext.h"
 #include "BufferManager.h"
 #include "PreMadePSO.h"
@@ -32,6 +31,7 @@ DOFPass::DOFPass(const char* name)
 	PSOName.Finalize();
 
 	// If compiled Shader Code was added later, Fill this part. 
+
 
 
 #undef CREATE_PSO
@@ -75,7 +75,7 @@ DOFPass::~DOFPass()
 
 void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, float FarClipDist) DEBUG_EXCEPT
 {
-    custom::CommandContext& BaseContext = custom::CommandContext::Begin(L"DOFPass Execute");
+    // custom::CommandContext& BaseContext = custom::CommandContext::Begin(L"DOFPass Execute");
     custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
 
 	if (!device::g_bTypedUAVLoadSupport_R11G11B10_FLOAT)

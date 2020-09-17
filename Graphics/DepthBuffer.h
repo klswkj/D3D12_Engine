@@ -23,7 +23,6 @@ public:
 
     void CreateSamples(const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t NumSamples, DXGI_FORMAT Format);
 
-
     // Get pre-created CPU-visible descriptor handles
     const D3D12_CPU_DESCRIPTOR_HANDLE& GetDSV() const 
     { 

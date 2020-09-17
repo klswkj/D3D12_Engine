@@ -1,9 +1,13 @@
+#include "stdafx.h"
 #include "CameraFrustum.h"
 #include "PremadePSO.h"
 #include "BufferManager.h"
 #include "RootSignature.h"
 #include "PSO.h"
 
+#include "Vector.h"
+#include "IBaseCamera.h"
+#include "Camera.h"
 #include "Technique.h"
 #include "Step.h"
 #include "VariableConstantBuffer.h"
@@ -25,9 +29,10 @@ AffineTransform
 2. Vector3   ( Translation )
 */
 
-CameraFrustum::CameraFrustum(float AspectHeightOverWidth, float NearZ, float FarZ)
+CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float NearZ, float FarZ)
 {
 	// Vertices : 8, Indices : 24
+	m_pParentCamera = pCamera;
 
 	SetVertices(AspectHeightOverWidth, NearZ, FarZ);
 
@@ -69,7 +74,7 @@ CameraFrustum::CameraFrustum(float AspectHeightOverWidth, float NearZ, float Far
 		m_PSO.SetDepthStencilState(premade::g_DepthStateDisabled);
 		m_PSO.SetInputLayout(_countof(vertexElements), vertexElements);
 		m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE); // D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE is right.
-		m_Topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		m_Topology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 		m_PSO.SetRenderTargetFormats(0, nullptr, bufferManager::g_SceneDepthBuffer.GetFormat());
 		m_PSO.SetVertexShader(g_pGeneralPurposeVS, sizeof(g_pGeneralPurposeVS));
 		m_PSO.SetPixelShader(g_pGeneralPurposePS, sizeof(g_pGeneralPurposePS));
@@ -156,4 +161,46 @@ void CameraFrustum::SetVertices(float AspectHeightOverWidth, float NearZClip, fl
 	};
 
 	m_VerticesBuffer.Create(L"Camera Frustum Vertex Buffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), &vertices[0]);
+}
+
+void CameraFrustum::SetPosition(DirectX::XMFLOAT3& Position) noexcept
+{
+	m_CameraPosition = Position;
+	// m_CameraToWorld.SetTranslation(Position);
+}
+
+void CameraFrustum::SetPosition(Math::Vector3& Translation) noexcept
+{
+	m_CameraPosition = Translation;
+	// m_CameraToWorld.SetTranslation(Translation);
+}
+
+void CameraFrustum::SetRotation(const DirectX::XMFLOAT3& RollPitchYaw) noexcept
+{
+	m_Rotation = RollPitchYaw;
+	// m_CameraToWorld.SetRotation(RollPitchYaw);
+}
+
+void CameraFrustum::SetRotation(Math::Vector3& Rotation) noexcept
+{
+	m_Rotation = Rotation;
+}
+
+DirectX::XMMATRIX CameraFrustum::GetTransformXM() const noexcept
+{
+	return DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
+		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition));
+
+	// return DirectX::XMMatrixRotationRollPitchYawFromVector(m_CameraToWorld.GetRotation()) *
+	// 	 DirectX::XMMatrixTranslationFromVector(m_CameraToWorld.GetTranslation());
+
+	//inline Math::Matrix4 CameraFrustum::GetTransform() const noexcept
+	//{
+	//	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
+	//}
+}
+
+Math::Matrix4 CameraFrustum::GetTransform() const noexcept
+{
+	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
 }

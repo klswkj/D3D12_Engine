@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "Step.h"
 #include "CommandContext.h"
 
@@ -9,12 +10,16 @@
 
 std::mutex Step::sm_mutex;
 
-Step::Step(const char* targetPassName)
-	: m_TargetPassName(targetPassName) {}
+Step::Step(const char* PassName)
+	: m_PassName(PassName) 
+{
+}
 
 Step::Step(const Step& other) noexcept
 {
 	m_RenderingResources.reserve(other.m_RenderingResources.size());
+
+	std::lock_guard<std::mutex> LockGuard(sm_mutex);
 
 	for (auto& e : other.m_RenderingResources)
 	{
@@ -30,7 +35,7 @@ void Step::PushBack(std::shared_ptr<RenderingResource> _RenderingResource) noexc
 }
 void Step::Submit(const Entity& _Entity) const
 {
-	m_pTargetPass->PushBack(Job{ &_Entity, this });
+	m_pPass->PushBackJob(Job{ &_Entity, this });
 }
 void Step::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 {
@@ -54,6 +59,6 @@ void Step::Accept(ITechniqueWindow& probe)
 
 void Step::Link(MasterRenderGraph& _MasterRenderGraph)
 {
-	ASSERT(m_pTargetPass == nullptr);
-	m_pTargetPass = _MasterRenderGraph.GetRenderQueue(m_TargetPassName);
+	ASSERT(m_pPass == nullptr);
+	m_pPass = &_MasterRenderGraph.GetRenderQueue(m_PassName);
 }

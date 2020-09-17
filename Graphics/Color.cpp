@@ -1,19 +1,19 @@
+#include "stdafx.h"
 #include "Color.h"
-#include <algorithm>
 
 using namespace custom;
 
-inline Color::Color(DirectX::FXMVECTOR vec)
+Color::Color(DirectX::FXMVECTOR vec)
 {
     m_value.v = vec;
 }
 
-inline Color::Color(const DirectX::XMVECTORF32& vec)
+Color::Color(const DirectX::XMVECTORF32& vec)
 {
     m_value = vec;
 }
 
-inline Color::Color(float r, float g, float b, float a)
+Color::Color(float r, float g, float b, float a)
 {
     m_value.v = DirectX::XMVectorSet(r, g, b, a);
 }

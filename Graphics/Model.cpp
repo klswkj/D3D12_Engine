@@ -4,14 +4,16 @@
 #include <assimp/postprocess.h>
 #include "Model.h"
 #include "Mesh.h"
+#include "Material.h"
 #include "ModelPart.h"
 #include "ComponentWindow.h"
 #include "MasterRenderGraph.h"
+#include "ObjectFilterFlag.h"
 
-Model::Model(const char* pathString, float scale/* = 1.0f*/)
+Model::Model(const std::string& pathString, float scale/* = 1.0f*/)
 {
 	Assimp::Importer imp;
-	const auto pScene = imp.ReadFile(pathString,
+	const aiScene* pScene = imp.ReadFile(pathString,
 		aiProcess_Triangulate |
 		aiProcess_JoinIdenticalVertices |
 		aiProcess_ConvertToLeftHanded |
@@ -19,11 +21,12 @@ Model::Model(const char* pathString, float scale/* = 1.0f*/)
 		aiProcess_CalcTangentSpace
 	);
 
-	ASSERT(pScene == nullptr);
+	ASSERT(pScene != nullptr);
 
 	// parse materials
 	std::vector<Material> materials;
 	materials.reserve(pScene->mNumMaterials); // pScene->mNumMaterials <=> m_Header.materialCount
+
 	for (size_t i = 0; i < pScene->mNumMaterials; ++i)
 	{
 		materials.emplace_back(*pScene->mMaterials[i], pathString);
@@ -39,26 +42,26 @@ Model::Model(const char* pathString, float scale/* = 1.0f*/)
 	pRoot = ParseNode(nextId, *pScene->mRootNode, scale);
 }
 
-void Model::Submit(size_t channels) const DEBUG_EXCEPT
+void Model::Submit(eObjectFilterFlag Filter) const DEBUG_EXCEPT
 {
-	pRoot->Submit(channels, DirectX::XMMatrixIdentity());
+	pRoot->Submit(Filter, DirectX::XMMatrixIdentity());
 }
 
-void Model::SetRootTransform(DirectX::FXMMATRIX tf) noexcept
+void Model::SetRootTransform(DirectX::XMMATRIX _Transform) noexcept
 {
-	pRoot->SetAppliedTransform(tf);
+	pRoot->SetAppliedTransform(_Transform);
 }
 
-void Model::Accept(ComponentWindow& probe)
+void Model::Accept(ComponentWindow& _ComponentWindow)
 {
-	pRoot->RecursivePushComponent(probe);
+	pRoot->RecursivePushComponent(_ComponentWindow);
 }
 
-void Model::LinkTechniques(MasterRenderGraph& rg)
+void Model::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
 {
 	for (auto& pMesh : meshPtrs)
 	{
-		pMesh->LinkTechniques(rg);
+		pMesh->LinkTechniques(_MasterRenderGraph);
 	}
 }
 
@@ -72,17 +75,17 @@ std::unique_ptr<ModelPart> Model::ParseNode(uint32_t& nextId, const aiNode& node
 		return _Matrix;
 	};
 
-	const auto transform = ScaleTranslation
+	const DirectX::XMMATRIX transform = ScaleTranslation
 	(
 		DirectX::XMMatrixTranspose
 		(
 			DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&node.mTransformation))
-		), 
-		scale
+		), scale
 	);
 
 	std::vector<Mesh*> curMeshPtrs;
 	curMeshPtrs.reserve(node.mNumMeshes);
+
 	for (size_t i = 0; i < node.mNumMeshes; ++i)
 	{
 		const auto meshIdx = node.mMeshes[i];

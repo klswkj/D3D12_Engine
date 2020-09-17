@@ -13,8 +13,8 @@ class Entity;
 class ManagedTexture : public custom::Texture, public RenderingResource
 {
 public:
-    ManagedTexture(const std::wstring& FileName, uint32_t RootIndexOffset = -1)
-        : m_MapKey(FileName), m_ShaderInputFlag(RootIndexOffset), m_IsValid(true)
+    ManagedTexture(const std::wstring& FileName, UINT RootIndex = -1, UINT Offset = -1)
+        : m_MapKey(FileName), m_RootParameterIndex(RootIndex), m_ShaderOffset(Offset), m_IsValid(true)
     {
     }
 
@@ -32,6 +32,7 @@ public:
 
 private:
     std::wstring m_MapKey;        // For deleting from the map later
-    uint32_t m_ShaderInputFlag{ 0 };
+    UINT m_RootParameterIndex{ -1 };
+    UINT m_ShaderOffset{ -1 };
     bool m_IsValid;
 };

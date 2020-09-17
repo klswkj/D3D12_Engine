@@ -18,7 +18,6 @@ std::mutex CameraManager::sm_Mutex;
 // 4. Draw Imgui
 // 5. Clear SceneBuffer
 
-
 CameraManager::CameraManager()
 {
 	// Set { Up, North, East } <=> { { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } }
@@ -51,6 +50,8 @@ CameraManager::CameraManager()
 	m_LastStrafe = 0.0f;
 	m_LastAscent = 0.0f;
 	*/
+
+	AddCamera(std::make_shared<Camera>("A"));
 }
 
 void CameraManager::SetUpCamera(Camera* pCamera)
@@ -148,7 +149,7 @@ void CameraManager::Update(float deltaTime)
 	TargetCamera.SetPitch(m_CurrentPitch);
 	TargetCamera.SetYaw(m_CurrentYaw);
 
-	// Orientation 방향
+	// Orientation 
 	// X : Right
 	// Y : Up
 	// Z : Forward
@@ -156,6 +157,7 @@ void CameraManager::Update(float deltaTime)
 	Math::Matrix3 orientation = Math::Matrix3(m_WorldEast, m_WorldUp, -m_WorldNorth) * 
 		Math::Matrix3::MakeYRotation(m_CurrentYaw) *   // -yaw
 		Math::Matrix3::MakeXRotation(m_CurrentPitch);  // +Pitch
+
 	// Math::Vector3 position = orientation * Math::Vector3(strafe, ascent, -forward) + m_TargetCamera.GetPosition();
 	Math::Vector3 position = orientation * Math::Vector3(strafe, ascent, -forward) + TargetCamera.GetPosition();
 	const DirectX::XMMATRIX CameraWorldMatrix = DirectX::XMMatrixLookToLH(DirectX::XMVECTOR(position), DirectX::XMVECTOR(orientation.GetZ()), DirectX::XMVECTOR(orientation.GetY()));
@@ -192,13 +194,13 @@ void CameraManager::RenderWindows()
 	if (ImGui::Begin("Cameras"))
 	{
 		std::shared_ptr<Camera> ActivatingCamera = GetActiveCamera();
-		if (ImGui::BeginCombo("Active Camera", GetActiveCamera()->GetName()))
+		if (ImGui::BeginCombo("Active Camera", GetActiveCamera()->GetName().c_str()))
 		{
 			for (size_t CameraIndex = 0; CameraIndex < m_Cameras.size(); ++CameraIndex)
 			{
 				const bool bSelected = (CameraIndex == m_ActiveCameraIndex);
 
-				if (ImGui::Selectable(m_Cameras[CameraIndex]->GetName(), bSelected))
+				if (ImGui::Selectable(m_Cameras[CameraIndex]->GetName().c_str(), bSelected))
 				{
 					m_ActiveCameraIndex = CameraIndex;
 					// -> Set Position, Yaw, Pitch with ActiveCamera.
@@ -208,17 +210,29 @@ void CameraManager::RenderWindows()
 			ImGui::EndCombo();
 		}
 
-		if (ImGui::BeginCombo("Controlled Camera", GetControlledCamera()->GetName()))
+		if (ImGui::BeginCombo("Controlled Camera", GetControlledCamera()->GetName().c_str()))
 		{
 			for (size_t CameraIndex = 0; CameraIndex < m_Cameras.size(); ++CameraIndex)
 			{
 				const bool isSelected = CameraIndex == m_ControlledCameraIndex;
-				if (ImGui::Selectable(m_Cameras[CameraIndex]->GetName(), isSelected))
+				if (ImGui::Selectable(m_Cameras[CameraIndex]->GetName().c_str(), isSelected))
 				{
 					m_ControlledCameraIndex = CameraIndex;
 				}
 			}
 			ImGui::EndCombo();
+		}
+
+		static char Characterbuffer[31];
+
+		ImGui::InputText("UTF-8 input", Characterbuffer, IM_ARRAYSIZE(Characterbuffer));
+
+		// 카메라 추가.
+		if (ImGui::Button("Add Camera"))
+		{
+			Characterbuffer[30] = '\0';
+
+			AddCamera(std::make_shared<Camera>(&Characterbuffer[0]));
 		}
 
 		GetControlledCamera()->RenderWindow(); // Camera, Update
@@ -228,8 +242,7 @@ void CameraManager::RenderWindows()
 
 void CameraManager::Bind(custom::CommandContext& BaseContext)
 {
-	// gfx.SetCamera((*this)->GetPerspectiveMatrix());
-	// CommandContext에 CameraManager 추가.
+	BaseContext.SetMainCamera(*GetControlledCamera());
 }
 
 void CameraManager::AddCamera(std::shared_ptr<Camera> pCam)
@@ -241,7 +254,7 @@ void CameraManager::LinkTechniques(MasterRenderGraph& rg)
 {
 	for (auto& Camera : m_Cameras)
 	{
-		// Camera->LinkTechniques(rg);
+		Camera->LinkTechniques(rg);
 	}
 }
 

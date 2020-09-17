@@ -1,8 +1,4 @@
 #pragma once
-#include "stdafx.h"
-
-class RenderingResource;
-
 namespace custom
 {
 	class CommandContext;
@@ -12,6 +8,7 @@ class Entity;
 class ITechniqueWindow;
 class RenderQueuePass;
 class MasterRenderGraph;
+class RenderingResource;
 
 class Step
 {
@@ -23,16 +20,16 @@ public:
 	Step& operator=(Step&&) = delete;
 	void PushBack(std::shared_ptr<RenderingResource>) noexcept;
 	void Submit(const Entity&) const;
-	void Bind(custom::CommandContext&) const DEBUG_EXCEPT;
-	void InitializeParentReferences(const Entity&) noexcept;
+	void Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT;
+	void InitializeParentReferences(const Entity& _Entity) noexcept;
 	void Accept(ITechniqueWindow&);
 	void Link(MasterRenderGraph&);
 private:
 	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResources;
 	// std::vector<RenderingResource*> m_RenderingResources;
-	RenderQueuePass* m_pTargetPass = nullptr; // BlurOutlineDrawingPass,    LambertianPass,    OutlineDrawingPass 
+	RenderQueuePass* m_pPass = nullptr; // BlurOutlineDrawingPass,    MainRenderPass,    OutlineDrawingPass 
 										      // OutlineMaskGenerationPass, ShadowMappingPass, WireframePass
-	const char* m_TargetPassName;
+	const char* m_PassName;
 
 	static std::mutex sm_mutex;
 };

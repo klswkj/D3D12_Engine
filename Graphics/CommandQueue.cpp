@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "CommandQueue.h"
+#include "CommandQueueManager.h"
+#include "Device.h"
 
 namespace custom
 {
@@ -19,6 +21,11 @@ namespace custom
 
     void CommandQueue::Shutdown()
     {
+		if (m_commandQueue == nullptr)
+		{
+			return;
+		}
+
         m_allocatorPool.~CommandAllocatorPool();
 
         CloseHandle(m_fenceEventHandle);
@@ -30,7 +37,7 @@ namespace custom
     void CommandQueue::Create(ID3D12Device* pDevice)
     {
         ASSERT(pDevice != nullptr);
-        ASSERT(m_commandQueue != nullptr);
+        ASSERT(m_commandQueue == nullptr);
         ASSERT(m_allocatorPool.Size() == 0);
 
         D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
@@ -62,18 +69,18 @@ namespace custom
 		}
         return FenceValue <= m_lastCompletedFenceValue;
     }
-    /*
-    // Todo: CommandQueueManager에서 처리하기.
+
+    
     void CommandQueue::StallForFence(uint64_t FenceValue)
     {
-        CommandQueue& Producer = m_pCommandQueueManager.GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
+        CommandQueue& Producer = device::g_commandQueueManager.GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
         m_commandQueue->Wait(Producer.m_pFence, FenceValue);
     }
-    */
-    void CommandQueue::StallForProducer(CommandQueue& Producer)
+    bool CommandQueue::StallForProducer(CommandQueue& Producer)
     {
         ASSERT(0 < Producer.m_nextFenceValue);
-        m_commandQueue->Wait(Producer.m_pFence, Producer.m_nextFenceValue - 1);
+        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, Producer.m_nextFenceValue - 1));
+        
     }
     void CommandQueue::WaitForFence(uint64_t FenceValue)
     {

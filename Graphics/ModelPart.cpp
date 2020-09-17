@@ -1,8 +1,7 @@
 #include "stdafx.h"
 #include "ModelPart.h"
-#include "Mesh.h"
 #include "ComponentWindow.h"
-// #include "AddonWindow.h"
+#include "TechniqueWindow.h"
 
 ModelPart::ModelPart(uint32_t ID, const char* name, std::vector<Mesh*> meshPtrs, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT
 	: id(ID), meshPtrs(std::move(meshPtrs)), name(name)
@@ -11,12 +10,12 @@ ModelPart::ModelPart(uint32_t ID, const char* name, std::vector<Mesh*> meshPtrs,
 	DirectX::XMStoreFloat4x4(&appliedTransform, DirectX::XMMatrixIdentity());
 }
 
-void ModelPart::Submit(eObjectFilterFlag filter, const DirectX::XMMATRIX accumulatedTransform) const DEBUG_EXCEPT
+void ModelPart::Submit(eObjectFilterFlag filter, DirectX::XMMATRIX accumulatedTransform) const DEBUG_EXCEPT
 {
-	const auto built = ( 
-		DirectX::XMLoadFloat4x4(&appliedTransform) *
-		DirectX::XMLoadFloat4x4(&transform) * accumulatedTransform
-			);
+	const DirectX::XMMATRIX built =
+		( DirectX::XMLoadFloat4x4(&appliedTransform) *
+			DirectX::XMLoadFloat4x4(&transform) *
+			accumulatedTransform );
 
 	for (const auto pm : meshPtrs)
 	{
@@ -61,7 +60,7 @@ void ModelPart::RecursivePushComponent(ComponentWindow& probe)
 	}
 }
 
-void ModelPart::PushAddon(AddonWindow& probe)
+void ModelPart::PushAddon(ITechniqueWindow& probe)
 {
 	for (auto& mp : meshPtrs)
 	{

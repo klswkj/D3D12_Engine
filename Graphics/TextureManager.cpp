@@ -1,10 +1,17 @@
 #include "stdafx.h"
 #include "TextureManager.h"
+#include "ManagedTexture.h"
+
+std::wstring MakeWStr(const std::string& str)
+{
+	return std::wstring(str.begin(), str.end());
+}
 
 namespace TextureManager
 {
 	std::wstring s_RootPath = L"";
-	std::map< std::wstring, std::unique_ptr<ManagedTexture> > s_TextureCache;
+	// std::map<std::wstring, std::unique_ptr<ManagedTexture>> s_TextureCache;
+	std::map<std::wstring, std::shared_ptr<ManagedTexture>> s_TextureCache;
 
 	void Initialize(const std::wstring& TextureLibRoot)
 	{
@@ -94,5 +101,4 @@ namespace TextureManager
 		ManTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &MagentaPixel);
 		return *ManTex;
 	}
-
 } // namespace TextureManager

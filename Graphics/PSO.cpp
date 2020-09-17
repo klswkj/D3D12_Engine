@@ -7,7 +7,7 @@
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_graphicsPSOHashMap;
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_computePSOHashMap;
 
-void custom::PSO::DestroyAll(void)
+void custom::PSO::DestroyAll()
 {
     s_graphicsPSOHashMap.clear();
     s_computePSOHashMap.clear();

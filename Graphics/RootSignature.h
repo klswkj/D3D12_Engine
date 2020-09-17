@@ -1,34 +1,40 @@
 #pragma once
 #include "RootParameter.h"
 #include "RenderingResource.h"
+
 // Maximum 64 DWORDS divied up amongst all root parameters.
 // Root constants = 1 DWORD * NumConstants
 // Root descriptor (CBV, SRV, or UAV) = 2 DWORDs each
 // Descriptor table pointer = 1 DWORD
 // Static samplers = 0 DWORDS (compiled into shader)
 
-
 namespace custom
 {
+	class CommandContext;
+
 	class RootSignature : public RenderingResource
 	{
 		friend class DynamicDescriptorHeap;
 	public:
-		RootSignature(uint32_t NumRootParams = 0, uint32_t NumStaticSamplers = 0)
-			: m_finalized(false), m_numRootParameters(NumRootParams)
+		RootSignature(UINT NumRootParams = 0, UINT NumStaticSamplers = 0)
+			: m_finalized(FALSE), m_numRootParameters(NumRootParams)
 		{
 			Reset(NumRootParams, NumStaticSamplers);
 		}
 
 		~RootSignature()
 		{
+			delete[] m_rootParamArray;
+			delete[] m_staticSamplerArray;
 		}
 
 		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
 		{
 			if (0 < NumRootParams)
 			{
-				m_rootParamArray.reset(new RootParameter[NumRootParams]);
+				// m_rootParamArray.reset(new RootParameter[NumRootParams]);
+				delete[] m_rootParamArray;
+				m_rootParamArray = new RootParameter[NumStaticSamplers];
 			}
 			else
 			{
@@ -39,7 +45,9 @@ namespace custom
 
 			if (0 < NumStaticSamplers)
 			{
-				m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
+				// m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
+				delete[] m_staticSamplerArray;
+				m_staticSamplerArray = new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers];
 			}
 			else
 			{
@@ -50,16 +58,18 @@ namespace custom
 			m_numInitializedStaticSamplers = 0;
 		}
 
-		custom::RootParameter& operator[] (size_t EntryIndex)
+		RootParameter& operator[] (size_t EntryIndex)
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
-			return m_rootParamArray.get()[EntryIndex];
+			// return m_rootParamArray.get()[EntryIndex];
+			return m_rootParamArray[EntryIndex];
 		}
 
-		const custom::RootParameter& operator[] (size_t EntryIndex) const
+		const RootParameter& operator[] (size_t EntryIndex) const
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
-			return m_rootParamArray.get()[EntryIndex];
+			// return m_rootParamArray.get()[EntryIndex];
+			return m_rootParamArray[EntryIndex];
 		}
 
 		void InitStaticSampler
@@ -77,22 +87,16 @@ namespace custom
 
 		static void DestroyAll();
 
-		void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override
-		{
-			ASSERT(m_finalized, "This RootSignature is not finalized yet");
-
-			custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-			graphicsContext.SetRootSignature(*this);
-		}
+		void Bind(CommandContext& BaseContext) DEBUG_EXCEPT override;
 
 	protected:
-		std::unique_ptr<custom::RootParameter[]>     m_rootParamArray;
-		std::unique_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
+		// std::unique_ptr<RootParameter[]> m_rootParamArray;
+		// std::unique_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
 
-		ID3D12RootSignature*                         m_rootSignature;
+		RootParameter* m_rootParamArray;
+		D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray;
 
-		// Rootsignature is re-used in D3D12Device.
-		// CONTAINED RootSignatureManager*              m_pContainer;
+		ID3D12RootSignature* m_rootSignature;
 
 		BOOL     m_finalized;
 		uint32_t m_numRootParameters;

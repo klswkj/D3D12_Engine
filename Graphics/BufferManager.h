@@ -1,21 +1,23 @@
 #pragma once
-
 #include "ColorBuffer.h"
 #include "DepthBuffer.h"
 #include "ShadowBuffer.h"
 #include "UAVBuffer.h"
 #include "Graphics.h"
+#include "ShaderConstantsTypeDefinitions.h"
 
 namespace bufferManager
 {
-    extern DepthBuffer g_SceneDepthBuffer;    // D32_FLOAT_S8_UINT
-    extern ColorBuffer g_SceneColorBuffer;    // R11G11B10_FLOAT
-    extern ColorBuffer g_PostEffectsBuffer;    // R32_UINT (to support Read-Modify-Write with a UAV)
-    extern ColorBuffer g_OverlayBuffer;        // R8G8B8A8_UNORM
-    extern ColorBuffer g_HorizontalBuffer;    // For separable (bicubic) upsampling
+    extern DepthBuffer g_SceneDepthBuffer;  // D32_FLOAT_S8_UINT
+    extern ColorBuffer g_SceneColorBuffer;  // R11G11B10_FLOAT
+    extern ColorBuffer g_PostEffectsBuffer; // R32_UINT (to support Read-Modify-Write with a UAV)
+    extern ColorBuffer g_OverlayBuffer;     // R8G8B8A8_UNORM
+    extern ColorBuffer g_HorizontalBuffer;  // For separable (bicubic) upsampling
 
-    extern ColorBuffer  g_VelocityBuffer;    // R10G10B10  (3D velocity)
+    extern ColorBuffer  g_VelocityBuffer;   // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;
+
+    extern ColorBuffer g_StencilBuffer;
 
     extern ColorBuffer g_SSAOFullScreen;    // R8_UNORM
     extern ColorBuffer g_LinearDepth[2];    // Normalized planar distance (0 at eye, 1 at far plane) 
@@ -49,6 +51,7 @@ namespace bufferManager
     extern ColorBuffer g_DoFPrefilter;
     extern ColorBuffer g_DoFBlurColor[2];
     extern ColorBuffer g_DoFBlurAlpha[2];
+
     extern custom::StructuredBuffer g_DoFWorkQueue;
     extern custom::StructuredBuffer g_DoFFastQueue;
     extern custom::StructuredBuffer g_DoFFixupQueue;
@@ -70,6 +73,18 @@ namespace bufferManager
     extern custom::TypedBuffer g_FXAAColorQueue;
 
     extern ColorBuffer g_GenMipsBuffer;
+
+    // LightPrePass
+
+    extern std::vector<LightData>     g_Lights;               
+    extern std::vector<Math::Matrix4> g_LightShadowMatrixes;
+
+    extern custom::StructuredBuffer   g_LightBuffer;      // lightBuffer         : register(t66);
+    extern ColorBuffer                g_LightShadowArray; // lightShadowArrayTex : register(t67);
+    extern ShadowBuffer               g_CumulativeShadowBuffer;
+
+    extern custom::ByteAddressBuffer  g_LightGrid;        // lightGrid           : register(t68);
+    extern custom::ByteAddressBuffer  g_LightGridBitMask; // lightGridBitMask    : register(t69);
 
     void InitializeAllBuffers(uint32_t Width, uint32_t Height);
     void DestroyRenderingBuffers();

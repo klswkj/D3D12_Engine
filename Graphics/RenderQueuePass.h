@@ -16,9 +16,10 @@ class RenderQueuePass : public IBindingPass
 {
 public:
 	// Inherit all constructors from Base class (BindingPass).
-	using IBindingPass::IBindingPass;
-	void PushBack(Job _Job) noexcept;
-	void Execute(custom::CommandContext&) const DEBUG_EXCEPT override;
+	RenderQueuePass(const char* Name) : IBindingPass(Name) {}
+
+	void PushBackJob(Job _Job) noexcept;
+	void Execute(custom::CommandContext&) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;
 private:
 	std::vector<Job> m_Jobs;

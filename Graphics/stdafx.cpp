@@ -159,14 +159,14 @@ std::vector<std::string> SplitString(const std::string& s, const char* delim)
     return strings;
 }
 
-inline std::wstring StringToWString(const std::string& str)
+std::wstring StringToWString(const std::string& str)
 {
     wchar_t buffer[512];
     MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer, 512);
     return std::wstring(buffer);
 }
 
-inline std::wstring AnsiToWString(const char* str)
+std::wstring AnsiToWString(const char* str)
 {
     wchar_t buffer[512];
     MultiByteToWideChar(CP_ACP, 0, str, -1, buffer, 512);
@@ -175,6 +175,7 @@ inline std::wstring AnsiToWString(const char* str)
 
 void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t LineNumber)
 {
+#ifndef RELEASE
     std::wstring name;
 
     size_t firstchar = 0;
@@ -195,4 +196,37 @@ void SetName(ID3D12Object* d3dObject, std::string FileName, std::string Function
     name += std::to_wstring(LineNumber);
 
     d3dObject->SetName(name.c_str());
+#endif
+}
+
+DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix)
+{
+    DirectX::XMFLOAT3 euler;
+
+    euler.x = asinf(-Matrix._32);                  // Pitch
+    if (cosf(euler.x) > 0.0001)                    // If Not at poles
+    {
+        euler.y = atan2f(Matrix._31, Matrix._33);  // Yaw
+        euler.z = atan2f(Matrix._12, Matrix._22);  // Roll
+    }
+    else
+    {
+        euler.y = 0.0f;                            // Yaw
+        euler.z = atan2f(-Matrix._21, Matrix._11); // Roll
+    }
+
+    return euler;
+}
+
+DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix)
+{
+    return { Matrix._41, Matrix._42, Matrix._43 };
+}
+
+DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale)
+{
+    Matrix.r[3].m128_f32[0] *= Scale;
+    Matrix.r[3].m128_f32[1] *= Scale;
+    Matrix.r[3].m128_f32[2] *= Scale;
+    return Matrix;
 }

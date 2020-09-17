@@ -1,41 +1,59 @@
 #pragma once
 #include "stdafx.h"
 #include "Pass.h"
-#include "RootSignature.h"
 
 // Binding Pass + FullScreen Pass
 
 class RenderingResource;
 class RenderTarget;
 class DepthStencil;
+class ContainerBindableSink;
 
+namespace custom
+{
+	class CommandContext;
+}
+
+// <- BindingPass
 class BlurPass : public Pass
 {
 protected:
-	BlurPass(std::string name, std::vector<std::shared_ptr<RenderingResource>> binds = {});
-	void insertBindable(std::shared_ptr<RenderingResource> bind) noexcept;
-	void bindAll(/*Graphics& gfx*/) const noexcept;
+	BlurPass(const char* Name, std::vector<std::shared_ptr<RenderingResource>> binds = {});
+	~BlurPass();
+	void PushBackHorizontal(std::shared_ptr<RenderingResource> _RenderingResource) noexcept;
+	void PushBackVertical(std::shared_ptr<RenderingResource> _RenderingResource) noexcept;
+	void CalcGaussWeights(float Sigma, UINT Radius);
+
 	void finalize() override;
-	void Execute(/*Graphics& gfx*/) const DEBUG_EXCEPT override;
+	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+	void RenderWindow();
+
 	template<class T>
 	void addBindSink(std::string name)
 	{
-		const auto index = binds.size();
-		binds.emplace_back();
-		PushBackSink(std::make_unique<ContainerBindableSink<T>>(std::move(name), binds, index));
+		const size_t index = m_RenderingResourcesHorizontal.size();
+		m_RenderingResourcesHorizontal.emplace_back();
+		PushBackSink(std::make_unique<ContainerBindableSink<T>>(std::move(name), m_RenderingResourcesHorizontal, index));
 	}
-protected:
-	///////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////
-	// D3D11 Version
 
-	std::vector<std::shared_ptr<RenderingResource>> binds;
-	std::shared_ptr<RenderTarget> renderTarget;
-	std::shared_ptr<DepthStencil> depthStencil;
+private:
+	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResourcesHorizontal;
+	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResourcesVertical;
+	std::shared_ptr<RenderTarget> m_spRenderTarget;
+	std::shared_ptr<DepthStencil> m_spDepthStencil;
+	custom::RootSignature m_RootSignature1;
+	GraphicsPSO m_GraphicsPSO;
 
-	//////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////
-	// D3D12 Version
+	custom::RootSignature m_RootSignature2;
+	ComputePSO m_HorizontalComputePSO;
+	ComputePSO m_VerticalComputePSO;
 
-	custom::RootSignature m_RootSignature;
+	ColorBuffer m_PingPongBuffer1;
+	ColorBuffer m_PingPongBuffer2;
+
+	const UINT m_MaxRadius{ 5 }; // Keep Sync in HLSL.
+	float m_BlurSigma{ 2.0f };
+	int m_BlurRadius{ 3 };
+	float m_Weights[11];
+	int m_BlurCount{ 4 };
 };

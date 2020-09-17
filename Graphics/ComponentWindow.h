@@ -1,7 +1,6 @@
 #pragma once
-#include "stdafx.h"
-// class ModelPart;
 #include "ModelPart.h"
+class Model;
 
 class ComponentWindow
 {
@@ -10,13 +9,10 @@ public:
 		: name(std::move(name))
 	{
 	}
-	void SpawnWindow(Model& model);
+	void ShowWindow(Model& model);
 
 	bool PushNode(ModelPart& node);
-	void PopNode(ModelPart& node)
-	{
-		ImGui::TreePop();
-	}
+	void PopNode(ModelPart& node);
 	struct TransformParameters
 	{
 		float xRot = 0.0f;
@@ -27,8 +23,9 @@ public:
 		float z = 0.0f;
 	};
 private:
-	TransformParameters& resolveTransform();
+	TransformParameters& resolveTransform() noexcept;
 	TransformParameters& loadTransform(uint32_t ID);
+
 private:
 	ModelPart* pSelectedNode = nullptr;
 

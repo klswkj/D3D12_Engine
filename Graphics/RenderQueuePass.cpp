@@ -1,11 +1,12 @@
+#include "stdafx.h"
 #include "RenderQueuePass.h"
 
-void RenderQueuePass::PushBack(Job _Job) noexcept
+void RenderQueuePass::PushBackJob(Job _Job) noexcept
 {
-	m_Jobs.push_back(_Job);
+	m_Jobs.push_back(_Job); // Job -> { pEntity, pStep } -> { pEntity, {RenderingResoruces} }
 }
 
-void RenderQueuePass::Execute(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
+void RenderQueuePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	if (m_bActive)
 	{

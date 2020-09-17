@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "DepthBuffer.h"
-#include "GraphicsContext.h"
+#include "CommandContext.h"
 
 class ShadowBuffer : public DepthBuffer
 {
@@ -34,7 +34,7 @@ public:
     {
         Context.TransitionResource(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
         Context.ClearDepth(*this);
-        Context.SetDepthStencilTarget(GetDSV());
+        Context.SetOnlyDepthStencil(GetDSV());
         Context.SetViewportAndScissor(m_Viewport, m_Scissor);
     }
 

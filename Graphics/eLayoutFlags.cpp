@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "eLayoutFlags.h"
 
 enum class eVertexLayoutFlags

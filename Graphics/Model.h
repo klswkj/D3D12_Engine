@@ -25,24 +25,26 @@ class Mesh;
 class ComponentWindow;
 class MasterRenderGraph;
 
+enum class eObjectFilterFlag;
+
 class Model
 {
 public:
-	Model(const char* pathString, float scale = 1.0f);
+	Model(const std::string& pathString, float scale = 1.0f);
 
-	void Submit(size_t channels) const DEBUG_EXCEPT;
-	void SetRootTransform(const DirectX::XMMATRIX tf) noexcept;
-	void Accept(ComponentWindow& probe);
-	void LinkTechniques(MasterRenderGraph&);
+	void Submit(eObjectFilterFlag Filter) const DEBUG_EXCEPT;
+	void SetRootTransform(const DirectX::XMMATRIX _Transfrom) noexcept;
+	void Accept(ComponentWindow& _ComponentWindow);
+	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
 
 private:
 	std::unique_ptr<ModelPart> ParseNode(uint32_t& nextId, const aiNode& node, float scale) noexcept;
-	static std::unique_ptr<Mesh> ParseMesh(const aiMesh& mesh, const aiMaterial* const* pMaterials, const std::filesystem::path& path, float scale);
 
 private:
 	std::unique_ptr<ModelPart> pRoot;
 	std::vector<std::unique_ptr<Mesh>> meshPtrs; // <- Input is Material class.
 };
+
 
 // 이게 ModelPart로 가야할듯.
 /*

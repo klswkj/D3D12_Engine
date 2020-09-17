@@ -40,9 +40,6 @@
     <Filter Include="SceneGraph\Renderer\DisplaySurface">
       <UniqueIdentifier>{1d8dba03-a71c-496a-80bc-0e6c034d6af1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SceneGraph\Renderer\RenderingResource">
-      <UniqueIdentifier>{f3574731-d9df-463c-abee-fa6581bde4cf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{be1de0e3-a0d0-4657-8ff6-e90a67693317}</UniqueIdentifier>
     </Filter>
@@ -102,12 +99,6 @@
     <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility">
       <UniqueIdentifier>{45889cd4-fbba-4643-80a2-cd5d17154326}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader">
-      <UniqueIdentifier>{83a642f8-5db6-49b5-8807-a36552de7f1c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader">
-      <UniqueIdentifier>{73c9fa4d-df9c-4c98-ac6c-d8d7587fc082}</UniqueIdentifier>
-    </Filter>
     <Filter Include="External Dependencies">
       <UniqueIdentifier>{7611c217-d63f-4025-8102-393e3612b535}</UniqueIdentifier>
     </Filter>
@@ -120,12 +111,54 @@
     <Filter Include="External Dependencies\D3DX12">
       <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass\Base">
+      <UniqueIdentifier>{08c21d67-ab3e-4b2e-9a08-807151c43a38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass\Leaf">
+      <UniqueIdentifier>{0e1b7a09-e47d-43ee-9aeb-4ba066c8785d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Light">
+      <UniqueIdentifier>{a30401cb-f51b-44b8-81b2-16c1dda069ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous">
+      <UniqueIdentifier>{105682a3-2dcc-4dec-b524-818cfeb34954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips">
+      <UniqueIdentifier>{29b94196-47b3-49e5-bf4b-7deb04b3929c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Present">
+      <UniqueIdentifier>{ff3c0262-e642-4d25-818f-73fd9f64f640}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test">
+      <UniqueIdentifier>{6dcd9bad-bc31-4c91-9847-5a2d4f6bd95e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\SSAO">
+      <UniqueIdentifier>{e1eda7bd-4248-4b7c-a3b7-8b6fb48ef1c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\DOF">
+      <UniqueIdentifier>{27b4c922-4697-4d5a-a72c-e8873e256bdd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur">
+      <UniqueIdentifier>{f986809a-a11b-4e75-a9c9-5b0b4db248fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader">
+      <UniqueIdentifier>{83a642f8-5db6-49b5-8807-a36552de7f1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Depth Shader">
+      <UniqueIdentifier>{3ec95e96-b6da-4cb6-9c04-08e764974b45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass\ComputeShaderPass">
+      <UniqueIdentifier>{aeb6bd58-b527-4536-ae69-7412223d46fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph">
+      <UniqueIdentifier>{b273b01d-d3d5-4429-9eee-b9c0f7338487}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Camera\MainLight">
+      <UniqueIdentifier>{3dc9642e-e809-4456-b776-b940aa493bdc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
-      <Filter>External Dependencies\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_demo.cpp">
       <Filter>External Dependencies\Imgui</Filter>
     </ClCompile>
     <ClCompile Include="imgui_draw.cpp">
@@ -148,9 +181,6 @@
     </ClCompile>
     <ClCompile Include="MyMouse.cpp">
       <Filter>Graphics\Global Range\Input Device</Filter>
-    </ClCompile>
-    <ClCompile Include="OBJAssetManager.cpp">
-      <Filter>SceneGraph\Model</Filter>
     </ClCompile>
     <ClCompile Include="Graphics.cpp">
       <Filter>Graphics\Global Range</Filter>
@@ -197,9 +227,6 @@
     <ClCompile Include="DynamicDescriptorHeap.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="GraphicsContext.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
     <ClCompile Include="PSO.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
@@ -227,41 +254,17 @@
     <ClCompile Include="RawBuffer.cpp">
       <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
     </ClCompile>
-    <ClCompile Include="ShadowBuffer.cpp">
-      <Filter>Graphics\D3D12Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneGraph.cpp">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
     <ClCompile Include="LinearAllocator.cpp">
       <Filter>Graphics\D3D12Resource</Filter>
     </ClCompile>
     <ClCompile Include="DynamicUploadBuffer.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Pass.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClCompile>
-    <ClCompile Include="Sink.cpp">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Source.cpp">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
     <ClCompile Include="RenderTarget.cpp">
       <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
     </ClCompile>
-    <ClCompile Include="BlurPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClCompile>
-    <ClCompile Include="VertexBuffer.cpp">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
     <ClCompile Include="BufferManager.cpp">
       <Filter>Graphics\D3D12Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="DepthOfFieldPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>PreCompiled Header</Filter>
@@ -296,9 +299,6 @@
     <ClCompile Include="PassWindow.cpp">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClCompile>
-    <ClCompile Include="App.cpp">
-      <Filter>Main</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>SceneGraph\Camera</Filter>
     </ClCompile>
@@ -323,14 +323,8 @@
     <ClCompile Include="Technique.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClCompile>
-    <ClCompile Include="BindingPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClCompile>
     <ClCompile Include="DepthStencil.cpp">
       <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClCompile>
-    <ClCompile Include="ObjectFilterFlag.cpp">
-      <Filter>SceneGraph\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Material.cpp">
       <Filter>SceneGraph\Model</Filter>
@@ -340,9 +334,6 @@
     </ClCompile>
     <ClCompile Include="Job.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderQueuePass.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
     </ClCompile>
     <ClCompile Include="eLayoutFlags.cpp">
       <Filter>SceneGraph\Renderer</Filter>
@@ -356,8 +347,73 @@
     <ClCompile Include="GraphRenderer.cpp">
       <Filter>Graphics\Global Range</Filter>
     </ClCompile>
+    <ClCompile Include="RenderQueuePass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandSignature.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Engine.cpp" />
+    <ClCompile Include="ObjModelManager.cpp" />
+    <ClCompile Include="OBJFileManager.cpp">
+      <Filter>Graphics\Global Range</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContextManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderConstantsTypeDefinitions.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="BindingPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="LightPrePass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlineDrawingPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="SSAOPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthOfFieldPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowPrePass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="MainPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
     <ClCompile Include="MasterRenderGraph.cpp">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
+      <Filter>SceneGraph\Renderer\RenderGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Z_PrePass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="FillLightGridPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowMappingPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="MainLight.cpp">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClCompile>
+    <ClCompile Include="MainLightManager.cpp">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClCompile>
+    <ClCompile Include="FilledPrimitiveSphere.cpp">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClCompile>
+    <ClCompile Include="MainRenderPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -406,9 +462,6 @@
     <ClInclude Include="ImGuiManager.h">
       <Filter>Header Files Only</Filter>
     </ClInclude>
-    <ClInclude Include="OBJAssetManager.h">
-      <Filter>SceneGraph\Model</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Resource Files%28Icon, Shader%29\Icon</Filter>
     </ClInclude>
@@ -447,9 +500,6 @@
     </ClInclude>
     <ClInclude Include="DDS.h">
       <Filter>External Dependencies\D3DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="main.h">
-      <Filter>Main</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
       <Filter>Graphics\Global Range</Filter>
@@ -493,9 +543,6 @@
     <ClInclude Include="DynamicDescriptorHeap.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="GraphicsContext.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="IndirectParameter.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
@@ -513,9 +560,6 @@
     </ClInclude>
     <ClInclude Include="SVDescriptor.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="AssetManager.h">
-      <Filter>SceneGraph\Model</Filter>
     </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>SceneGraph\Model</Filter>
@@ -544,22 +588,10 @@
     <ClInclude Include="ShadowBuffer.h">
       <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
-    <ClInclude Include="SceneGraph.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
     <ClInclude Include="UpdateConstantBuffer.h">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClInclude>
     <ClInclude Include="DynamicUploadBuffer.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Sink.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Pass.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClInclude>
-    <ClInclude Include="Source.h">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClInclude>
     <ClInclude Include="DepthStencil.h">
@@ -568,29 +600,8 @@
     <ClInclude Include="RenderTarget.h">
       <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
     </ClInclude>
-    <ClInclude Include="RenderingResource.h">
-      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
-    </ClInclude>
     <ClInclude Include="IDisplaySurface.h">
       <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClInclude>
-    <ClInclude Include="BlurPass.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClInclude>
-    <ClInclude Include="VertexBuffer.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="PSOResource.h">
-      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandContextResource.h">
-      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
-    </ClInclude>
-    <ClInclude Include="RootSignatureResource.h">
-      <Filter>SceneGraph\Renderer\RenderingResource</Filter>
-    </ClInclude>
-    <ClInclude Include="DepthOfFieldPass.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
     </ClInclude>
     <ClInclude Include="BufferManager.h">
       <Filter>Graphics\D3D12Resource</Filter>
@@ -676,12 +687,6 @@
     <ClInclude Include="Step.h">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClInclude>
-    <ClInclude Include="RenderQueuePass.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClInclude>
-    <ClInclude Include="BindingPass.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
-    </ClInclude>
     <ClInclude Include="TechniqueWindow.h">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClInclude>
@@ -715,8 +720,73 @@
     <ClInclude Include="GraphRenderer.h">
       <Filter>Graphics\Global Range</Filter>
     </ClInclude>
+    <ClInclude Include="RenderQueuePass.h">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Engine.h" />
+    <ClInclude Include="ObjModelManager.h" />
+    <ClInclude Include="OBJFileManager.h">
+      <Filter>Graphics\Global Range</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderConstantsTypeDefinitions.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="BindingPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Pass.h">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="LightPrePass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlineDrawingPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowMappingPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowPrePass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="SSAOPass.h">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthOfFieldPass.h">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="PassFlag.h">
+      <Filter>SceneGraph\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="MainPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
     <ClInclude Include="MasterRenderGraph.h">
-      <Filter>SceneGraph\Renderer\Pass</Filter>
+      <Filter>SceneGraph\Renderer\RenderGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderingResource.h">
+      <Filter>SceneGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Z_PrePass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="FillLightGridPass.h">
+      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+    </ClInclude>
+    <ClInclude Include="MainLight.h">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClInclude>
+    <ClInclude Include="MainLightManager.h">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClInclude>
+    <ClInclude Include="FilledPrimitiveSphere.h">
+      <Filter>SceneGraph\Camera\MainLight</Filter>
+    </ClInclude>
+    <ClInclude Include="MainRenderPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -730,12 +800,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config">
-      <Filter>Resource Files%28Icon, Shader%29</Filter>
-    </None>
-    <None Include="GeneralPurposeRS.hlsli">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
-    </None>
     <None Include="..\Shader\Viewer\Utility\ViewerRS.hlsli">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility</Filter>
     </None>
@@ -746,42 +810,223 @@
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Utility</Filter>
     </None>
     <None Include="..\Shader\Viewer\Pixel Shader\ModelPS_Common.hlsli">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
+    </None>
+    <None Include="..\Shader\Light\FillLightGridCS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </None>
+    <None Include="..\Shader\Light\LightGrid.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </None>
+    <None Include="..\Shader\Light\FillLightGridRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="..\Shader\Miscellaneous\ColorSpaceUtility.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PixelPacking.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PixelPacking_LUV.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PixelPacking_R11G11B10.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PixelPacking_RGBE.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PixelPacking_RGBM.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\ShaderUtility.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\GenerateMips\GenerateMipsCS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </None>
+    <None Include="..\Shader\Present\PresentRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\ToneMappingUtility.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\Miscellaneous\PostEffectsRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </None>
+    <None Include="..\Shader\SSAO\AoBlurAndUpsampleCS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </None>
+    <None Include="..\Shader\SSAO\SSAORS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </None>
+    <None Include="..\Shader\SSAO\AoComputeCS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </None>
+    <None Include="..\Shader\Flat\Flat_RS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </None>
+    <None Include="..\Shader\OutlineWithBlur\OutlineWithBlurRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
     </None>
     <None Include="..\Shader\Viewer\Vertex Shader\ModelVS_Common.hlsli">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="GeneralPurposeVS.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
-    </FxCompile>
-    <FxCompile Include="GeneralPurposePS.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shader\SobelFilter\Composite.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
-    </FxCompile>
-    <FxCompile Include="..\Shader\SobelFilter\Sobel.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_Basic.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexCoord.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_TexNormal.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Pixel Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Light\FillLightGridCS_8.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Light\FillLightGridCS_16.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Light\FillLightGridCS_24.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Light\FillLightGridCS_32.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Light</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Miscellaneous\CopyBackPostBufferCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Miscellaneous\ScreenQuadVS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Miscellaneous</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsGammaCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsGammaOddCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsGammaOddXCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsGammaOddYCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsLinearCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsLinearOddCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsLinearOddXCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\GenerateMips\GenerateMipsLinearOddYCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\GenerateMips</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BicubicHorizontalUpsamplePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BicubicUpsampleGammaPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BicubicUpsamplePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BicubicVerticalUpsamplePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BilinearUpsamplePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\BufferCopyPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\MagnifyPixelsPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\PresentHDRPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\PresentSDRPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\SharpeningUpsampleGammaPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Present\SharpeningUpsamplePS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
+    </FxCompile>
+    <FxCompile Include="VHS_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoBlurUpsampleBlendOutCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoBlurUpsampleCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoBlurUpsamplePreMinBlendOutCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoBlurUpsamplePreMinCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoPrepareDepthBuffers1CS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoPrepareDepthBuffers2CS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\DebugSSAOCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\LinearizeDepthCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SobelFilter\Composite_VS_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SobelFilter\Sobel_CS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Sobel FIlter</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoCompute1CS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\SSAO\AoCompute2CS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Flat\Flat_VS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Flat\Flat_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Flat</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\OutlineWithBlurPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="VerticalBlurCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="HoriontalBlurCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_Basic.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexCoord.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_TexNormal.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Vertex Shader</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Depth Shader\DepthVS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Depth Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Depth Shader\DepthPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Depth Shader</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

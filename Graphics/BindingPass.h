@@ -19,15 +19,12 @@ protected:
 	void bindAll(custom::CommandContext& BaseContext) const noexcept;
 	void finalize() override;
 
-	template<class T>
-	void addBindSink(std::string name);
-
 private:
 	void bindBufferResources(custom::CommandContext&) const DEBUG_EXCEPT;
 
 protected:
-	std::shared_ptr<RenderTarget> m_pRenderTarget;
-	std::shared_ptr<DepthStencil> m_pDepthStencil;
+	std::shared_ptr<RenderTarget> m_pRenderTarget = nullptr;
+	std::shared_ptr<DepthStencil> m_pDepthStencil = nullptr;
 
 private:
 	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResources;

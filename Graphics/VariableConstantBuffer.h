@@ -1,9 +1,6 @@
-#pragma once
-#include <cstdbool>
 #include <DirectXMath.h>
 
 #include "CommandContext.h"
-#include "GraphicsContext.h"
 
 #include "RenderingResource.h"
 #include "Entity.h"
@@ -255,7 +252,8 @@ public:
 	{
 		custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
-		graphicsContext.SetDynamicConstantBufferView(1, sizeof(m_Data), &m_Data);
+		// TODO : Set RootIndex
+		graphicsContext.SetDynamicConstantBufferView(-1, sizeof(m_Data), &m_Data);
 	}
 
 	MaterialData m_Data;

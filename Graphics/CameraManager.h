@@ -17,31 +17,30 @@ class CameraManager // CameraContainer, CameraController
 {
 public:
     CameraManager();
-    D3D11 void RenderWindows();
-    D3D11 void Bind(custom::CommandContext& BaseContext);
-    D3D11 void AddCamera(std::shared_ptr<Camera> pCam);
-    D3D11 void LinkTechniques(MasterRenderGraph& rg);
-    D3D11 void Submit(eObjectFilterFlag Filter) const;
-    D3D11 std::shared_ptr<Camera> GetActiveCamera();
+    void RenderWindows();
+    void Bind(custom::CommandContext& BaseContext);
+    void AddCamera(std::shared_ptr<Camera> pCam);
+    void LinkTechniques(MasterRenderGraph& rg);
+    void Submit(eObjectFilterFlag Filter) const;
+    std::shared_ptr<Camera> GetActiveCamera();
 
-    D3D12 void Update(float deltaTime);
-    D3D12 void ToggleSlowMoveMent() { m_bSlowMovement = !m_bSlowMovement; }
-    D3D12 void ToggleSlowRotation() { m_bSlowRotation = !m_bSlowRotation; }
-    D3D12 Math::Vector3 GetWorldEast() { return m_WorldEast; }
-    D3D12 Math::Vector3 GetWorldUp() { return m_WorldUp; }
-    D3D12 Math::Vector3 GetWorldNorth() { return m_WorldNorth; }
-    D3D12 float GetCurrentHeading() { return m_CurrentYaw; }
-    D3D12 float GetCurrentPitch() { return m_CurrentPitch; }
+    void Update(float deltaTime);
+    void ToggleSlowMoveMent() { m_bSlowMovement = !m_bSlowMovement; }
+    void ToggleSlowRotation() { m_bSlowRotation = !m_bSlowRotation; }
+    Math::Vector3 GetWorldEast() { return m_WorldEast; }
+    Math::Vector3 GetWorldUp() { return m_WorldUp; }
+    Math::Vector3 GetWorldNorth() { return m_WorldNorth; }
+    float GetCurrentHeading() { return m_CurrentYaw; }
+    float GetCurrentPitch() { return m_CurrentPitch; }
 
-    D3D12 void SetCurrentHeading(float heading) { m_CurrentYaw = heading; }
-    D3D12 void SetCurrentPitch(float pitch) { m_CurrentPitch = pitch; }
+    void SetCurrentHeading(float heading) { m_CurrentYaw = heading; }
+    void SetCurrentPitch(float pitch) { m_CurrentPitch = pitch; }
 
     void SetUpCamera(Camera* pCamera);
 
 private:
-    D3D11 std::shared_ptr<Camera> GetControlledCamera();
-    D3D12 void ApplyMomentum(float& oldValue, float& newValue, float deltaTime);
-    void operator= (Camera _Camera) { m_Cameras.push_back(std::make_shared<Camera>(_Camera)); ++m_NumCamera; }
+    std::shared_ptr<Camera> GetControlledCamera();
+    void ApplyMomentum(float& oldValue, float& newValue, float deltaTime);
     // void CameraPushBack(Camera Camera);
 
 private:

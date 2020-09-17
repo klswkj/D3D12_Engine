@@ -1,5 +1,4 @@
 #pragma once
-#include "stdafx.h"
 #include "Device.h"
 //
 // DescriptorHeapManager ¦¡¦¡ DescriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES]

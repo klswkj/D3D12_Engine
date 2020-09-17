@@ -1,6 +1,7 @@
+#include "stdafx.h"
 #include "Job.h"
 #include "CommandContext.h"
-#include "GraphicsContext.h"
+
 #include "ComputeContext.h"
 #include "Entity.h"
 #include "Step.h"

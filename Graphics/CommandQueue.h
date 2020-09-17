@@ -21,8 +21,8 @@ namespace custom
 
         uint64_t IncrementFence(void);
         bool IsFenceComplete(uint64_t FenceValue);
-        // void StallForFence(uint64_t FenceValue);
-        void StallForProducer(CommandQueue& Producer);
+        void StallForFence(uint64_t FenceValue);
+        bool StallForProducer(CommandQueue& Producer);
         void WaitForFence(uint64_t FenceValue);
 
         void WaitForIdle(void) 

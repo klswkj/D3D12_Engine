@@ -2,14 +2,18 @@
 #include "Entity.h"
 #include "RootSignature.h"
 #include "CommandContext.h"
+
 #include "MathBasic.h"
+#include "IBaseCamera.h"
+
+class Camera;
 
 class CameraFrustum : public Entity
 {
 public:
 	// width, height is given -> near Z plane is normalized, -> multiplication with m_AspectRatio.
 	// width / height will be VerticalFOV
-	CameraFrustum(Camera pParent, float AspectHeightOverWidth, float NearZClip, float FarZClip);
+	CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float NearZClip, float FarZClip);
 	void SetVertices(float Width, float Height, float NearZClip, float FarZClip);
 	void SetVertices(float AspectHeightOverWidth, float NearZClip, float FarZClip);
 	void SetPosition(DirectX::XMFLOAT3& Position) noexcept;
@@ -33,45 +37,3 @@ private:
 	custom::RootSignature m_RootSignature;
 	GraphicsPSO m_PSO;
 };
-
-inline void CameraFrustum::SetPosition(DirectX::XMFLOAT3& Position) noexcept
-{
-	m_CameraPosition = Position;
-	// m_CameraToWorld.SetTranslation(Position);
-}
-
-inline void CameraFrustum::SetPosition(Math::Vector3& Translation) noexcept
-{
-	m_CameraPosition = Translation;
-	// m_CameraToWorld.SetTranslation(Translation);
-}
-
-inline void CameraFrustum::SetRotation(const DirectX::XMFLOAT3& RollPitchYaw) noexcept
-{
-	m_Rotation = RollPitchYaw;
-	// m_CameraToWorld.SetRotation(RollPitchYaw);
-}
-
-inline void CameraFrustum::SetRotation(Math::Vector3& Rotation) noexcept
-{
-	m_Rotation = Rotation;
-}
-
-inline DirectX::XMMATRIX CameraFrustum::GetTransformXM() const noexcept
-{
-	return DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
-		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition));
-
-	// return DirectX::XMMatrixRotationRollPitchYawFromVector(m_CameraToWorld.GetRotation()) *
-	// 	 DirectX::XMMatrixTranslationFromVector(m_CameraToWorld.GetTranslation());
-
-	//inline Math::Matrix4 CameraFrustum::GetTransform() const noexcept
-	//{
-	//	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
-	//}
-}
-
-inline Math::Matrix4 CameraFrustum::GetTransform() const noexcept
-{
-	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
-}

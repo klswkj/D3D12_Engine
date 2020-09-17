@@ -2,10 +2,9 @@
 #include "imgui.h"
 #include <filesystem>
 
-class ImguiManager
+namespace imguiManager
 {
-public:
-	ImguiManager()
+	void Initialize()
 	{
 		namespace fs = std::filesystem;
 		if (!fs::exists("imgui.ini") && fs::exists("imgui_default.ini"))
@@ -17,7 +16,8 @@ public:
 		ImGui::CreateContext();
 		ImGui::StyleColorsDark();
 	}
-	~ImguiManager()
+
+	void Destroy()
 	{
 		ImGui::DestroyContext();
 	}

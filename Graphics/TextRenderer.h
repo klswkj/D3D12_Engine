@@ -1,5 +1,4 @@
 #pragma once
-
 // See this : https://ttf2fnt.com/
 // See this : https://github.com/microsoft/DirectXTK12/blob/master/Src/SpriteFont.cpp
 

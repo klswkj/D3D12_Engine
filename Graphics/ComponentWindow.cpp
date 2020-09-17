@@ -1,10 +1,9 @@
 #include "stdafx.h"
 #include "ComponentWindow.h"
 #include "Model.h"
-#include "ModelPart.h"
-// #include "AddonWindow.h"
+// #include "ModelPart.h"
 
-void ComponentWindow::SpawnWindow(Model& model)
+void ComponentWindow::ShowWindow(Model& model)
 {
 	ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_HorizontalScrollbar);
 	ImGui::Columns(2, nullptr, true);
@@ -46,10 +45,10 @@ void ComponentWindow::SpawnWindow(Model& model)
 
 bool ComponentWindow::PushNode(ModelPart& node)
 {
-	// if there is no selected node, set selectedId to an impossible value
+	// If there is no selected node, set selectedId to an impossible value
 	const uint32_t selectedId = (pSelectedNode == nullptr) ? -1 : pSelectedNode->GetId();
 
-	// build up flags for current node
+	// Build up flags for current node
 	const ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | // Only open when clicking on the arrow part. If ImGuiTreeNodeFlags_OpenOnDoubleClick is also set, single-click arrow or double-click all box to open.
 		ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_FramePadding      |
 		((node.GetId() == selectedId) ? ImGuiTreeNodeFlags_Selected : 0) | // Draw as selected
@@ -59,8 +58,9 @@ bool ComponentWindow::PushNode(ModelPart& node)
 	const auto expanded = ImGui::TreeNodeEx
 	(
 		(void*)(uint32_t)node.GetId(),
-		node_flags, node.GetName().c_str()
+		node_flags, node.GetName()
 	);
+
 	// processing for selecting node
 	if (ImGui::IsItemClicked())
 	{
@@ -70,7 +70,12 @@ bool ComponentWindow::PushNode(ModelPart& node)
 	return expanded;
 }
 
-ComponentWindow::TransformParameters& resolveTransform() noexcept
+void ComponentWindow::PopNode(ModelPart& node)
+{
+	ImGui::TreePop();
+}
+
+ComponentWindow::TransformParameters& ComponentWindow::resolveTransform() noexcept
 {
 	uint32_t id = pSelectedNode->GetId();
 	auto i = transformParams.find(id);
@@ -80,7 +85,8 @@ ComponentWindow::TransformParameters& resolveTransform() noexcept
 	}
 	return i->second;
 }
-ComponentWindow::TransformParameters& loadTransform(uint32_t ID) noexcept
+
+ComponentWindow::TransformParameters& ComponentWindow::loadTransform(uint32_t ID)
 {
 	const DirectX::XMFLOAT4X4& applied = pSelectedNode->GetAppliedTransform();
 	const auto angles = ExtractEulerAngles(applied);
@@ -92,5 +98,5 @@ ComponentWindow::TransformParameters& loadTransform(uint32_t ID) noexcept
 	tp.x = translation.x;
 	tp.y = translation.y;
 	tp.z = translation.z;
-	return transformParams.insert({ id,{ tp } }).first->second;
+	return transformParams.insert({ ID, { tp } }).first->second;
 }

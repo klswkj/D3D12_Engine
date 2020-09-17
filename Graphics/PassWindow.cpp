@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "PassWindow.h"
 #include "imgui.h"
 #include "Pass.h"
@@ -34,7 +35,7 @@ void PassWindow::listAllPasses()
 			ImGuiTreeNodeFlags_Leaf | ((pass->m_PassIndex == selectedPassIndex) ? ImGuiTreeNodeFlags_Selected : 0);
 			// (node.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
 
-		if (ImGui::TreeNodeEx((void*)pass->m_PassIndex, node_flags, pass->GetName()))
+		if (ImGui::TreeNodeEx((void*)pass->m_PassIndex, node_flags, pass->GetRegisteredName()))
 		{
 			if (ImGui::IsItemClicked())
 			{

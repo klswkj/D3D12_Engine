@@ -30,21 +30,21 @@ struct VSOutput
 };
 
 // m_RootSig[2].InitAsDescriptorRange (D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);  // 
-Texture2D<float3> texDiffuse : register(t0);
-Texture2D<float3> texSpecular : register(t1);
+Texture2D<float3> texDiffuse              : register(t0);
+Texture2D<float3> texSpecular             : register(t1);
 //Texture2D<float4> texEmissive           : register(t2);
-Texture2D<float3> texNormal : register(t3);
+Texture2D<float3> texNormal               : register(t3);
 //Texture2D<float4> texLightmap           : register(t4);
 //Texture2D<float4> texReflection         : register(t5);
 
 // m_RootSig[3].InitAsDescriptorRange (D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
-Texture2D<float> texSSAO : register(t64);
-Texture2D<float> texShadow : register(t65);
+Texture2D<float> texSSAO                  : register(t64); // bufferManager::g_SSAOFullScreen
+Texture2D<float> texShadow                : register(t65); // bufferManager::g_ShadowBuffer
 
-StructuredBuffer<LightData> lightBuffer : register(t66);
-Texture2DArray<float> lightShadowArrayTex : register(t67);
-ByteAddressBuffer lightGrid : register(t68);
-ByteAddressBuffer lightGridBitMask : register(t69);
+StructuredBuffer<LightData> lightBuffer   : register(t66); // PreLightPass::custom::StructuredBuffer  m_LightBuffer
+Texture2DArray<float> lightShadowArrayTex : register(t67); // PreLightPass::custom::ColorBuffer       m_LightShadowArray
+ByteAddressBuffer lightGrid               : register(t68); // PreLightPass::custom::ByteAddressBuffer m_LightGrid;
+ByteAddressBuffer lightGridBitMask        : register(t69); // PreLightPass::custom::ByteAddressBuffer m_LightGridBitMask;
 
 cbuffer PSConstants : register(b0)
 {
@@ -70,7 +70,7 @@ uint PullNextBit(inout uint bits)
 
 #ifndef DIRECTIONAL_LIGHT_ARGS
 #define DIRECTIONAL_LIGHT_ARGS \
-diffuseAlbedo,                 \
+    diffuseAlbedo,             \
     specularAlbedo,            \
     specularMask,              \
     gloss,                     \
@@ -135,10 +135,10 @@ float3 main(VSOutput vsOutput) : SV_Target0
     float3 viewDir = normalize(vsOutput.viewDir);
     colorSum += ApplyDirectionalLight
     (
-    DIRECTIONAL_LIGHT_ARGS,
-    ShadowTexelSize,
-    texShadow,
-    shadowSampler
+        DIRECTIONAL_LIGHT_ARGS,
+        ShadowTexelSize,
+        texShadow,
+        shadowSampler
     );
 
     uint2 tilePos = GetTilePos(pixelPos, InvTileDim.xy);

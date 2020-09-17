@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "CameraEntity.h"
 #include "PreMadePSO.h"
 #include "BufferManager.h"
@@ -8,6 +9,7 @@
 #include "Technique.h"
 #include "Vector.h"
 #include "VariableConstantBuffer.h"
+#include "ObjectFilterFlag.h"
 
 #if defined(_DEBUG) | !defined(NDEBUG)
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/GeneralPurposePS.h"   // Pseudo Shader
@@ -70,7 +72,7 @@ CameraEntity::CameraEntity()
 	m_PSO.SetDepthStencilState(premade::g_DepthStateDisabled);
 	m_PSO.SetInputLayout(_countof(vertexElements), vertexElements);
 	m_PSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE); // D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE is right.
-	m_Topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	m_Topology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 	m_PSO.SetRenderTargetFormats(0, nullptr, bufferManager::g_SceneDepthBuffer.GetFormat());
 	m_PSO.SetVertexShader(g_pGeneralPurposeVS, sizeof(g_pGeneralPurposeVS));
 	m_PSO.SetPixelShader(g_pGeneralPurposePS, sizeof(g_pGeneralPurposePS));

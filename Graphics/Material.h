@@ -20,26 +20,13 @@ namespace custom
 
 class Material
 {
-    /*
-    DirectX::XMFLOAT3 m_SpecularColor{};
-    float m_SpecularGloss{ 0 };
-    float m_SpecularWeight{ 0 };
-    */
-    struct MaterialData
-    {
-        BOOL UseGlossAlpha{ 0 };
-        BOOL UseSpecularMap{ 0 };
-        BOOL UseNormalMap{ 0 };
-        float NormalMapWeight{ 0 };
-        DirectX::XMFLOAT3 MaterialColor{ 0 };
-    };
 public:
-	Material(const aiMaterial& material, const std::filesystem::path& path) DEBUG_EXCEPT;
+	Material(aiMaterial& material, const std::filesystem::path& path) DEBUG_EXCEPT;
     ~Material() {}
-	custom::StructuredBuffer ExtractVertices(const aiMesh& mesh) const noexcept;
-	std::vector<unsigned short> ExtractIndices(const aiMesh& mesh) const noexcept;
-	std::shared_ptr<custom::StructuredBuffer> MakeVertexBindable(const aiMesh& mesh, float scale = 1.0f) const DEBUG_EXCEPT;
-	std::shared_ptr<custom::ByteAddressBuffer> MakeIndexBindable(const aiMesh& mesh) const DEBUG_EXCEPT;
+	// custom::StructuredBuffer ExtractVertices(const aiMesh& mesh) const noexcept;
+	// std::vector<unsigned short> ExtractIndices(const aiMesh& mesh) const noexcept;
+	// std::shared_ptr<custom::StructuredBuffer> MakeVertexBindable(const aiMesh& mesh, float scale = 1.0f) const DEBUG_EXCEPT;
+	// std::shared_ptr<custom::ByteAddressBuffer> MakeIndexBindable(const aiMesh& mesh) const DEBUG_EXCEPT;
     CustomBuffer GetCustomBuffer() const noexcept
     {
         return m_CustomBuffer;
@@ -51,25 +38,25 @@ private:
     uint32_t m_VertexInputLayoutFlag{ 0 };
     uint32_t m_PixelInputLayoutFlag{ 0 };
 	
-    GraphicsPSO m_PSO;
+    // GraphicsPSO m_PSO;
 	std::vector<Technique> m_Techniques;
 	std::string m_ModelFilePath;  // must be std::string
 	std::string m_Name;           // must be std::string
 
-    DirectX::XMFLOAT3 m_SpecularColor{};
-    float m_SpecularGloss{ 0 };
-    float m_SpecularWeight{ 0 };
-    BOOL* m_pUseGlossAlpha{ nullptr };
-    BOOL* m_pUseSpecularMap{ nullptr };
-    BOOL* m_UseNormalMap{ nullptr };
-    float* m_pNormalMapWeight{ nullptr };
-    DirectX::XMFLOAT3* m_pMaterialColor{ nullptr };
+    DirectX::XMFLOAT3 m_SpecularColor   { };
+    float m_SpecularGloss               { 0 };
+    float m_SpecularWeight              { 0 };
+    BOOL* m_pUseGlossAlpha              { nullptr };
+    BOOL* m_pUseSpecularMap             { nullptr };
+    BOOL* m_UseNormalMap                { nullptr };
+    float* m_pNormalMapWeight           { nullptr };
+    DirectX::XMFLOAT3* m_pMaterialColor { nullptr };
 
     CustomBuffer m_CustomBuffer;
 
-    static std::mutex sm_mutex;
+    std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputElements;
 
-	D3D12_CPU_DESCRIPTOR_HANDLE* m_SRVs; // = new D3D12_CPU_DESCRIPTOR_HANDLE[m_Header.materialCount * 6];
+    static std::mutex sm_mutex;
 };
 
 
@@ -91,10 +78,6 @@ struct MaterialMaterial // CachingPixelConstantBufferEx
     float NormalMapWeight;              // pixel     -> 노말 있으면 씀
     BOOL bUseNormalMap;                 // pixel     -> 노말 있으면 씀
 };
-
-// 이거를 그대로 만들지 않고, 위에서부터 하나하나 차례대로 세서
-// 버퍼를 동적할당. 그래서 포인터로 나눠가지기?
-
 
 /*
 struct Material

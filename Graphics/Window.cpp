@@ -6,11 +6,12 @@
 
 namespace window
 {
-	uint32_t g_windowWidth{ 720 };
-	uint32_t g_windowHeight{ 480 };
+	uint32_t g_windowWidth{ 1920 };
+	uint32_t g_windowHeight{ 1080 };
 
 	HWND g_hWnd = nullptr;
 
+	std::vector<byte> s_rawInputData;
 	MyKeyboard        g_Keyboard;
 	MyMouse           g_Mouse;
 
@@ -254,19 +255,19 @@ namespace window
 				break;
 			}
 
-			rawInputData.resize(size);
+			s_rawInputData.resize(size);
 
 			if (GetRawInputData(
 				reinterpret_cast<HRAWINPUT>(lParam),
 				RID_INPUT,
-				rawInputData.data(),
+				s_rawInputData.data(),
 				&size,
 				sizeof(RAWINPUTHEADER)) != size)
 			{
 				break;
 			}
 
-			auto& ri = reinterpret_cast<const RAWINPUT&>(*rawInputData.data());
+			auto& ri = reinterpret_cast<const RAWINPUT&>(*s_rawInputData.data());
 			if (ri.header.dwType == RIM_TYPEMOUSE &&
 				(ri.data.mouse.lLastX != 0 || ri.data.mouse.lLastY != 0))
 			{
@@ -288,7 +289,7 @@ namespace window
 		uint32_t height,            // = g_windowHeight,
 		BOOL g_fullscreen,          // = false,
 		int ShowWnd                 // = 1
-	) noexcept
+	)
 	{
 		HRESULT hardwareResult = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
@@ -311,7 +312,7 @@ namespace window
 		WC.hbrBackground = (HBRUSH)COLOR_WINDOW;
 		WC.lpszClassName = windowName;
 
-		RegisterClassEx(&WC);
+		ASSERT(0 != RegisterClassEx(&WC), "Unable to register a window");
 
 		///////////////////////////////
 
@@ -326,8 +327,9 @@ namespace window
 
 		RECT desktopRect;
 		GetClientRect(GetDesktopWindow(), &desktopRect);
-		int centeredX = (desktopRect.right / 2) - (clientRect.right / 2);
-		int centeredY = (desktopRect.bottom / 2) - (clientRect.bottom / 2);
+
+		int centeredX = (clientRect.right - desktopRect.right) / 2;
+		int centeredY = (clientRect.bottom - desktopRect.bottom) / 2;
 
 		g_hWnd = CreateWindow
 		(
@@ -344,14 +346,14 @@ namespace window
 			0
 		);
 
-		ASSERT(g_hWnd == nullptr);
+		ASSERT(g_hWnd != nullptr);
 
 		if (g_fullscreen)
 		{
 			SetWindowLong(g_hWnd, GWL_STYLE, 0);
 		}
 
-		ShowWindow(g_hWnd, ShowWnd);
+		// ShowWindow(g_hWnd, ShowWnd);
 		ImGui_ImplWin32_Init(g_hWnd);
 
 		RAWINPUTDEVICE RawInputDevice;
@@ -359,7 +361,7 @@ namespace window
 		RawInputDevice.usUsage = 0x02; // mouse usage
 		RawInputDevice.dwFlags = 0;
 		RawInputDevice.hwndTarget = nullptr;
-		ASSERT(RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RawInputDevice)) == FALSE);
+		ASSERT(RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RawInputDevice)) != FALSE);
 	}
 
 	HWND GetWindowHandle() noexcept

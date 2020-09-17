@@ -1,7 +1,26 @@
+#include "stdafx.h"
 #include "Camera.h"
 #include "Vector.h"
-#include <cmath>
-#include "ObjectFilterFlag.h"
+#include "CameraEntity.h"
+#include "CameraFrustum.h"
+
+Camera::Camera(char* Name, Math::Vector3 InitPosition, float InitPitch, float InitYaw)
+	: m_Name(Name), m_InitPosition(InitPosition), m_InitPitch(InitPitch), m_InitYaw(InitYaw),
+	m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f)
+{
+	SetPerspectiveMatrix(DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f); // Camera Frustum
+
+	Reset();
+}
+
+Camera::Camera(const char* Name, Math::Vector3 InitPosition/* = Math::Vector3{ 0.0f, 0.0f, 0.0f }*/, float InitPitch/* = 0.0f*/, float InitYaw/* = 0.0f*/)
+	: m_Name(Name), m_InitPosition(InitPosition), m_InitPitch(InitPitch), m_InitYaw(InitYaw),
+	m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f)
+{
+	SetPerspectiveMatrix(DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f); // Camera Frustum
+
+	Reset();
+}
 
 void Camera::UpdateProjMatrix()
 {
@@ -46,6 +65,8 @@ void Camera::RenderWindow() noexcept
 	bool bRotationDirty{ false };
 	bool bPositionDirty{ false };
 	const auto dcheck = [](bool d, bool& carry) { carry = carry || d; };
+
+	ImGui::Text(m_Name.c_str());
 
 	if (!m_bTethered)
 	{
@@ -106,7 +127,13 @@ void Camera::Reset()
 	m_Projector.SetPosition(m_InitPosition);
 }
 
-const char* Camera::GetName() const noexcept
+std::string& Camera::GetName() noexcept
 {
     return m_Name;
+}
+
+void Camera::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
+{
+	m_Entity.LinkTechniques(_MasterRenderGraph);
+	m_Projector.LinkTechniques(_MasterRenderGraph);
 }

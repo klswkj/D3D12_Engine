@@ -1,7 +1,11 @@
 #pragma once
-#include "stdafx.h"
 #include "Device.h"
 #include "DescriptorHandle.h"
+
+namespace device
+{
+	extern ID3D12Device* g_pDevice;
+}
 
 namespace custom
 {

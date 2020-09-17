@@ -28,16 +28,19 @@ namespace device
     HRESULT Initialize();
     HRESULT Resize(uint32_t width, uint32_t height);
     void Terminate();
-    void Shutdown();
+    void Destroy();
     void Present();
 
     uint64_t GetFrameCount();
     float GetFrameTime();
     float GetFrameRate();
 
+    HRESULT queryCaps();
+    HRESULT createDeviceDependentStateInternal();
+
     extern ID3D12Device* g_pDevice;
-    extern CommandQueueManager   g_commandQueueManager;
-    extern CommandContextManager g_commandContextManager;
+    extern CommandQueueManager   g_commandQueueManager;   // 
+    extern CommandContextManager g_commandContextManager; // // Not Init Yet
     extern DescriptorHeapManager g_descriptorHeapManager;
 
     extern ColorBuffer g_DisplayBuffer[];
@@ -60,10 +63,4 @@ namespace device
 #if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     extern Platform::Agile<Windows::UI::Core::CoreWindow>  g_window;
 #endif
-}
-
-namespace GraphicsDeviceManager
-{
-    HRESULT queryCaps();
-    HRESULT createDeviceDependentStateInternal();
 }

@@ -1,6 +1,15 @@
+#include "stdafx.h"
 #include "ShadowCamera.h"
+#include "CommandContext.h"
 
-void ShadowCamera::UpdateMatrix
+void ShadowCamera::BindToGraphics(custom::CommandContext& BaseContext)
+{
+    custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+
+    graphicsContext.SetModelToProjectionByCamera(*this);
+}
+
+void ShadowCamera::UpdateShadowMatrix
 (
     Math::Vector3 LightDirection, Math::Vector3 ShadowCenter, Math::Vector3 ShadowBounds,
     uint32_t BufferWidth, uint32_t BufferHeight, uint32_t BufferPrecision

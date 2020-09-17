@@ -4,6 +4,7 @@
 
 namespace premade
 {
+    extern custom::SamplerDescriptor g_DefaultSamplerDesc;
     extern custom::SamplerDescriptor g_SamplerLinearWrapDesc;
     extern custom::SamplerDescriptor g_SamplerAnisotropyWrapDesc;
     extern custom::SamplerDescriptor g_SamplerShadowDesc;
@@ -13,6 +14,7 @@ namespace premade
     extern custom::SamplerDescriptor g_SamplerPointBorderDesc;
     extern custom::SamplerDescriptor g_SamplerLinearBorderDesc;
 
+    extern D3D12_CPU_DESCRIPTOR_HANDLE g_DefaultSampler;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerLinearWrap;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerAnisotropyWrap;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerShadow;
@@ -53,6 +55,7 @@ namespace premade
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateDisabled;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadWrite;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnly;
+    extern D3D12_DEPTH_STENCIL_DESC g_StencilStateWriteOnly;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnlyReversed;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateTestEqual;
 

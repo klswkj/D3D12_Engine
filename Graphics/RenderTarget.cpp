@@ -2,7 +2,7 @@
 #include "RenderTarget.h"
 #include "Window.h"
 #include "Device.h"
-#include "GraphicsContext.h"
+
 #include "DepthStencil.h"
 #include "DepthBuffer.h"
 

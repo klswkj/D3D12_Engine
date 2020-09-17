@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "CameraProjector.h"
 #include "CameraFrustum.h"
 #include "Camera.h"
@@ -10,7 +11,7 @@ CameraProjector::CameraProjector(Camera* pParent, float VerticalFOV, float Aspec
 	m_width(1.0f), m_height(1.0f / m_aspectHeightOverWidth),
 	m_nearZClip(NearZClip), m_farZClip(FarZClip),
 	m_verticalFOV(VerticalFOV),
-	m_CameraFrustum(AspectHeightOverWidth, NearZClip, FarZClip),
+	m_CameraFrustum(pParent, AspectHeightOverWidth, NearZClip, FarZClip),
 	m_initAspect(AspectHeightOverWidth), m_initNearZClip(NearZClip), m_initFarZClip(FarZClip)
 {
 }
@@ -45,9 +46,9 @@ void CameraProjector::Submit(eObjectFilterFlag Filter) const
 	m_CameraFrustum.Submit(Filter);
 }
 
-void CameraProjector::LinkTechniques(/*MasterRenderGraph& rg*/)
+void CameraProjector::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
 {
-	// m_CameraFrustum.LinkTechniques(rg);
+	m_CameraFrustum.LinkTechniques(_MasterRenderGraph);
 }
 
 void CameraProjector::Reset()

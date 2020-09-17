@@ -1,10 +1,14 @@
 #pragma once
-
 #include <vector>
 #include <string>
 #include <memory.h>
 #include <ppl.h>
 #include <ppltasks.h>
+
+#if !defined byte
+#define byte unsigned char
+#endif
+
 namespace fileReader
 {
 	extern std::shared_ptr<std::vector<byte>> NullFile;

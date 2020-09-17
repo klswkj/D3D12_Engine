@@ -1,5 +1,5 @@
+#include "stdafx.h"
 #include "Mesh.h"
-#include <DirectXMath.h>
 #include "ObjectFilterFlag.h"
 
 Mesh::Mesh(const Material& _Material, const aiMesh& mesh, float scale) DEBUG_EXCEPT

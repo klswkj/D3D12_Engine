@@ -76,6 +76,11 @@ namespace custom
         { 
             return m_GPUVirtualAddress; 
         }
+
+        D3D12_RESOURCE_STATES GetResourceState() const
+        {
+            return m_currentState;
+        }
     protected:
         ID3D12Resource* m_pResource;
         D3D12_RESOURCE_STATES m_currentState;

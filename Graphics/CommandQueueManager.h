@@ -65,6 +65,7 @@ public:
             default:
             {
                 ASSERT(0, "Wrong Command List Type.");
+                return m_graphicsCommandQueue;
             }
         }
     }
@@ -94,6 +95,8 @@ public:
     }
 
 private:
+    ID3D12Device* m_pDevice;
+
     custom::CommandQueue m_graphicsCommandQueue;
     custom::CommandQueue m_computeCommandQueue;
     custom::CommandQueue m_copyCommandQueue;
