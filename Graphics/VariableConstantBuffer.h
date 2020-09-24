@@ -38,7 +38,7 @@ public:
 	}
 private:
 	char m_Name[10];
-	BOOL m_Data{ 0 };
+	BOOL m_Data = 0;
 };
 
 class FloatBuffer : public RenderingResource
@@ -241,11 +241,11 @@ class CustomBuffer : public RenderingResource
 {
 	__declspec(align(16)) struct MaterialData
 	{
-		BOOL UseGlossAlpha{ 0 };
-		BOOL UseSpecularMap{ 0 };
-		BOOL UseNormalMap{ 0 };
-		float NormalMapWeight{ 0 };
-		DirectX::XMFLOAT3 MaterialColor{ 0 };
+		BOOL UseGlossAlpha = 0;
+		BOOL UseSpecularMap = 0;
+		BOOL UseNormalMap = 0;
+		float NormalMapWeight = 0;
+		DirectX::XMFLOAT3 MaterialColor = {};
 	};
 public:
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override

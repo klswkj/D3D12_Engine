@@ -10,7 +10,7 @@ void RenderQueuePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	if (m_bActive)
 	{
-		IBindingPass::bindAll(BaseContext);
+		// IBindingPass::bindAll(BaseContext);
 
 		for (const auto& _Job : m_Jobs)
 		{

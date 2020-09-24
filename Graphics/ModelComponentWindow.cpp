@@ -1,9 +1,9 @@
 #include "stdafx.h"
-#include "ComponentWindow.h"
+#include "ModelComponentWindow.h"
 #include "Model.h"
 // #include "ModelPart.h"
 
-void ComponentWindow::ShowWindow(Model& model)
+void ModelComponentWindow::ShowWindow(Model& model) // ModelProbe
 {
 	ImGui::Begin(name.c_str(), nullptr, ImGuiWindowFlags_HorizontalScrollbar);
 	ImGui::Columns(2, nullptr, true);
@@ -43,7 +43,7 @@ void ComponentWindow::ShowWindow(Model& model)
 	ImGui::End();
 }
 
-bool ComponentWindow::PushNode(ModelPart& node)
+bool ModelComponentWindow::PushNode(ModelPart& node)
 {
 	// If there is no selected node, set selectedId to an impossible value
 	const uint32_t selectedId = (pSelectedNode == nullptr) ? -1 : pSelectedNode->GetId();
@@ -70,12 +70,12 @@ bool ComponentWindow::PushNode(ModelPart& node)
 	return expanded;
 }
 
-void ComponentWindow::PopNode(ModelPart& node)
+void ModelComponentWindow::PopNode(ModelPart& node)
 {
 	ImGui::TreePop();
 }
 
-ComponentWindow::TransformParameters& ComponentWindow::resolveTransform() noexcept
+ModelComponentWindow::TransformParameters& ModelComponentWindow::resolveTransform() noexcept
 {
 	uint32_t id = pSelectedNode->GetId();
 	auto i = transformParams.find(id);
@@ -86,7 +86,7 @@ ComponentWindow::TransformParameters& ComponentWindow::resolveTransform() noexce
 	return i->second;
 }
 
-ComponentWindow::TransformParameters& ComponentWindow::loadTransform(uint32_t ID)
+ModelComponentWindow::TransformParameters& ModelComponentWindow::loadTransform(uint32_t ID)
 {
 	const DirectX::XMFLOAT4X4& applied = pSelectedNode->GetAppliedTransform();
 	const auto angles = ExtractEulerAngles(applied);

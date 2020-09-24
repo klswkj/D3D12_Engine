@@ -52,7 +52,7 @@ public:
 private:
 	custom::RootSignature& m_RootSignature;
 	custom::PSO& m_PSO;
-	uint16_t m_IndexBitMap{ 0 };
+	uint16_t m_IndexBitMap= 0;
 };
 
 // RT for Graphics to create RenderTarget for the back buffer

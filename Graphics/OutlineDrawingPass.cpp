@@ -19,7 +19,7 @@
 #endif
 
 
-OutlineDrawingPass::OutlineDrawingPass(const char* pName, UINT BufferWidth, UINT BufferHeight)
+OutlineDrawingPass::OutlineDrawingPass(std::string pName, UINT BufferWidth, UINT BufferHeight)
 	: RenderQueuePass(pName)
 {
 	m_RootSignature.Reset(2, 0);

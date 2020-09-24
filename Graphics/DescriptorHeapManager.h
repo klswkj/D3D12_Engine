@@ -50,7 +50,7 @@ public:
 
     void DestroyAll(void)
     {
-        for (size_t i{ 0 }; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+        for (size_t i= 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
         {
             m_descriptorHeapAllocator[i].DestroyAll();
         }

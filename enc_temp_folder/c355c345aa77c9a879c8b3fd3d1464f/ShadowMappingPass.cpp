@@ -75,6 +75,13 @@ ShadowMappingPass::ShadowMappingPass(std::string pName, custom::RootSignature* p
 	m_BufferPrecision = 16;
 }
 
+/*
+D3D12 ERROR: ID3D12CommandList::ResourceBarrier: 
+Before state (0x0: D3D12_RESOURCE_STATE_[COMMON|PRESENT]) of resource (0x000001A6A46DF7D0:'Main Color Buffer') 
+(subresource: 0) specified by transition barrier does not match with the current resource state 
+(0x4: D3D12_RESOURCE_STATE_RENDER_TARGET) (assumed at first use) 
+[ RESOURCE_MANIPULATION ERROR #527: RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH]
+*/
 void ShadowMappingPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();

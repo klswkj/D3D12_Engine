@@ -13,7 +13,7 @@ class RenderingResource;
 class Step
 {
 public:
-	Step(const char* targetPassName);
+	Step(std::string targetPassName);
 	Step(Step&&) = default;
 	Step(const Step&) noexcept;
 	Step& operator=(const Step&) = delete;
@@ -27,9 +27,9 @@ public:
 private:
 	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResources;
 	// std::vector<RenderingResource*> m_RenderingResources;
-	RenderQueuePass* m_pPass = nullptr; // BlurOutlineDrawingPass,    MainRenderPass,    OutlineDrawingPass 
+	RenderQueuePass* m_pTargetPass = nullptr; // BlurOutlineDrawingPass,    MainRenderPass,    OutlineDrawingPass 
 										      // OutlineMaskGenerationPass, ShadowMappingPass, WireframePass
-	const char* m_PassName;
+	std::string m_PassName;
 
 	static std::mutex sm_mutex;
 };

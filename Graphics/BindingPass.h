@@ -14,7 +14,7 @@ class IBindingPass : public Pass
 {
 public:
 protected:
-	IBindingPass(const char* name, std::vector<std::shared_ptr<RenderingResource>> = {});
+	IBindingPass(std::string name, std::vector<std::shared_ptr<RenderingResource>> = {});
 	void PushBack(std::shared_ptr<RenderingResource> spRenderingResource) noexcept;
 	void bindAll(custom::CommandContext& BaseContext) const noexcept;
 	void finalize() override;

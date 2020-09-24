@@ -8,6 +8,7 @@ custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIS
 	auto& AvailableContexts = sm_AvailableContexts[Type];
 
 	custom::CommandContext* ret = nullptr;
+
 	if (AvailableContexts.empty())
 	{
 		ret = new custom::CommandContext(Type);
@@ -31,6 +32,7 @@ custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIS
 
 	return ret;
 }
+
 void CommandContextManager::FreeContext(custom::CommandContext* pUsedContext)
 {
 	ASSERT(pUsedContext != nullptr);

@@ -28,11 +28,11 @@ public:
     //////////////////////////////////////
     /////////////////////////////////////
 
+    void SetRootIndex(UINT RootIndex, UINT Offset);
     void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
-
 private:
     std::wstring m_MapKey;        // For deleting from the map later
-    UINT m_RootParameterIndex{ -1 };
-    UINT m_ShaderOffset{ -1 };
+    UINT m_RootParameterIndex = -1;
+    UINT m_ShaderOffset = -1;
     bool m_IsValid;
 };

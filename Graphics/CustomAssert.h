@@ -23,19 +23,15 @@ namespace AssertInternal
 {
     inline void Print(const char* msg) 
     { 
-        printf("%s", msg);
-        OutputDebugStringA("\n");
+        printf("%s\n", msg);
         OutputDebugStringA(msg);
         OutputDebugStringA("\n");
-        MessageBoxA(nullptr, msg, 0, 0);
     }
     inline void Print(const wchar_t* msg) 
     { 
-        wprintf(L"%ws", msg);
-        OutputDebugStringW(L"\n");
+        wprintf(L"%ws\n", msg);
         OutputDebugStringW(msg);
         OutputDebugStringW(L"\n");
-        MessageBoxW(nullptr, msg, 0, 0);
     }
 
     inline void Printf(const char* format, ...)
@@ -59,23 +55,24 @@ namespace AssertInternal
 #ifndef RELEASE
     inline void PrintSubMessage(const char* format, ...)
     {
-        // Print("--> ");
         char buffer[256];
         va_list ap;
         va_start(ap, format);
         vsprintf_s(buffer, 256, format, ap);
         Print(buffer);
         Print("\n");
+        MessageBoxA(nullptr, buffer, 0, 0);
     }
     inline void PrintSubMessage(const wchar_t* format, ...)
     {
-        // Print("--> ");
+        Print("--> ");
         wchar_t buffer[256];
         va_list ap;
         va_start(ap, format);
         vswprintf(buffer, 256, format, ap);
         Print(buffer);
         Print("\n");
+        MessageBoxW(nullptr, buffer, 0, 0);
     }
     inline void PrintSubMessage(void)
     {
@@ -112,50 +109,3 @@ namespace AssertInternal
             __debugbreak(); \
         }
 #endif
-/*
-inline std::wstring AnsiToWString(const std::string& str)
-{
-    wchar_t buffer[512];
-    MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, buffer, 512);
-    return std::wstring(buffer);
-}
-
-void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t lineNumber)
-{
-    std::wstring name;
-
-    size_t firstchar = 0;
-
-    for (size_t i{ FileName.size() }; 0 < i; --i)
-    {
-        if (FileName[i] == '\\')
-        {
-            firstchar = i;
-            break;
-        }
-    }
-
-    name += AnsiToWString(FileName.substr(firstchar + 1));
-    name += L", Function : ";
-    name += AnsiToWString(FunctionName);
-    name += L", Line : ";
-    name += std::to_wstring(lineNumber);
-
-    d3dObject->SetName(name.c_str());
-}
-
-#if defined (_DEBUG)
-#define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
-#else
-#define SET_NAME(X) {}
-#endif
-*/
-/*
-std::wstring ToWString(const std::string& str)
-{
-    std::wstringstream cls;
-    cls << str.c_str();
-    std::wstring total = cls.str();
-    return total;
-}
-*/

@@ -20,6 +20,8 @@ std::mutex CameraManager::sm_Mutex;
 
 CameraManager::CameraManager()
 {
+	AddCamera(std::make_shared<Camera>("InitCamera"));
+
 	// Set { Up, North, East } <=> { { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } }
 	m_WorldUp = Math::Normalize(Math::Vector3(Math::EYUnitVector::kYUnitVector));
 	m_WorldNorth = -Normalize(Cross(m_WorldUp, Math::Vector3(Math::EXUnitVector::kXUnitVector)));
@@ -34,24 +36,25 @@ CameraManager::CameraManager()
 
 	m_Cameras.reserve(20);
 
-	// m_bSlowMovement = false;
-	// m_bSlowRotation = false;
-	// m_Momentum = true;
-	/*
+	m_bSlowMovement = false;
+	m_bSlowRotation = false;
+	m_Momentum = true;
+	
 	m_CurrentPitch = 0.0f;
 	m_CurrentYaw = 0.0f;
 	// Must be init Pitch, forward, Heading
-	// m_CurrentPitch = Math::Sin(Math::Dot(camera.GetForwardVec(), m_WorldUp));
-	// Vector3 forward = Normalize(Cross(m_WorldUp, camera.GetRightVec()));
-	// m_CurrentYaw = ATan2(-Dot(forward, m_WorldEast), Dot(forward, m_WorldNorth));
+
+	Camera& InitCamera = **m_Cameras.begin();
+
+	m_CurrentPitch = Math::Sin(Math::Dot(InitCamera.GetForwardVec(), m_WorldUp));
+	Math::Vector3 forward = Normalize(Cross(m_WorldUp, InitCamera.GetRightVec()));
+	m_CurrentYaw = ATan2(-Dot(forward, m_WorldEast), Dot(forward, m_WorldNorth));
+
 	m_LastYaw = 0.0f;
 	m_LastPitch = 0.0f;
 	m_LastForward = 0.0f;
 	m_LastStrafe = 0.0f;
 	m_LastAscent = 0.0f;
-	*/
-
-	AddCamera(std::make_shared<Camera>("A"));
 }
 
 void CameraManager::SetUpCamera(Camera* pCamera)

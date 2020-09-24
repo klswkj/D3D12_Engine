@@ -18,7 +18,7 @@ class ColorBuffer;
 class SSAOPass : public Pass
 {
 public:
-	SSAOPass();
+	SSAOPass(std::string pName);
 	~SSAOPass() {}
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;

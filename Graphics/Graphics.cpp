@@ -40,6 +40,8 @@ namespace
 void graphics::ShutDown()
 {
     TextureManager::Shutdown();
+    // TextRenderer::Shundown();
+    // GraphRenderer::Shutdown();
 }
 
 void graphics::Initialize()
@@ -60,6 +62,9 @@ void graphics::Initialize()
     g_PresentRootSignature.InitStaticSampler(1, premade::g_SamplerPointClampDesc);
     g_PresentRootSignature.Finalize(L"Present");
 
-
+    // Ãß°¡
+    TextureManager::Initialize();
+    // TextRenderer::Initialize();
+    // GraphRenderer::Initialize();
 }
 

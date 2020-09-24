@@ -6,7 +6,7 @@
 
 class ContainerBindableSink;
 
-IBindingPass::IBindingPass(const char* name, std::vector<std::shared_ptr<RenderingResource>> otherContainer /*= {}*/)
+IBindingPass::IBindingPass(std::string name, std::vector<std::shared_ptr<RenderingResource>> otherContainer /*= {}*/)
 	: Pass(name), m_RenderingResources(std::move(otherContainer)) {}
 
 void IBindingPass::PushBack(std::shared_ptr<RenderingResource> spRenderingResource) noexcept
@@ -44,6 +44,6 @@ void IBindingPass::finalize()
 {
 	Pass::finalize();
 
-	ASSERT(m_pRenderTarget != nullptr, "BindingPass ", GetRegisteredName(), "RenderTarget don't exist.");
-	ASSERT(m_pDepthStencil != nullptr, "BindingPass ", GetRegisteredName(), "DepthStencil don't exist.");
+	// ASSERT(m_pRenderTarget != nullptr, "BindingPass ", GetRegisteredName(), "RenderTarget don't exist.");
+	// ASSERT(m_pDepthStencil != nullptr, "BindingPass ", GetRegisteredName(), "DepthStencil don't exist.");
 }

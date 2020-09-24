@@ -1,11 +1,12 @@
 #pragma once
 #include "ModelPart.h"
+
 class Model;
 
-class ComponentWindow
+class ModelComponentWindow
 {
 public:
-	ComponentWindow(std::string name)
+	ModelComponentWindow(std::string name)
 		: name(std::move(name))
 	{
 	}

@@ -113,8 +113,6 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
         )
     );
 
-    SET_NAME(pBuffer);
-
     return new LinearAllocationPage(pBuffer, DefaultUsage);
 }
 

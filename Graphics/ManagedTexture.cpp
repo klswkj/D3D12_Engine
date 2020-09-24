@@ -23,6 +23,12 @@ void ManagedTexture::SetToInvalidTexture()
     m_IsValid = false;
 }
 
+void ManagedTexture::SetRootIndex(UINT RootIndex, UINT Offset)
+{
+    m_RootParameterIndex = RootIndex;
+    m_ShaderOffset = Offset;
+}
+
 void ManagedTexture::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
     custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
@@ -139,7 +145,7 @@ const ManagedTexture* TextureManager::LoadPIXImageFromFile(const std::wstring& f
     return ManTex;
 }
 
-const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileName, bool bStandardRGB/* = false*/)
+const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileName, UINT RootIndex, UINT Offset, bool bStandardRGB/* = false*/)
 {
     std::pair<ManagedTexture*, bool> ManagedTex = FindOrLoadTexture(fileName);
 
@@ -149,14 +155,15 @@ const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileNa
     if (!RequestsLoad)
     {
         ManTex->WaitForLoad();
-        ASSERT(RequestsLoad, "");
         return ManTex;
     }
 
-    if (ManTex->CreateWICFromMemory(fileName))
+    if (!ManTex->CreateWICFromMemory(fileName))
     {
         ManTex->SetToInvalidTexture();
     }
+
+    ManTex->SetRootIndex(RootIndex, Offset);
 
     return ManTex;
 }

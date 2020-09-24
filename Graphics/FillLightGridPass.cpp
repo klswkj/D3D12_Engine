@@ -18,7 +18,7 @@
 #include "../x64/RELEASE/Graphics(.lib)/CompiledShaders/FillLightGridCS_32.h"
 #endif
 
-FillLightGridPass::FillLightGridPass(const char* pName)
+FillLightGridPass::FillLightGridPass(std::string pName)
     : Pass(pName)
 {
     m_FillLightRootSignature.Reset(3, 0);
@@ -40,7 +40,7 @@ FillLightGridPass::FillLightGridPass(const char* pName)
     m_FillLightGridPSO_WORK_GROUP_24.Finalize();
 
     m_FillLightGridPSO_WORK_GROUP_32.SetRootSignature(m_FillLightRootSignature);
-    m_FillLightGridPSO_WORK_GROUP_16.SetComputeShader(g_pFillLightGridCS_32, sizeof(g_pFillLightGridCS_32));
+    m_FillLightGridPSO_WORK_GROUP_32.SetComputeShader(g_pFillLightGridCS_32, sizeof(g_pFillLightGridCS_32));
     m_FillLightGridPSO_WORK_GROUP_32.Finalize();
 }
 
@@ -55,7 +55,7 @@ void FillLightGridPass::RenderWindow()
     if (ImGui::BeginCombo("Working Group Size", WorkingGroups[CurrentIndex]))
     {
         // must keep in sync with HLSL ( 8, 16, 24, 32 )
-        for (size_t i{ 0 }; i < WorkingGroupSize; ++i)
+        for (size_t i = 0; i < WorkingGroupSize; ++i)
         {
             const bool bSelected = (CurrentIndex == i);
             if (ImGui::Selectable(WorkingGroups[i], bSelected))
@@ -72,6 +72,11 @@ void FillLightGridPass::RenderWindow()
 void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
 {
     custom::ComputeContext& Context = BaseContext.GetComputeContext();
+
+    if (!bufferManager::g_LightBuffer.GetResource())
+    {
+        return;
+    }
 
     Context.SetRootSignature(m_FillLightRootSignature);
 
@@ -95,7 +100,6 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
 
     Context.SetDynamicDescriptor(1, 0, bufferManager::g_LightBuffer.GetSRV());
     Context.SetDynamicDescriptor(1, 1, LinearDepth.GetSRV());
-    //Context.SetDynamicDescriptor(1, 1, g_SceneDepthBuffer.GetDepthSRV());
     Context.SetDynamicDescriptor(2, 0, bufferManager::g_LightGrid.GetUAV());
     Context.SetDynamicDescriptor(2, 1, bufferManager::g_LightGridBitMask.GetUAV());
 
@@ -124,4 +128,9 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
 
     Context.TransitionResource(bufferManager::g_LightGrid, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     Context.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+void FillLightGridPass::Reset() DEBUG_EXCEPT
+{
+
 }

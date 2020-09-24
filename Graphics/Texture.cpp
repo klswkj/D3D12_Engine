@@ -155,6 +155,8 @@ namespace custom
 
     bool Texture::CreateWICFromMemory(const std::wstring& fileName)
     {
+        m_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
+
         D3D12_SUBRESOURCE_DATA subresource;
         std::unique_ptr<uint8_t[]> wicData; // using to subResource.pData
 

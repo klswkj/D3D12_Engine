@@ -15,8 +15,15 @@ public:
 	Mesh(const Material& mat, const aiMesh& mesh, float scale = 1.0f) DEBUG_EXCEPT;
 	DirectX::XMMATRIX GetTransformXM() const noexcept;
 	void Submit(eObjectFilterFlag Filter, DirectX::FXMMATRIX AccumulatedTranform) const DEBUG_EXCEPT;
+
+// protected:
+//    std::vector<Technique> techniques;
+//    custom::StructuredBuffer  m_VerticesBuffer;   
+//    custom::ByteAddressBuffer m_IndicesBuffer;
+//    D3D12_PRIMITIVE_TOPOLOGY m_Topology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
+
 private:
-	mutable DirectX::XMFLOAT4X4 transform;
+	mutable DirectX::XMFLOAT4X4 m_Transform;
 };
 
 

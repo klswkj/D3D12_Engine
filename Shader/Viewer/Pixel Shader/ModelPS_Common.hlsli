@@ -7,7 +7,6 @@
 #define VERTEX_INPUT_TEXCOORD_F2 1
 #define VERTEX_INPUT_NORMAL      1
 
-
 // outdated warning about for-loop variable scope
 #pragma warning (disable: 3078)
 // single-iteration loop
@@ -110,7 +109,7 @@ uint PullNextBit(inout uint bits)
     lightIndex
 #endif
 
-[RootSignature(ModelViewer_RootSig)]
+[RootSignature(Viewer_RootSignature)]
 float3 main(VSOutput vsOutput) : SV_Target0
 {
     uint2 pixelPos = vsOutput.position.xy;

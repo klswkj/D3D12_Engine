@@ -33,17 +33,17 @@ namespace device
 	{
 		switch (FeatureLevel)
 		{
-		case D3D_FEATURE_LEVEL_9_1: return "9.1";
-		case D3D_FEATURE_LEVEL_9_2: return "9.2";
-		case D3D_FEATURE_LEVEL_9_3: return "9.3";
-		case D3D_FEATURE_LEVEL_10_0: return "10.0";
-		case D3D_FEATURE_LEVEL_10_1: return "10.1";
-		case D3D_FEATURE_LEVEL_11_0: return "11.0";
-		case D3D_FEATURE_LEVEL_11_1: return "11.1";
-		case D3D_FEATURE_LEVEL_12_0: return "12.0";
-		case D3D_FEATURE_LEVEL_12_1: return "12.1";
+		    case D3D_FEATURE_LEVEL_9_1: return "9.1";
+		    case D3D_FEATURE_LEVEL_9_2: return "9.2";
+		    case D3D_FEATURE_LEVEL_9_3: return "9.3";
+			case D3D_FEATURE_LEVEL_10_0: return "10.0";
+			case D3D_FEATURE_LEVEL_10_1: return "10.1";
+			case D3D_FEATURE_LEVEL_11_0: return "11.0";
+			case D3D_FEATURE_LEVEL_11_1: return "11.1";
+			case D3D_FEATURE_LEVEL_12_0: return "12.0";
+			case D3D_FEATURE_LEVEL_12_1: return "12.1";
 
-		default: return "12.1+";
+		    default: return "12.1+";
 		}
 	}
 
@@ -120,9 +120,7 @@ namespace device
 		premade::Initialize();
 		GpuTime::Initialize();
 		bufferManager::InitializeAllBuffers(window::g_windowHeight, window::g_windowWidth);
-		// TODO : 
-		// TextRender Init
-		// LDR세팅, 화면 그릴 PSO는 앱이나, PASS선에서.
+		// TODO : TextRender Init
 
 		return S_OK;
 	}
@@ -193,7 +191,7 @@ namespace device
 		custom::RootSignature::DestroyAll();
 		custom::DynamicDescriptorHeap::DestroyAll();
 
-		for (size_t i{ 0 }; i < g_DisplayBufferCount; ++i)
+		for (size_t i= 0; i < g_DisplayBufferCount; ++i)
 		{
 			g_DisplayBuffer[i].Destroy();
 		}
@@ -343,7 +341,7 @@ namespace device
 		}
 #endif
 		// Cache the descriptor sizes.
-		for (size_t i{ 0 }; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
+		for (size_t i= 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
 			device::g_DescriptorSize[i] = ::device::g_pDevice->GetDescriptorHandleIncrementSize((D3D12_DESCRIPTOR_HEAP_TYPE)i);
 		}

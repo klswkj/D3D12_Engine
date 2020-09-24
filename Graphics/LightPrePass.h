@@ -5,19 +5,23 @@
 #include "ShadowBuffer.h"
 #include "PSO.h"
 #include "RootSignature.h"
+#include "Pass.h"
+
+#include "ShaderConstantsTypeDefinitions.h"
 
 namespace custom
 {
 	class CommandContext;
 }
 
-class LightPrePass
+class LightPrePass : public Pass
 {
 	friend class MasterRenderGraph;
 public:
-	LightPrePass();
+	LightPrePass(std::string pName);
 	~LightPrePass();
-	void RenderWindow();
+	void Execute(custom::CommandContext&) DEBUG_EXCEPT override;
+	void RenderWindow() DEBUG_EXCEPT override;
 	void CreateSphereLight();
 	void CreateConeLight();
 
@@ -26,25 +30,14 @@ private:
 	void recreateBuffers();
 private:
 	const uint32_t m_kShadowBufferSize{ 512u };
-	size_t m_DirtyLightIndex = -1;
+	size_t m_DirtyLightIndex = -1; 
+	const uint32_t m_kMinWorkGroupSize = 8u;
 
 	static uint32_t sm_MaxLight;
 	static const char* sm_LightLabel[3];
 
-	// must keep in sync with HLSL
-	
 	uint32_t m_FirstConeLightIndex = -1;
 	uint32_t m_FirstConeShadowedLightIndex = -1;
-
-	struct CSConstants
-	{
-		uint32_t ViewportWidth, ViewportHeight;
-		float InvTileDim;
-		float RcpZMagic;
-		uint32_t TileCount;
-		Math::Matrix4 ViewProjMatrix;
-		// float ViewPorjMatrx[16];
-	};
 };
 
 // float3 pos;

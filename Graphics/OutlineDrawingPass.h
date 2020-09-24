@@ -8,7 +8,7 @@ namespace custom
 
 class OutlineDrawingPass : public RenderQueuePass
 {
-	OutlineDrawingPass(const char* pName, UINT BufferWidth, UINT BufferHeight);
+	OutlineDrawingPass(std::string pName, UINT BufferWidth, UINT BufferHeight);
 
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 

@@ -20,7 +20,7 @@ public:
 private:
     void Shutdown()
     {
-        for (size_t i{ 0 }; i < m_allocatorPool.size(); ++i)
+        for (size_t i= 0; i < m_allocatorPool.size(); ++i)
         {
             SafeRelease(m_allocatorPool[i]);
         }

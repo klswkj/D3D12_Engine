@@ -16,23 +16,20 @@
 #include "../x64/Relase/Graphics(.lib)/CompiledShaders/DepthPS.h"
 #endif
 
-ShadowPrePass::ShadowPrePass(const char* pName, custom::RootSignature* pRootSignature/* = nullptr*/, GraphicsPSO* pShadowPSO/* = nullptr*/)
+ShadowPrePass::ShadowPrePass(std::string pName, custom::RootSignature* pRootSignature/* = nullptr*/, GraphicsPSO* pShadowPSO/* = nullptr*/)
 	: RenderQueuePass(pName), m_RootSignature(pRootSignature), m_ShadowPSO(pShadowPSO)
 {
 	if (m_RootSignature == nullptr)
 	{
 		m_RootSignature = new custom::RootSignature();
 
-		m_RootSignature->Reset(5, 2);
+		m_RootSignature->Reset(4, 2);
 		m_RootSignature->InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);                         // 
 		m_RootSignature->InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);                          //
 		(*m_RootSignature)[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b0)                   // 
 		(*m_RootSignature)[1].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)                   //               // 
 		(*m_RootSignature)[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);  // 
-		
 		(*m_RootSignature)[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
-		
-		(*m_RootSignature)[4].InitAsConstants(1, 2, D3D12_SHADER_VISIBILITY_VERTEX);
 		
 		m_RootSignature->Finalize(L"InitAtShadowPrePass", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	}
@@ -63,6 +60,7 @@ ShadowPrePass::ShadowPrePass(const char* pName, custom::RootSignature* pRootSign
 	}
 }
 
+// If LightShadowMatrixSize
 void ShadowPrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
@@ -74,7 +72,7 @@ void ShadowPrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 
 	graphicsContext.SetPipelineState(*m_ShadowPSO);
 
-	for (size_t i{ 0 }; i < LightShadowMatrixSize; ++i)
+	for (size_t i = 0; i < LightShadowMatrixSize; ++i)
 	{
 		CumulativeLightShadowBuffer.BeginRendering(graphicsContext);
 

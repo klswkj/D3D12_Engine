@@ -21,10 +21,6 @@ private:
 
 	Math::OrthogonalTransform m_CameraToWorld; // Camera::IBaseCamera에도 똑같이 있음.
 
-	// 현재 확인해야 할 것 : 
-	// GeneralPurpose.hlsl를 쓸 PSO와, RootSignature를
-	// Global밸류로 쓸 수 있을지.
-	// 일단 멤버변수로 사용.
 	custom::RootSignature m_RootSignature;
 	GraphicsPSO m_PSO;
 };

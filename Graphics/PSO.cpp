@@ -151,7 +151,7 @@ void GraphicsPSO::Finalize()
     m_PSODesc.InputLayout.pInputElementDescs = nullptr;
 
     m_hash.SetHashSeed(m_PSODesc);
-    size_t HashCode = Hash::MakeHash(&m_hash.Hash0);
+    size_t HashCode = Hash::MakeHash(&m_hash.Hash0, 2);
     m_PSODesc.InputLayout.pInputElementDescs = m_inputLayouts.get();
 
     ID3D12PipelineState** PSORef = nullptr;

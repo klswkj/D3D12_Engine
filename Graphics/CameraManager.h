@@ -37,19 +37,18 @@ public:
     void SetCurrentPitch(float pitch) { m_CurrentPitch = pitch; }
 
     void SetUpCamera(Camera* pCamera);
+    std::shared_ptr<Camera> GetControlledCamera();
 
 private:
-    std::shared_ptr<Camera> GetControlledCamera();
     void ApplyMomentum(float& oldValue, float& newValue, float deltaTime);
-    // void CameraPushBack(Camera Camera);
 
 private:
 	std::vector<std::shared_ptr<Camera>> m_Cameras;
     static std::mutex sm_Mutex;
 
-	size_t m_ActiveCameraIndex{ 0 };
-	size_t m_ControlledCameraIndex{ 0 };
-    size_t m_NumCamera{ 0 };
+	size_t m_ActiveCameraIndex= 0;
+	size_t m_ControlledCameraIndex= 0;
+    size_t m_NumCamera= 0;
 
     Math::Vector3 m_WorldUp;
     Math::Vector3 m_WorldNorth;

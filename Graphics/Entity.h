@@ -15,7 +15,7 @@ class ITechniqueWindow;
 
 enum class eObjectFilterFlag;
 
-class Entity // Drawble
+class Entity
 {
 public:
 	Entity() = default;
@@ -33,18 +33,7 @@ public:
 protected:
 	std::vector<Technique> techniques;
 
-	// 여기 Index, Vertex, Toplogy를 원래 쓰던거로 변경하기.
 	custom::StructuredBuffer  m_VerticesBuffer;   
 	custom::ByteAddressBuffer m_IndicesBuffer;
 	D3D12_PRIMITIVE_TOPOLOGY m_Topology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
 };
-/*
-enum D3D12_PRIMITIVE_TOPOLOGY_TYPE
-	{
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED	= 0,
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT	= 1,
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE	= 2,
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE	= 3,
-		D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH	= 4
-	} 	D3D12_PRIMITIVE_TOPOLOGY_TYPE;
-*/

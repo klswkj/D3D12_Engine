@@ -116,6 +116,7 @@ namespace custom
         // And increment the fence value.  
         return m_nextFenceValue++;
     }
+
     ID3D12CommandAllocator* CommandQueue::requestAllocator(void)
     {
         uint64_t CompletedFence = m_pFence->GetCompletedValue();

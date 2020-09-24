@@ -41,7 +41,8 @@ struct CSConstants
     // float ViewPorjMatrx[16];
 };
 */
-LightPrePass::LightPrePass()
+LightPrePass::LightPrePass(std::string pName)
+    : Pass(pName)
 {
     bufferManager::g_Lights.reserve(sm_MaxLight * 2 + 1);
     bufferManager::g_LightShadowMatrixes.reserve(sm_MaxLight * 2 + 1);
@@ -63,7 +64,12 @@ LightPrePass::~LightPrePass()
     bufferManager::g_LightShadowMatrixes.clear();
 }
 
-void LightPrePass::RenderWindow()
+void LightPrePass::Execute(custom::CommandContext& BaseContext)
+{
+    
+}
+
+void LightPrePass::RenderWindow() DEBUG_EXCEPT
 {
     ImGui::Begin("LightPrePass"); // 여기 Begin말고, ImGui::BeginChild해야, 
 
@@ -72,7 +78,7 @@ void LightPrePass::RenderWindow()
 
     ASSERT(m_Lights.size() == m_LightShadowMatrixes.size());
 
-    const uint32_t bHasLight = (m_Lights.size() | m_LightShadowMatrixes.size());
+    const uint32_t bHasLight = (m_Lights.size() && m_LightShadowMatrixes.size());
 
     ImGui::Columns(2 + bHasLight, nullptr, true);
     {
@@ -110,7 +116,7 @@ void LightPrePass::RenderWindow()
             ImGuiTreeNodeFlags_FramePadding |
             ImGuiTreeNodeFlags_Leaf;
 
-        for (size_t i{ 0 }; i < m_Lights.size(); ++i)
+        for (size_t i= 0; i < m_Lights.size(); ++i)
         {
             ImGui::TreeNodeEx("Light", Imgui_Node_Flags, sm_LightLabel[m_Lights[i].type]);
             
@@ -359,7 +365,7 @@ void LightPrePass::sortContainers()
 
     uint32_t* SortArray = (uint32_t*)malloc(sizeof(uint32_t) * LightDataSize);
 
-    for (uint32_t i{ 0 }; i < LightDataSize; ++i)
+    for (uint32_t i= 0; i < LightDataSize; ++i)
     {
         SortArray[i] = i;
     }
@@ -373,7 +379,7 @@ void LightPrePass::sortContainers()
         }
     );
 
-    for (size_t i{ 0 }; i < LightDataSize; ++i)
+    for (size_t i= 0; i < LightDataSize; ++i)
     {
         m_Lights[i] = CopyLights[SortArray[i]];
         m_LightShadowMatrixes[i] = CopyLightShadowMatrixes[SortArray[i]];

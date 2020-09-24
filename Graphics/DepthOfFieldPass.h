@@ -10,7 +10,7 @@
 class DOFPass : public Pass
 {
 public:
-	DOFPass(const char* name);
+	DOFPass(std::string name);
 	~DOFPass();
 
 	void Execute(custom::CommandContext& BaseContext, float NearClipDist, float FarClipDist) DEBUG_EXCEPT;

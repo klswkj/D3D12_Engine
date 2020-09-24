@@ -26,8 +26,8 @@ inline void SafeDelete(T*& rpObject)
 }
 */
 
-// Insecure Function.
-// 
+// A faster version of memcopy that uses SSE instructions.  
+// TODO:  Write an ARM variant if necessary.
 void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t NumQuadwords)
 {
     ASSERT(HashInternal::IsAligned(_Dest, 16));
@@ -44,10 +44,13 @@ void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t 
         InitialQuadwordCount = NumQuadwords;
     }
 
-    if (0 < InitialQuadwordCount)
+    switch (InitialQuadwordCount)
     {
-        _mm_stream_si128(Dest + (InitialQuadwordCount - 1), _mm_load_si128(Source + (InitialQuadwordCount - 1)));
-        // Fall through
+        case 3: _mm_stream_si128(Dest + 2, _mm_load_si128(Source + 2));     // Fall through
+        case 2: _mm_stream_si128(Dest + 1, _mm_load_si128(Source + 1));     // Fall through
+        case 1: _mm_stream_si128(Dest + 0, _mm_load_si128(Source + 0));     // Fall through
+        default:
+            break;
     }
 
     if (NumQuadwords == InitialQuadwordCount)
@@ -61,12 +64,22 @@ void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t 
 
     size_t CacheLines = NumQuadwords >> 2;
 
-    if (CacheLines)
+    switch (CacheLines)
     {
-        _mm_prefetch((char*)(Source + (CacheLines - 1) * 9), _MM_HINT_NTA);    // Fall through
+    default:
+    case 10: _mm_prefetch((char*)(Source + 36), _MM_HINT_NTA);    // Fall through
+    case 9:  _mm_prefetch((char*)(Source + 32), _MM_HINT_NTA);    // Fall through
+    case 8:  _mm_prefetch((char*)(Source + 28), _MM_HINT_NTA);    // Fall through
+    case 7:  _mm_prefetch((char*)(Source + 24), _MM_HINT_NTA);    // Fall through
+    case 6:  _mm_prefetch((char*)(Source + 20), _MM_HINT_NTA);    // Fall through
+    case 5:  _mm_prefetch((char*)(Source + 16), _MM_HINT_NTA);    // Fall through
+    case 4:  _mm_prefetch((char*)(Source + 12), _MM_HINT_NTA);    // Fall through
+    case 3:  _mm_prefetch((char*)(Source + 8), _MM_HINT_NTA);    // Fall through
+    case 2:  _mm_prefetch((char*)(Source + 4), _MM_HINT_NTA);    // Fall through
+    case 1:  _mm_prefetch((char*)(Source + 0), _MM_HINT_NTA);    // Fall through
 
         // Do four quadwords per loop to minimize stalls.
-        for (size_t i = CacheLines; 0 < i; --i)
+        for (size_t i{ CacheLines }; 0 < i; --i)
         {
             // If this is a large copy, start prefetching future cache lines.  This also prefetches the
             // trailing quadwords that are not part of a whole cache line.
@@ -85,10 +98,13 @@ void SIMDMemCopy(void* __restrict _Dest, const void* __restrict _Source, size_t 
     }
 
     // Copy the remaining quadwords
-    if (NumQuadwords & 3)
+    switch (NumQuadwords & 3)
     {
-        _mm_stream_si128(Dest + (NumQuadwords & 3) - 1, _mm_load_si128(Source + (NumQuadwords & 3) - 1));
-        // Fall through
+    case 3: _mm_stream_si128(Dest + 2, _mm_load_si128(Source + 2));     // Fall through
+    case 2: _mm_stream_si128(Dest + 1, _mm_load_si128(Source + 1));     // Fall through
+    case 1: _mm_stream_si128(Dest + 0, _mm_load_si128(Source + 0));     // Fall through
+    default:
+        break;
     }
 
     _mm_sfence();

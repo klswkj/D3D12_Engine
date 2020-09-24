@@ -14,7 +14,9 @@ namespace custom
 
         void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset = 0);
         void SetConstant(UINT RootIndex, UINT Val, UINT Offset = 0);
-        void SetConstants(UINT RootIndex, uint32_t size, ...);
+        void SetConstants(UINT RootIndex, UINT Val1, UINT Val2);
+        void SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3);
+        void SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3, UINT Val4);
 
         void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV);
         void SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData);

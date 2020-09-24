@@ -11,7 +11,7 @@
 
 // TODO : Set Branch and Shader Code.
 
-DOFPass::DOFPass(const char* name)
+DOFPass::DOFPass(std::string name)
 	: Pass(name)
 {
 	m_RootSignature.Reset(4, 3);

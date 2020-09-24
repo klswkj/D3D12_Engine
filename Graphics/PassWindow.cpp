@@ -35,7 +35,7 @@ void PassWindow::listAllPasses()
 			ImGuiTreeNodeFlags_Leaf | ((pass->m_PassIndex == selectedPassIndex) ? ImGuiTreeNodeFlags_Selected : 0);
 			// (node.HasChildren() ? 0 : ImGuiTreeNodeFlags_Leaf);
 
-		if (ImGui::TreeNodeEx((void*)pass->m_PassIndex, node_flags, pass->GetRegisteredName()))
+		if (ImGui::TreeNodeEx((void*)pass->m_PassIndex, node_flags, pass->GetRegisteredName().c_str()))
 		{
 			if (ImGui::IsItemClicked())
 			{

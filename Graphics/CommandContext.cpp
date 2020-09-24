@@ -24,6 +24,7 @@
 #include "IBaseCamera.h"
 #include "Camera.h"
 #include "ShadowCamera.h"
+#include "MainLight.h"
 
 namespace custom
 {
@@ -48,7 +49,9 @@ namespace custom
 	CommandContext::~CommandContext(void)
 	{
 		if (m_commandList != nullptr)
+		{
 			m_commandList->Release();
+		}
 	}
 
 	void CommandContext::Initialize(void)
@@ -97,7 +100,7 @@ namespace custom
 		return FenceValue;
 	}
 
-	void CommandContext::Reset(void)
+	void CommandContext::Reset()
 	{
 		// We only call Reset() on previously freed contexts.  The command list persists, but we must
 		// request a new allocator.
@@ -164,7 +167,7 @@ namespace custom
 		return FenceValue;
 	}
 
-	void CommandContext::BeginResourceTransition(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+	void CommandContext::BeginResourceTransition(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
 	{
 		// If it's already transitioning, finish that transition
 		if (Resource.m_transitionState != (D3D12_RESOURCE_STATES)-1)
@@ -196,8 +199,13 @@ namespace custom
 		}
 	}
 
-	void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate)
+	void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
 	{
+		if (!Resource.GetResource())
+		{
+			return;
+		}
+
 		D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
 
 		if (m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
@@ -243,7 +251,7 @@ namespace custom
 		}
 	}
 
-	void CommandContext::InsertUAVBarrier(GPUResource& Resource, bool FlushImmediate)
+	void CommandContext::InsertUAVBarrier(GPUResource& Resource, bool FlushImmediate/*= FALSE*/)
 	{
 		ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
 		D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
@@ -258,7 +266,7 @@ namespace custom
 		}
 	}
 
-	void CommandContext::InsertAliasBarrier(GPUResource& Before, GPUResource& After, bool FlushImmediate)
+	void CommandContext::InsertAliasBarrier(GPUResource& Before, GPUResource& After, bool FlushImmediate/*= FALSE*/)
 	{
 		ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
 		D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
@@ -430,7 +438,16 @@ namespace custom
 		CommandContext& InitContext = CommandContext::Begin();
 
 		LinearBuffer mem = InitContext.ReserveUploadMemory(NumBytes);
-		SIMDMemCopy(mem.pData, BufferData, HashInternal::DivideByMultiple(NumBytes, 16));
+
+		// TODO : This part can be Optimization.
+		if (HashInternal::IsAligned(NumBytes, 16) && HashInternal::IsAligned(BufferData, 16))
+		{
+			SIMDMemCopy(mem.pData, BufferData, HashInternal::DivideByMultiple(NumBytes, 16));
+		}
+		else
+		{
+			memcpy_s(mem.pData, NumBytes, BufferData, NumBytes);
+		}
 
 		// copy data to the intermediate upload heap and then schedule a copy from the upload heap to the default texture
 		InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST, true);
@@ -522,12 +539,10 @@ namespace custom
 		for (size_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
 			ID3D12DescriptorHeap* HeapIter = m_pCurrentDescriptorHeaps[i];
-			// if (HeapIter != nullptr)
-			// {
-			// 	HeapsToBind[NonNullHeaps++] = HeapIter;
-			// }
-			HeapsToBind[NonNullHeaps] = HeapIter;
-			NonNullHeaps += ((size_t)HeapIter & 1);
+			if (HeapIter != nullptr)
+			{
+				HeapsToBind[NonNullHeaps++] = HeapIter;
+			}
 		}
 
 		if (0 < NonNullHeaps)
@@ -545,8 +560,7 @@ namespace custom
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	
-
+#pragma region CAMERA_LIGHTS
 	void CommandContext::SetModelToProjection(Math::Matrix4& _ViewProjMatrix)
 	{
 		m_VSConstants.modelToProjection = _ViewProjMatrix;
@@ -617,6 +631,13 @@ namespace custom
 		m_PSConstants.FirstLightIndex[1] = FirstConeShadowedLightIndex;
 	}
 
+	void CommandContext::SetPSConstants(MainLight& _MainLight)
+	{
+		m_PSConstants.sunDirection = _MainLight.GetMainLightDirection();
+		m_PSConstants.sunLight = _MainLight.m_LightColor * _MainLight.m_LightIntensity;
+		m_PSConstants.ambientLight = _MainLight.m_AmbientColor * _MainLight.m_AmbientIntensity;
+	}
+
 	void CommandContext::SetSync()
 	{
 		device::g_commandContextManager.m_VSConstants = m_VSConstants;
@@ -625,9 +646,7 @@ namespace custom
 		device::g_commandContextManager.m_pShadowCamera = m_pMainLightShadowCamera;
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma endregion CAMERA_LIGHTS
 
 	// TODO : Eliminate Overloading.
 	void GraphicsContext::SetRootSignature(const RootSignature& RootSig)
@@ -710,13 +729,18 @@ namespace custom
 
 	void GraphicsContext::SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect)
 	{
-		ASSERT(rect.left < rect.right&& rect.top < rect.bottom);
+		ASSERT(rect.left <= rect.right && rect.top <= rect.bottom);
+
+		device::g_commandContextManager.m_Viewport = vp;
+		device::g_commandContextManager.m_Scissor = rect;
+
 		m_commandList->RSSetViewports(1, &vp);
 		m_commandList->RSSetScissorRects(1, &rect);
 	}
 
 	void GraphicsContext::SetViewport(const D3D12_VIEWPORT& vp)
 	{
+		device::g_commandContextManager.m_Viewport = vp;
 		m_commandList->RSSetViewports(1, &vp);
 	}
 
@@ -729,12 +753,16 @@ namespace custom
 		vp.MaxDepth = maxDepth;
 		vp.TopLeftX = x;
 		vp.TopLeftY = y;
+
+		device::g_commandContextManager.m_Viewport = vp;
 		m_commandList->RSSetViewports(1, &vp);
 	}
 
 	void GraphicsContext::SetScissor(const D3D12_RECT& rect)
 	{
 		ASSERT(rect.left < rect.right&& rect.top < rect.bottom);
+
+		device::g_commandContextManager.m_Scissor = rect;
 		m_commandList->RSSetScissorRects(1, &rect);
 	}
 
@@ -747,20 +775,6 @@ namespace custom
 	{
 		SetViewport((float)x, (float)y, (float)w, (float)h);
 		SetScissor(x, y, x + w, y + h);
-	}
-
-	void GraphicsContext::SetConstants(UINT RootIndex, uint32_t size, ...)
-	{
-		va_list Args;
-		va_start(Args, size);
-
-		UINT val;
-
-		for (UINT i = 0; i < size; ++i)
-		{
-			val = va_arg(Args, UINT);
-			m_commandList->SetGraphicsRoot32BitConstant(RootIndex, val, i);
-		}
 	}
 
 	void GraphicsContext::SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData)
@@ -880,13 +894,16 @@ namespace custom
 		DrawInstanced(VertexCount, 1, VertexStartOffset, 0);
 	}
 
-	void GraphicsContext::DrawIndexed(UINT IndexCount, UINT StartIndexLocation, INT BaseVertexLocation)
+	void GraphicsContext::DrawIndexed(UINT IndexCount, UINT StartIndexLocation/*= 0*/, INT BaseVertexLocation/*= 0*/)
 	{
 		DrawIndexedInstanced(IndexCount, 1, StartIndexLocation, BaseVertexLocation, 0);
 	}
 
-	void GraphicsContext::DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount,
-		UINT StartVertexLocation, UINT StartInstanceLocation)
+	void GraphicsContext::DrawInstanced
+	(
+		UINT VertexCountPerInstance, UINT InstanceCount,
+		UINT StartVertexLocation/*= 0*/, UINT StartInstanceLocation/*= 0*/
+	)
 	{
 		FlushResourceBarriers();
 		m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);

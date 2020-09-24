@@ -42,7 +42,7 @@ struct VSOutput
 #endif
 };
 
-[RootSignature(ModelViewer_RootSig)]
+[RootSignature(Viewer_RootSignature)]
 VSOutput main(VSInput vsInput)
 {
     VSOutput vsOutput;

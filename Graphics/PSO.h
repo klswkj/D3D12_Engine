@@ -140,6 +140,7 @@ private:
             RTVFormat = *desc.RTVFormats;
             DSVFormat = desc.DSVFormat;
             PrimitiveTopologyType = desc.PrimitiveTopologyType;
+            NumRenderTargets = desc.NumRenderTargets;
         }
         union
         {
@@ -159,7 +160,8 @@ private:
                 uint64_t RTVFormat : 8;                // 9 -> 8           (110)
                 uint64_t DSVFormat : 8;                // 9 -> 8           (118)
                 uint64_t PrimitiveTopologyType : 3;    // 3 -> 3           (121)
-                uint64_t _Pad7 : 7;
+                uint64_t NumRenderTargets : 3;         // 3 -> 3           (124)
+                uint64_t _Pad4 : 4;
             };
             struct
             {

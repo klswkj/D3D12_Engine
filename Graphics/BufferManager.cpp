@@ -196,7 +196,7 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_OverlayBuffer.Create(L"UI Overlay", window::g_windowWidth, window::g_windowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
     g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_windowWidth, bufferHeight[0], 1, DefaultColorFormat);
 
-    ((custom::CommandContext)graphicsContext).Finish();
+    graphicsContext.Finish();
 }
 
 void bufferManager::DestroyRenderingBuffers()
@@ -209,6 +209,8 @@ void bufferManager::DestroyRenderingBuffers()
     g_PostEffectsBuffer.Destroy();
 
     g_ShadowBuffer.Destroy();
+
+    g_StencilBuffer.Destroy();
 
     g_SSAOFullScreen.Destroy();
     g_LinearDepth[0].Destroy();
@@ -269,4 +271,11 @@ void bufferManager::DestroyRenderingBuffers()
     g_FXAAColorQueue.Destroy();
 
     g_GenMipsBuffer.Destroy();
+
+    g_LightBuffer.Destroy();      // lightBuffer         : register(t66);
+    g_LightShadowArray.Destroy(); // lightShadowArrayTex : register(t67);
+    g_CumulativeShadowBuffer.Destroy();
+
+    g_LightGrid.Destroy();        // lightGrid           : register(t68);
+    g_LightGridBitMask.Destroy(); // lightGridBitMask    : register(t69);
 }

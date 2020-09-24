@@ -19,7 +19,7 @@ namespace custom
 class ShadowMappingPass : public RenderQueuePass
 {
 public:
-	ShadowMappingPass(const char* pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pShadowPSO = nullptr);
+	ShadowMappingPass(std::string pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pShadowPSO = nullptr);
 
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;

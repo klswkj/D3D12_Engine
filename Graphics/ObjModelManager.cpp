@@ -3,14 +3,13 @@
 #include "OBJFileManager.h"
 #include "Model.h"
 #include "MasterRenderGraph.h"
-#include "ComponentWindow.h"
+#include "ModelComponentWindow.h"
 #include "ObjectFilterFlag.h"
 
 ObjModelManager::ObjModelManager()
 {
 	std::vector<std::string>& FileNames = OBJFileManager::g_FileNames;
 	size_t FileSize{ FileNames.size() };
-
 
 	m_Models.reserve(FileSize);
 
@@ -21,7 +20,7 @@ ObjModelManager::ObjModelManager()
 
 	m_ComponentWindows.reserve(FileSize);
 
-	for (size_t i{ 0 }; i < FileSize; ++i)
+	for (size_t i = 0; i < FileSize; ++i)
 	{
 		m_ComponentWindows.emplace_back(FileNames[i]);
 	}
@@ -50,7 +49,7 @@ void ObjModelManager::ShowComponentWindows()
 
 	ASSERT(ModelSize == ComponentWindowSize);
 
-	for (size_t i{ 0 }; i < ModelSize; ++i)
+	for (size_t i = 0; i < ModelSize; ++i)
 	{
 		m_ComponentWindows[i].ShowWindow(m_Models[i]);
 	}

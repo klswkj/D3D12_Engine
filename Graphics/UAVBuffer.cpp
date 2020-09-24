@@ -49,7 +49,6 @@ namespace custom
 #if defined(_DEBUG)
 		m_pResource->SetName(name.c_str());
 #endif
-
 		CreateUAV();
 	}
 

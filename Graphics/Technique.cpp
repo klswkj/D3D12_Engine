@@ -51,15 +51,15 @@ void Technique::Accept(ITechniqueWindow& Window)
 	}
 }
 
-const char* Technique::GetName() const noexcept
-{
-	return m_Name;
-}
-
 void Technique::Link(MasterRenderGraph& _MasterRenderGraph)
 {
 	for (auto& Step : m_Steps)
 	{
 		Step.Link(_MasterRenderGraph);
 	}
+}
+
+std::string Technique::GetName() const noexcept
+{
+	return m_Name;
 }

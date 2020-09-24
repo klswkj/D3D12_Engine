@@ -13,7 +13,7 @@ class GraphicsPSO;
 class Z_PrePass : public RenderQueuePass
 {
 public:
-	Z_PrePass(const char* pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pDepthPSO = nullptr);
+	Z_PrePass(std::string pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pDepthPSO = nullptr);
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;
 	// Binding된거는 불변(Immutable)해야하는거 명심

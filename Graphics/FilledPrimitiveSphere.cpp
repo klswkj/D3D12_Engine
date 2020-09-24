@@ -32,5 +32,5 @@ void FilledPrimitiveSphere::SetPos(DirectX::XMFLOAT3 Position) noexcept
 
 DirectX::XMMATRIX FilledPrimitiveSphere::GetTransformXM() const noexcept
 {
-
+	return DirectX::XMMATRIX{};
 }

@@ -147,14 +147,14 @@
     <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Depth Shader">
       <UniqueIdentifier>{3ec95e96-b6da-4cb6-9c04-08e764974b45}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SceneGraph\Renderer\Pass\ComputeShaderPass">
-      <UniqueIdentifier>{aeb6bd58-b527-4536-ae69-7412223d46fb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SceneGraph\Renderer\RenderGraph">
       <UniqueIdentifier>{b273b01d-d3d5-4429-9eee-b9c0f7338487}</UniqueIdentifier>
     </Filter>
     <Filter Include="SceneGraph\Camera\MainLight">
       <UniqueIdentifier>{3dc9642e-e809-4456-b776-b940aa493bdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass\ComputePass">
+      <UniqueIdentifier>{aeb6bd58-b527-4536-ae69-7412223d46fb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -247,9 +247,6 @@
     </ClCompile>
     <ClCompile Include="Mesh.cpp">
       <Filter>SceneGraph\Model</Filter>
-    </ClCompile>
-    <ClCompile Include="ComponentWindow.cpp">
-      <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClCompile>
     <ClCompile Include="RawBuffer.cpp">
       <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
@@ -380,15 +377,12 @@
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
     <ClCompile Include="SSAOPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClCompile>
     <ClCompile Include="DepthOfFieldPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClCompile>
     <ClCompile Include="ShadowPrePass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
-    <ClCompile Include="MainPass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
     <ClCompile Include="MasterRenderGraph.cpp">
@@ -398,7 +392,7 @@
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
     <ClCompile Include="FillLightGridPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClCompile>
     <ClCompile Include="ShadowMappingPass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
@@ -414,6 +408,9 @@
     </ClCompile>
     <ClCompile Include="MainRenderPass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelComponentWindow.cpp">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -572,9 +569,6 @@
     </ClInclude>
     <ClInclude Include="ModelPart.h">
       <Filter>SceneGraph\Model</Filter>
-    </ClInclude>
-    <ClInclude Include="ComponentWindow.h">
-      <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClInclude>
     <ClInclude Include="RawBuffer.h">
       <Filter>SceneGraph\Buffer%28Temporary%29</Filter>
@@ -753,16 +747,13 @@
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClInclude>
     <ClInclude Include="SSAOPass.h">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClInclude>
     <ClInclude Include="DepthOfFieldPass.h">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClInclude>
     <ClInclude Include="PassFlag.h">
       <Filter>SceneGraph\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="MainPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClInclude>
     <ClInclude Include="MasterRenderGraph.h">
       <Filter>SceneGraph\Renderer\RenderGraph</Filter>
@@ -774,7 +765,7 @@
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClInclude>
     <ClInclude Include="FillLightGridPass.h">
-      <Filter>SceneGraph\Renderer\Pass\ComputeShaderPass</Filter>
+      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClInclude>
     <ClInclude Include="MainLight.h">
       <Filter>SceneGraph\Camera\MainLight</Filter>
@@ -787,6 +778,9 @@
     </ClInclude>
     <ClInclude Include="MainRenderPass.h">
       <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelComponentWindow.h">
+      <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

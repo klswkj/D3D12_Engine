@@ -1,4 +1,6 @@
 #pragma once
+#include "Vector.h"
+#include "Matrix4.h"
 
 struct VSConstants
 {
@@ -44,7 +46,7 @@ struct LightData
     float radiusSq{ 100000.0f };
     DirectX::XMFLOAT3 color{ 0.31f, 0.27f, 0.25f };
 
-    uint32_t type{ 0 }; // Sphere, Cone, Cone with Shadow Map
+    uint32_t type= 0; // Sphere, Cone, Cone with Shadow Map
 
     DirectX::XMFLOAT3 coneDir{ -0.5f, -0.1f, -0.8f };
     DirectX::XMFLOAT2 coneAngles{ 50.0f, 0.91f };

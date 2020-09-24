@@ -28,7 +28,6 @@ void DynamicUploadBuffer::Create(const std::wstring& name, uint32_t NumElements,
         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_pResource)));
 
     m_pResource->SetName(name.c_str());
-    SET_NAME(m_pResource.Get());
     m_GpuVirtualAddress = m_pResource->GetGPUVirtualAddress();
     m_CpuVirtualAddress = nullptr;
 }

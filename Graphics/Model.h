@@ -1,5 +1,5 @@
 #pragma once
-#include "stdafx.h"
+#include "ModelPart.h"
 
 // Model  ¦£¦¡ ModelPart* Root 
 //        ¦¦¦¡ vector<Mesh* : public Entity>   ¦£¦¡ XMFLOAT4X4   transform
@@ -20,9 +20,8 @@ struct aiMesh;
 struct aiMaterial;
 struct aiNode;
 
-class ModelPart;
 class Mesh;
-class ComponentWindow;
+class ModelComponentWindow;
 class MasterRenderGraph;
 
 enum class eObjectFilterFlag;
@@ -34,7 +33,7 @@ public:
 
 	void Submit(eObjectFilterFlag Filter) const DEBUG_EXCEPT;
 	void SetRootTransform(const DirectX::XMMATRIX _Transfrom) noexcept;
-	void Accept(ComponentWindow& _ComponentWindow);
+	void Accept(ModelComponentWindow& _ComponentWindow);
 	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
 
 private:

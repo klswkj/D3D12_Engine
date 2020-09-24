@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "ModelPart.h"
-#include "ComponentWindow.h"
+#include "ModelComponentWindow.h"
 #include "TechniqueWindow.h"
 
 ModelPart::ModelPart(uint32_t ID, const char* name, std::vector<Mesh*> meshPtrs, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT
@@ -48,15 +48,15 @@ uint32_t ModelPart::GetId() const noexcept
 	return id;
 }
 
-void ModelPart::RecursivePushComponent(ComponentWindow& probe)
+void ModelPart::RecursivePushComponent(ModelComponentWindow& _Window)
 {
-	if (probe.PushNode(*this)) // If childNode is exist.
+	if (_Window.PushNode(*this)) // If childNode is exist.
 	{
 		for (auto& cp : childPtrs)
 		{
-			cp->RecursivePushComponent(probe);
+			cp->RecursivePushComponent(_Window);
 		}
-		probe.PopNode(*this);
+		_Window.PopNode(*this);
 	}
 }
 

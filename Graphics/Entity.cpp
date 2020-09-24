@@ -26,13 +26,13 @@ Entity::Entity(const Material& mat, const aiMesh& mesh, float scale/* = 1.0f*/) 
 	// 일단 Element 사이즈부터 재고, 
 	// VertexBuffer
 	{
-		uint32_t numVertexElements{ 0 };
-		uint32_t vertexStrideSize{ 0 };
+		uint32_t numVertexElements= 0;
+		uint32_t vertexStrideSize= 0;
 
 		static constexpr uint32_t FLOAT_SIZE = sizeof(float);
 
-		std::vector<std::pair<float*, size_t>> Components;
-		Components.reserve(5);
+		std::vector<std::pair<float*, size_t>> VertexElements;
+		VertexElements.reserve(5);
 
 		bool bComponents[4] = { false };
 
@@ -43,42 +43,36 @@ Entity::Entity(const Material& mat, const aiMesh& mesh, float scale/* = 1.0f*/) 
 
 		if (mesh.HasPositions())
 		{
-			Components.push_back({ &mesh.mVertices[0].x, 3 });
+			VertexElements.push_back({ &mesh.mVertices[0].x, 3 });
 			bPosition = true;
 			vertexStrideSize += FLOAT_SIZE * 3; // += POSITION
 			++numVertexElements;
 		}
 		if (mesh.HasNormals())
 		{
-			Components.push_back({ &mesh.mTextureCoords[0]->x, 2 });
-			Components.push_back({ &mesh.mNormals[0].x, 3 });
+			VertexElements.push_back({ &mesh.mNormals[0].x, 3 });
 			bNormal = true;
-			bTexcoord = true;
-			vertexStrideSize += FLOAT_SIZE * 5; // += Texcoord, Normal
-			numVertexElements += 2;
-
-			if (mesh.HasTangentsAndBitangents())
-			{
-				Components.push_back({ &mesh.mTangents[0].x, 3 });
-				Components.push_back({ &mesh.mBitangents[0].x, 3 });
-				bTangents = true;
-				vertexStrideSize += FLOAT_SIZE * 6; // += Tangents, Bitangents
-				numVertexElements += 2;
-			}
+			
+			vertexStrideSize += FLOAT_SIZE * 3; // += Texcoord, Normal
+			++numVertexElements;
 		}
-		else
+		if (mesh.HasTextureCoords(0))
 		{
-			if (mesh.HasTangentsAndBitangents())
-			{
-				Components.push_back({ &mesh.mTextureCoords[0]->x, 2 });
-				Components.push_back({ &mesh.mTangents[0].x, 3 });
-				Components.push_back({ &mesh.mBitangents[0].x, 3 });
-				bTexcoord = true;
-				bTangents = true;
-				vertexStrideSize += FLOAT_SIZE * 8; // += Texcoord, Tangents, Bitangents
-				numVertexElements += 3;
-			}
+			VertexElements.push_back({ &mesh.mTextureCoords[0]->x, 2 });
+			bTexcoord = true;
+			vertexStrideSize += FLOAT_SIZE * 2; // += Texcoord, Normal
+			++numVertexElements;
 		}
+		if (mesh.HasTangentsAndBitangents())
+		{
+			VertexElements.push_back({ &mesh.mTangents[0].x, 3 });
+			VertexElements.push_back({ &mesh.mBitangents[0].x, 3 });
+			bTexcoord = true;
+			bTangents = true;
+			vertexStrideSize += FLOAT_SIZE * 6; // += Texcoord, Tangents, Bitangents
+			numVertexElements += 3;
+		}
+		
 
 		// float* pVertices = new float[mesh.mNumVertices * numVertexElements];
 		float* pVertices = (float*)malloc(mesh.mNumVertices * vertexStrideSize);
@@ -96,54 +90,40 @@ Entity::Entity(const Material& mat, const aiMesh& mesh, float scale/* = 1.0f*/) 
 			// Tangents   3f, bTangents
 			// biTangents 3f, bTangents
 
-			size_t current{ 0 }; // In Vertices Index
+			size_t current= 0; // In Vertices Index
 
-			for (size_t component{ 0 }; component < Components.size(); ++component)
+			for (size_t IVertexElement= 0; IVertexElement < VertexElements.size(); ++IVertexElement)
 			{
 				size_t jumpSize = (vertexStrideSize / FLOAT_SIZE);
 
 				current = 0;
 
-				for (size_t i{ 0 }; i < component; ++i)
+				for (size_t i= 0; i < IVertexElement; ++i)
 				{
-					current += Components[i].second;
+					current += VertexElements[i].second;
 				}
 
-				if (component == 0)
 				{
-					for (size_t vertex{ 0 }; vertex < numVertices; ++vertex)
+					const rsize_t sourceSize = VertexElements[IVertexElement].second * FLOAT_SIZE;
+					// vertex = 0x06bc
+					// vertex = 0x07ad
+					// vertex = 0x06fd
+					for (size_t vertex = 0; vertex < numVertices; ++vertex)
 					{
-						memcpy_s(&pVertices[current], maxSize, Components[component].first, Components[component].second * FLOAT_SIZE);
-						Components[component].first = (Components[component].first + Components[component].second + 1);
+						memcpy_s(&pVertices[current], sourceSize, VertexElements[IVertexElement].first, sourceSize);
+						// VertexElements[IVertexElement].first = (VertexElements[IVertexElement].first + VertexElements[IVertexElement].second + 1);
+						VertexElements[IVertexElement].first += VertexElements[IVertexElement].second;
 						current += jumpSize;
 					}
-					if (scale != 1.0f)
+
+					if (IVertexElement == 0 && scale != 1.0f)
 					{
-						for (size_t vertex{ 0 }; vertex < numVertices; ++vertex)
+						for (size_t vertex = 0; vertex < numVertices; ++vertex)
 						{
 							pVertices[jumpSize * vertex] *= scale;
 							pVertices[jumpSize * vertex + 1] *= scale;
 							pVertices[jumpSize * vertex + 2] *= scale;
 						}
-					}
-
-				}
-				else if (component == 1)
-				{
-					for (size_t vertex{ 0 }; vertex < numVertices; ++vertex)
-					{
-						memcpy_s(&pVertices[current], maxSize, Components[component].first, Components[component].second * FLOAT_SIZE);
-						Components[component].first = (Components[component].first + Components[component].second + 1);
-						current += jumpSize;
-					}
-				}
-				else
-				{
-					for (size_t vertex{ 0 }; vertex < numVertices; ++vertex)
-					{
-						memcpy_s(&pVertices[current], maxSize, Components[component].first, Components[component].second * FLOAT_SIZE);
-						Components[component].first = (Components[component].first + Components[component].second);
-						current += jumpSize;
 					}
 				}
 			}
@@ -155,38 +135,25 @@ Entity::Entity(const Material& mat, const aiMesh& mesh, float scale/* = 1.0f*/) 
 		pVertices = nullptr;
 	} // VertexBuffer
 
-	// IndexBuffer
 	if (mesh.HasFaces())
 	{
-		unsigned short* Indices = new unsigned short[mesh.mNumFaces * 3];
+		m_IndicesBuffer.Create(AnsiToWString(mesh.mName.C_Str()) + L" Index Buffer", mesh.mNumFaces, sizeof(unsigned short) * 3, (void*)mesh.mFaces);
+	}
 
-		size_t IndicesIndex{ 0 };
-
-		for (size_t i{ 0 }; i < mesh.mNumFaces; ++i)
-		{
-			const aiFace& face = mesh.mFaces[i];
-			ASSERT(face.mNumIndices == 3);
-			Indices[i * mesh.mNumFaces + 0] = face.mIndices[0];
-			Indices[i * mesh.mNumFaces + 1] = face.mIndices[1];
-			Indices[i * mesh.mNumFaces + 2] = face.mIndices[2];
-		}
-
-		m_IndicesBuffer.Create(AnsiToWString(mesh.mName.C_Str()) + L" Index Buffer", mesh.mNumFaces * 3, sizeof(unsigned short) * 3, Indices);
-
-		delete[] Indices;
-		Indices = nullptr;
-	} // IndexBuffer
+	for (auto& Tech : mat.GetTechniques())
+	{
+		AddTechnique(std::move(Tech));
+	}
 }
 
-void Entity::AddTechnique(Technique Tech) noexcept
+void Entity::AddTechnique(Technique _Technique) noexcept
 {
-	Tech.InitializeParentReferences(*this);
-	// techniques.push_back(Tech);
-	techniques.push_back(std::move(Tech));
+	_Technique.InitializeParentReferences(*this);
+	techniques.push_back(std::move(_Technique));
 }
 void Entity::Submit(eObjectFilterFlag Filter) const noexcept
 {
-	for (const auto& Tech : techniques)
+	for (const std::vector<Technique>::iterator::value_type& Tech : techniques)
 	{
 		Tech.Submit(*this, Filter);
 	}
@@ -196,7 +163,7 @@ void Entity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.SetVertexBuffer(0, m_VerticesBuffer.VertexBufferView());
 	graphicsContext.SetIndexBuffer(m_IndicesBuffer.IndexBufferView());
-	graphicsContext.SetPrimitiveTopology(m_Topology); // CameraComponent같은거 바꾸기.
+	graphicsContext.SetPrimitiveTopology(m_Topology);
 }
 void Entity::Accept(ITechniqueWindow& window)
 {

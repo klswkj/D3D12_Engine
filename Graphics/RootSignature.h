@@ -24,36 +24,54 @@ namespace custom
 
 		~RootSignature()
 		{
-			delete[] m_rootParamArray;
-			delete[] m_staticSamplerArray;
+			// delete[] m_rootParamArray;
+			// delete[] m_staticSamplerArray;
+			/*
+			if (m_firstCompiled)
+			{
+				if (m_rootParamArray != nullptr)
+				{
+					delete[] m_rootParamArray;
+					m_rootParamArray = nullptr;
+				}
+
+				if (m_staticSamplerArray != nullptr)
+				{
+					delete[] m_staticSamplerArray;
+					m_staticSamplerArray = nullptr;
+				}
+			}
+			*/
 		}
 
 		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
 		{
 			if (0 < NumRootParams)
 			{
-				// m_rootParamArray.reset(new RootParameter[NumRootParams]);
-				delete[] m_rootParamArray;
-				m_rootParamArray = new RootParameter[NumStaticSamplers];
+				m_rootParamArray.reset(new RootParameter[NumRootParams]);
+
+				// delete[] m_rootParamArray;
+				//m_rootParamArray = new RootParameter[NumRootParams];
 			}
 			else
 			{
 				m_rootParamArray = nullptr;
 			}
 
-			m_numRootParameters = NumRootParams;
 
 			if (0 < NumStaticSamplers)
 			{
-				// m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
-				delete[] m_staticSamplerArray;
-				m_staticSamplerArray = new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers];
+				m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
+
+				// delete[] m_staticSamplerArray;
+				// m_staticSamplerArray = new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers];
 			}
 			else
 			{
 				m_staticSamplerArray = nullptr;
 			}
 
+			m_numRootParameters = NumRootParams;
 			m_numStaticSamplers = NumStaticSamplers;
 			m_numInitializedStaticSamplers = 0;
 		}
@@ -62,14 +80,14 @@ namespace custom
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
 			// return m_rootParamArray.get()[EntryIndex];
-			return m_rootParamArray[EntryIndex];
+			return m_rootParamArray.get()[EntryIndex];
 		}
 
 		const RootParameter& operator[] (size_t EntryIndex) const
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
 			// return m_rootParamArray.get()[EntryIndex];
-			return m_rootParamArray[EntryIndex];
+			return m_rootParamArray.get()[EntryIndex];
 		}
 
 		void InitStaticSampler
@@ -90,15 +108,16 @@ namespace custom
 		void Bind(CommandContext& BaseContext) DEBUG_EXCEPT override;
 
 	protected:
-		// std::unique_ptr<RootParameter[]> m_rootParamArray;
-		// std::unique_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
+		std::shared_ptr<RootParameter[]> m_rootParamArray;
+		std::shared_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
 
-		RootParameter* m_rootParamArray;
-		D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray;
+		// RootParameter* m_rootParamArray;
+		// D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray;
 
 		ID3D12RootSignature* m_rootSignature;
 
 		BOOL     m_finalized;
+		BOOL     m_firstCompiled = false;
 		uint32_t m_numRootParameters;
 		uint32_t m_numStaticSamplers;
 		uint32_t m_numInitializedStaticSamplers;
@@ -108,91 +127,7 @@ namespace custom
 	};
 }
 
-
-/*
-class RootSignature : public RenderingResource
+class RootSignatureManager
 {
-	friend class DynamicDescriptorHeap;
 
-public:
-	RootSignature(uint32_t NumRootParams = 0, uint32_t NumStaticSamplers = 0)
-		: m_finalized(FALSE), m_numRootParameters(NumRootParams)
-		{
-			Reset(NumRootParams, NumStaticSamplers);
-		}
-
-		~RootSignature()
-		{
-		}
-
-		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
-		{
-			if (0 < NumRootParams)
-			{
-				m_rootParamArray.reset(new RootParameter[NumRootParams]);
-			}
-			else
-			{
-				m_rootParamArray = nullptr;
-			}
-
-			m_numRootParameters = NumRootParams;
-
-			if (0 < NumStaticSamplers)
-			{
-				m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
-			}
-			else
-			{
-				m_staticSamplerArray = nullptr;
-			}
-
-			m_numStaticSamplers = NumStaticSamplers;
-			m_numInitializedStaticSamplers = 0;
-		}
-
-		custom::RootParameter& operator[] (size_t EntryIndex)
-		{
-			ASSERT(EntryIndex < m_numRootParameters);
-			return m_rootParamArray.get()[EntryIndex];
-		}
-
-		const custom::RootParameter& operator[] (size_t EntryIndex) const
-		{
-			ASSERT(EntryIndex < m_numRootParameters);
-			return m_rootParamArray.get()[EntryIndex];
-		}
-
-		void InitStaticSampler
-		(
-			uint32_t Register, const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
-			D3D12_SHADER_VISIBILITY Visibility = D3D12_SHADER_VISIBILITY_ALL
-			);
-
-		void Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
-
-		ID3D12RootSignature* GetSignature() const
-		{
-			return m_rootSignature;
-		}
-
-		static void DestroyAll();
-
-	protected:
-		std::unique_ptr<custom::RootParameter[]>     m_rootParamArray;
-		std::unique_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
-
-		ID3D12RootSignature*                         m_rootSignature;
-
-		// Rootsignature is re-used in D3D12Device.
-		// CONTAINED RootSignatureManager*              m_pContainer;
-
-		BOOL     m_finalized;
-		uint32_t m_numRootParameters;
-		uint32_t m_numStaticSamplers;
-		uint32_t m_numInitializedStaticSamplers;
-		uint32_t m_descriptorTableBitMap;         // One bit is set for root parameters that are non-sampler descriptor tables
-		uint32_t m_staticSamplerTableBitMap;      // One bit is set for root parameters that are sampler descriptor tables
-		uint32_t m_descriptorTableSize[16];       // Non-sampler descriptor tables need to know their descriptor count
-	};
-*/
+};

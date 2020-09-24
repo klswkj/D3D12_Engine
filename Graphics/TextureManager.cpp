@@ -13,7 +13,7 @@ namespace TextureManager
 	// std::map<std::wstring, std::unique_ptr<ManagedTexture>> s_TextureCache;
 	std::map<std::wstring, std::shared_ptr<ManagedTexture>> s_TextureCache;
 
-	void Initialize(const std::wstring& TextureLibRoot)
+	void Initialize(const std::wstring TextureLibRoot/* = L""*/)
 	{
 		s_RootPath = TextureLibRoot;
 	}

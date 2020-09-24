@@ -23,13 +23,14 @@ namespace custom
 class Pass
 {
 public:
-	Pass(const char* Name) noexcept;
+	Pass(std::string Name) noexcept;
 	virtual ~Pass();
 
 	virtual void Execute(custom::CommandContext&) DEBUG_EXCEPT = 0;
+	virtual void RenderWindow() DEBUG_EXCEPT;
 	virtual void Reset() DEBUG_EXCEPT;
 
-	const char* GetRegisteredName() const noexcept;
+	std::string GetRegisteredName() const noexcept;
 
 	virtual void finalize();
 
@@ -38,5 +39,5 @@ public:
 	int32_t m_PassIndex;
 
 private:
-	const char* m_Name;
+	std::string m_Name;
 };

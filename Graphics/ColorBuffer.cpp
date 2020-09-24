@@ -199,7 +199,10 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
 			DstHeight = 1;
 		}
 
-        Context.SetConstants(0, TopMip, NumMips, 1.0f / DstWidth, 1.0f / DstHeight);
+        float temp1 = 1.0f / DstWidth;
+        float temp2 = 1.0f / DstHeight;
+
+        Context.SetConstants(0, TopMip, NumMips, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2));
         Context.SetDynamicDescriptors(2, 0, NumMips, m_UAVHandle + TopMip + 1);
         Context.Dispatch2D(DstWidth, DstHeight);
 

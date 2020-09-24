@@ -6,7 +6,7 @@
 class FillLightGridPass : public Pass
 {
 public:
-	FillLightGridPass(const char* pName);
+	FillLightGridPass(std::string pName);
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;
 

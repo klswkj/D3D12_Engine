@@ -5,8 +5,7 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "Material.h"
-#include "ModelPart.h"
-#include "ComponentWindow.h"
+#include "ModelComponentWindow.h"
 #include "MasterRenderGraph.h"
 #include "ObjectFilterFlag.h"
 
@@ -25,7 +24,7 @@ Model::Model(const std::string& pathString, float scale/* = 1.0f*/)
 
 	// parse materials
 	std::vector<Material> materials;
-	materials.reserve(pScene->mNumMaterials); // pScene->mNumMaterials <=> m_Header.materialCount
+	materials.reserve(pScene->mNumMaterials);
 
 	for (size_t i = 0; i < pScene->mNumMaterials; ++i)
 	{
@@ -52,7 +51,7 @@ void Model::SetRootTransform(DirectX::XMMATRIX _Transform) noexcept
 	pRoot->SetAppliedTransform(_Transform);
 }
 
-void Model::Accept(ComponentWindow& _ComponentWindow)
+void Model::Accept(ModelComponentWindow& _ComponentWindow)
 {
 	pRoot->RecursivePushComponent(_ComponentWindow);
 }

@@ -16,14 +16,14 @@
 #include "../x64/Relase/Graphics(.lib)/CompiledShaders/DepthPS.h"
 #endif
 
-Z_PrePass::Z_PrePass(const char* pName, custom::RootSignature* pRootSignature/* = nullptr*/, GraphicsPSO* pDepthPSO/* = nullptr*/)
+Z_PrePass::Z_PrePass(std::string pName, custom::RootSignature* pRootSignature/* = nullptr*/, GraphicsPSO* pDepthPSO/* = nullptr*/)
 	: RenderQueuePass(pName), m_RootSignature(pRootSignature), m_DepthPSO(pDepthPSO)
 {
 	if (m_RootSignature == nullptr)
 	{
 		m_RootSignature = new custom::RootSignature();
 
-		m_RootSignature->Reset(5, 2);
+		m_RootSignature->Reset(4, 2);
 		m_RootSignature->InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);                         // 
 		m_RootSignature->InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);                          //
 		
@@ -31,7 +31,6 @@ Z_PrePass::Z_PrePass(const char* pName, custom::RootSignature* pRootSignature/* 
 		(*m_RootSignature)[1].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)                   //               // 
 		(*m_RootSignature)[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);  // 
 		(*m_RootSignature)[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
-		(*m_RootSignature)[4].InitAsConstants(1, 2, D3D12_SHADER_VISIBILITY_VERTEX);
 
 		m_RootSignature->Finalize(L"InitAtShadowPrePass", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	}
@@ -65,6 +64,9 @@ void Z_PrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
+	// No Root Signature has been set, so setting a root cbv doesn't make sense and is invalid.[ EXECUTION ERROR #710: SET_ROOT_CONSTANT_BUFFER_VIEW_INVALID]
+	graphicsContext.SetRootSignature(*m_RootSignature);
+
 	graphicsContext.SetVSConstantsBuffer(0u);
 	graphicsContext.SetPSConstantsBuffer(1u);
 
@@ -72,6 +74,7 @@ void Z_PrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	graphicsContext.ClearDepth(bufferManager::g_SceneDepthBuffer);
 	graphicsContext.SetPipelineState(*m_DepthPSO);
 	graphicsContext.SetOnlyDepthStencil(bufferManager::g_SceneDepthBuffer.GetDSV());
+	// graphicsContext.SetViewportAndScissor(m_pMainViewport, m_pMainScissor);
 
 	RenderQueuePass::Execute(BaseContext);
 }

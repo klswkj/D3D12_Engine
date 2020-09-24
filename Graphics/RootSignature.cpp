@@ -3,11 +3,6 @@
 #include "Device.h"
 #include "CommandContext.h"
 
-// 같은 D3D12Device로 컴파일하면 중복되는거 반환해줘도
-// 나중에 해제시킬 떄를 위한 static한 자료구조 필요함.
-// Finalize할 때 추가시키자.
-
-// static std::vector<ID3D12RootSignature*> s_RootSignatureContainer; // Convert to std::map
 static std::map<size_t, ID3D12RootSignature*> s_RootSignatureMap;
 
 namespace custom
@@ -94,7 +89,7 @@ namespace custom
 
     void RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags /*= D3D12_ROOT_SIGNATURE_FLAG_NONE*/)
     {
-        if (m_finalized == (BOOL)true)
+        if (m_finalized)
         {
             return;
         }
@@ -103,11 +98,11 @@ namespace custom
 
         D3D12_ROOT_SIGNATURE_DESC RootDesc;
         RootDesc.NumParameters = m_numRootParameters;
-        // RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray.get(); Convert to Raw Pointer.
-        RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray;
+        RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray.get();
+
         RootDesc.NumStaticSamplers = m_numStaticSamplers;
-        // RootDesc.pStaticSamplers = (const D3D12_STATIC_SAMPLER_DESC*)m_staticSamplerArray.get();
-        RootDesc.pStaticSamplers = (const D3D12_STATIC_SAMPLER_DESC*)m_staticSamplerArray;
+        RootDesc.pStaticSamplers = (const D3D12_STATIC_SAMPLER_DESC*)m_staticSamplerArray.get();
+
         RootDesc.Flags = Flags;
 
         m_descriptorTableBitMap = 0;
@@ -116,10 +111,10 @@ namespace custom
         size_t HashCode = Hash::MakeHash(&RootDesc.Flags);
         HashCode = Hash::MakeHash(RootDesc.pStaticSamplers, m_numStaticSamplers, HashCode);
 
-        for (size_t Param{ 0 }; Param < m_numRootParameters; ++Param)
+        for (size_t IParam = 0; IParam < m_numRootParameters; ++IParam)
         {
-            const D3D12_ROOT_PARAMETER& RootParam = RootDesc.pParameters[Param];
-            m_descriptorTableSize[Param] = 0;
+            const D3D12_ROOT_PARAMETER& RootParam = RootDesc.pParameters[IParam];
+            m_descriptorTableSize[IParam] = 0;
 
             if (RootParam.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
             {
@@ -135,15 +130,15 @@ namespace custom
                 // We keep track of sampler descriptor tables separately from CBV_SRV_UAV descriptor tables
                 if (RootParam.DescriptorTable.pDescriptorRanges->RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
                 {
-                    m_staticSamplerTableBitMap |= (1 << Param);
+                    m_staticSamplerTableBitMap |= (1 << IParam);
                 }
                 else
                 {
-                    m_descriptorTableBitMap |= (1 << Param);
+                    m_descriptorTableBitMap |= (1 << IParam);
                 }
-                for (uint32_t TableRange = 0; TableRange < RootParam.DescriptorTable.NumDescriptorRanges; ++TableRange)
+                for (uint32_t ITableRange = 0; ITableRange < RootParam.DescriptorTable.NumDescriptorRanges; ++ITableRange)
                 {
-                    m_descriptorTableSize[Param] += RootParam.DescriptorTable.pDescriptorRanges[TableRange].NumDescriptors;
+                    m_descriptorTableSize[IParam] += RootParam.DescriptorTable.pDescriptorRanges[ITableRange].NumDescriptors;
                 }
             }
             {
@@ -152,7 +147,7 @@ namespace custom
         }
 
         ID3D12RootSignature** RSRef = nullptr;
-        bool firstCompile = false;
+        // bool firstCompiled = false;
 
         {
             static std::mutex s_HashMapMutex;
@@ -164,7 +159,7 @@ namespace custom
             if (iter == s_RootSignatureMap.end())
             {
                 RSRef = &s_RootSignatureMap[HashCode];
-                firstCompile = true;
+                m_firstCompiled = true;
             }
             else
             {
@@ -172,7 +167,7 @@ namespace custom
             }
         }
 
-		if (firstCompile)
+		if (m_firstCompiled)
 		{
 			Microsoft::WRL::ComPtr<ID3DBlob> pOutBlob, pErrorBlob;
 
@@ -192,19 +187,21 @@ namespace custom
 					1, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)
 				)
 			);
+
+            m_rootSignature->SetName(name.c_str());
+            s_RootSignatureMap[HashCode] = m_rootSignature;
+
+            ASSERT(*RSRef == m_rootSignature);
 		}
 		else
 		{
-
 			while (*RSRef == nullptr)
 			{
 				std::this_thread::yield();
 			}
             m_rootSignature = *RSRef;
 		}
-        // s_RootSignatureContainer.push_back(m_rootSignature);
 
-        SET_NAME(m_rootSignature);
         m_finalized = true;
     }
 }

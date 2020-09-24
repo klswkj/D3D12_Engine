@@ -47,8 +47,8 @@
 // Random sample Generation
 // 
 
-SSAOPass::SSAOPass()
-	: Pass("SSAO")
+SSAOPass::SSAOPass(std::string pName)
+	: Pass(pName)
 {
 	{
 		m_MainRootSignature.Reset(4, 2);
@@ -209,7 +209,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		computeContext.SetRootSignature(m_MainRootSignature);
 
 		computeContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		computeContext.SetConstants(0, ZCoefficient);
+		computeContext.SetConstant(0, ZCoefficient);
 		computeContext.SetDynamicDescriptor(3, 0, MainDepthBuffer.GetDepthSRV()); // Input : DepthBuffer
 
 		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -257,32 +257,39 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 
 	// Decompressing and Downsampling Buffer
 	{
-		computeContext.SetConstants(0, ZCoefficient);
+		computeContext.SetConstant(0, ZCoefficient);
 		computeContext.SetDynamicDescriptor(3, 0, MainDepthBuffer.GetDepthSRV());
 
-		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);       // LinearDepth
+		computeContext.TransitionResource(LinearDepth,                     D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // LinearDepth
 		computeContext.TransitionResource(bufferManager::g_DepthDownsize1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // DS2x
 		computeContext.TransitionResource(bufferManager::g_DepthDownsize2, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // DS4x
-		computeContext.TransitionResource(bufferManager::g_DepthTiled1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);     // DS2xAtlas
-		computeContext.TransitionResource(bufferManager::g_DepthTiled2, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);     // DS4xAtlas
+		computeContext.TransitionResource(bufferManager::g_DepthTiled1,    D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // DS2xAtlas
+		computeContext.TransitionResource(bufferManager::g_DepthTiled2,    D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // DS4xAtlas
 
 		D3D12_CPU_DESCRIPTOR_HANDLE DownsizeUAVs[5] =
 		{
 			LinearDepth.GetUAV(),
 			bufferManager::g_DepthDownsize1.GetUAV(),
-			bufferManager::g_DepthDownsize2.GetUAV(),
 			bufferManager::g_DepthTiled1.GetUAV(),
+			bufferManager::g_DepthDownsize2.GetUAV(),
 			bufferManager::g_DepthTiled2.GetUAV()
 		};
 		computeContext.SetDynamicDescriptors(2, 0, 5, DownsizeUAVs);
 
 		computeContext.SetPipelineState(m_DepthPrepareCS_16);
-		computeContext.Dispatch2D(bufferManager::g_DepthTiled2.GetWidth() * NUM_GROUP_THREAD_WIDTH, bufferManager::g_DepthTiled2.GetHeight() * NUM_GROUP_THREAD_HEIGHT);
+		computeContext.Dispatch2D
+		(
+			bufferManager::g_DepthTiled2.GetWidth() * NUM_GROUP_THREAD_WIDTH, 
+			bufferManager::g_DepthTiled2.GetHeight() * NUM_GROUP_THREAD_HEIGHT
+		);
 	}
 	{
 		if (2 < m_HierarchyDepth)
 		{
-			computeContext.SetConstants(0, 1.0f / bufferManager::g_DepthDownsize2.GetWidth(), 1.0f / bufferManager::g_DepthDownsize2.GetHeight()); // (b0)
+			float temp1 = 1.0f / bufferManager::g_DepthDownsize2.GetWidth();
+			float temp2 = 1.0f / bufferManager::g_DepthDownsize2.GetHeight();
+
+			computeContext.SetConstants(0, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2)); // (b0)
 
 			computeContext.TransitionResource(bufferManager::g_DepthDownsize2, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE); // (t0)
 

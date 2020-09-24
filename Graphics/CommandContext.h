@@ -18,6 +18,7 @@ class ColorBuffer;
 class IBaseCamera;
 class Camera;
 class ShadowCamera;
+class MainLight;
 
 #define CLASS_NO_COPY(className)                         \
     private :                                            \
@@ -130,6 +131,7 @@ namespace custom
         void SetShadowTexelSize(float TexelSize);
         void SetTileDimension(float MainColorBufferWidth, float MainColorBufferHeight, uint32_t LightWorkGroupSize);
         void SetSpecificLightIndex(uint32_t FirstConeLightIndex, uint32_t FirstConeShadowedLightIndex);
+        void SetPSConstants(MainLight& _MainLight);
         void SetSync();
 
     protected:
@@ -207,7 +209,6 @@ namespace custom
         void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) { m_commandList->IASetPrimitiveTopology(Topology); }
 
         void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) { m_commandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, 0); }
-        void SetConstants(UINT RootIndex, uint32_t size, ...);
 
         void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV) { m_commandList->SetComputeRootConstantBufferView(RootIndex, CBV); }
         void SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData);

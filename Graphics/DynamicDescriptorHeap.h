@@ -101,12 +101,13 @@ namespace custom
 			const std::vector<ID3D12DescriptorHeap*>& UsedHeaps
 		);
 
+	private:
 		bool hasSpace(uint32_t Count = 1)
 		{
 			return (m_pCurrentHeap != nullptr && m_currentOffset + Count <= kNumDescriptorsPerHeap);
 		}
 
-		void retireCurrentHeap(void);
+		void retireCurrentHeap();
 		void retireUsedHeaps(uint64_t fenceValue);
 		ID3D12DescriptorHeap* getHeapPointer();
 
@@ -132,24 +133,28 @@ namespace custom
 		// Static members
 		static const uint32_t kNumDescriptorsPerHeap = 1024;
 		static std::mutex sm_mutex;
+
 		static std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> sm_descriptorHeapPool[2];
 		static std::queue<std::pair<uint64_t, ID3D12DescriptorHeap*>> sm_retiredDescriptorHeaps[2];
 		static std::queue<ID3D12DescriptorHeap*> sm_availableDescriptorHeaps[2];
 
 		// Non-static members
+	private:
+		const D3D12_DESCRIPTOR_HEAP_TYPE m_descriptorType;
 		CommandContext& m_owningContext;
 
-		ID3D12DescriptorHeap* m_pCurrentHeap;
-		const D3D12_DESCRIPTOR_HEAP_TYPE m_descriptorType;
 		uint32_t m_descriptorSize;
 		uint32_t m_currentOffset;
+
+		ID3D12DescriptorHeap* m_pCurrentHeap;
 		DescriptorHandle m_firstDescriptor;
 		std::vector<ID3D12DescriptorHeap*> m_pRetiredHeaps;
 
-		// Describes a descriptor table entry:  a region of the handle cache and which handles have been set
+		// a region of the handle cache and which handles have been set
 		struct DescriptorTableCache
 		{
-			DescriptorTableCache() : assignedHandlesBitMap(0) 
+			DescriptorTableCache() 
+				: assignedHandlesBitMap(0) 
 			{
 			}
 
@@ -196,6 +201,7 @@ namespace custom
 			uint32_t m_maxCachedDescriptors;
 
 			DescriptorTableCache m_rootDescriptorTable[kMaxNumDescriptorTables];
+
 			D3D12_CPU_DESCRIPTOR_HANDLE m_handleCache[kMaxNumDescriptors];
 		};
 

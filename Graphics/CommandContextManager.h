@@ -7,6 +7,7 @@
 class CommandContextManager
 {
 	friend custom::CommandContext;
+	friend custom::GraphicsContext;
 public:
 	CommandContextManager()
 	{
@@ -23,6 +24,8 @@ private:
 	std::queue<custom::CommandContext*> sm_AvailableContexts[4];
 	std::mutex sm_ContextAllocationMutex;
 
+	D3D12_VIEWPORT m_Viewport = {};
+	D3D12_RECT m_Scissor = {};
 	VSConstants m_VSConstants;
 	PSConstants m_PSConstants;
 	Camera* m_pCamera{ nullptr };

@@ -10,12 +10,13 @@
 
 std::mutex Step::sm_mutex;
 
-Step::Step(const char* PassName)
+Step::Step(std::string PassName)
 	: m_PassName(PassName) 
 {
 }
 
 Step::Step(const Step& other) noexcept
+	: m_PassName(other.m_PassName)
 {
 	m_RenderingResources.reserve(other.m_RenderingResources.size());
 
@@ -35,7 +36,7 @@ void Step::PushBack(std::shared_ptr<RenderingResource> _RenderingResource) noexc
 }
 void Step::Submit(const Entity& _Entity) const
 {
-	m_pPass->PushBackJob(Job{ &_Entity, this });
+	m_pTargetPass->PushBackJob(Job{ &_Entity, this });
 }
 void Step::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 {
@@ -59,6 +60,6 @@ void Step::Accept(ITechniqueWindow& probe)
 
 void Step::Link(MasterRenderGraph& _MasterRenderGraph)
 {
-	ASSERT(m_pPass == nullptr);
-	m_pPass = &_MasterRenderGraph.GetRenderQueue(m_PassName);
+	ASSERT(m_pTargetPass == nullptr);
+	m_pTargetPass = &_MasterRenderGraph.FindRenderQueuePass(m_PassName);
 }

@@ -51,19 +51,23 @@ namespace custom
         m_commandList->SetComputeRoot32BitConstant(RootIndex, Val, Offset);
     }
 
-    void ComputeContext::SetConstants(UINT RootIndex, uint32_t size, ...)
+    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2)
     {
-        va_list Args;
-        va_start(Args, size);
-
-        UINT val;
-
-        for (UINT i{ 0 }; i < size; ++i)
-        {
-            val = va_arg(Args, UINT);
-
-            m_commandList->SetGraphicsRoot32BitConstant(RootIndex, val, i);
-        }
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
+    }
+    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3)
+    {
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val3, 2);
+    }
+    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3, UINT Val4)
+    {
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val3, 2);
+        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val4, 3);
     }
 
     void ComputeContext::SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV)
@@ -165,9 +169,12 @@ namespace custom
     void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
             uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
     */
-    void ComputeContext::ExecuteIndirect(CommandSignature& CommandSig,
+    void ComputeContext::ExecuteIndirect
+    (
+        CommandSignature& CommandSig,
         UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset /*= 0*/,
-        uint32_t MaxCommands/*= 1*/, UAVBuffer* CommandCounterBuffer /*= nullptr*/, uint64_t CounterOffset/*= 0*/)
+        uint32_t MaxCommands/*= 1*/, UAVBuffer* CommandCounterBuffer /*= nullptr*/, uint64_t CounterOffset/*= 0*/
+    )
     {
         FlushResourceBarriers();
         m_DynamicViewDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);

@@ -18,7 +18,7 @@ namespace custom
 class BlurPass : public Pass
 {
 protected:
-	BlurPass(const char* Name, std::vector<std::shared_ptr<RenderingResource>> binds = {});
+	BlurPass(std::string Name, std::vector<std::shared_ptr<RenderingResource>> binds = {});
 	~BlurPass();
 	void PushBackHorizontal(std::shared_ptr<RenderingResource> _RenderingResource) noexcept;
 	void PushBackVertical(std::shared_ptr<RenderingResource> _RenderingResource) noexcept;

@@ -49,7 +49,7 @@ namespace custom
 	private:
 		static std::unordered_map<size_t, D3D12_CPU_DESCRIPTOR_HANDLE> sm_samplerDescriptorHashMap;
 		BOOL m_finalized{ false };
-		uint64_t m_refCount{ 0 };
+		uint64_t m_refCount= 0;
 
 		struct SamplerDescriptorHash
 		{

@@ -4,7 +4,7 @@
 #include "Mesh.h"
 
 class Model;
-class ComponentWindow;
+class ModelComponentWindow;
 class ITechniqueWindow;
 
 class ModelPart
@@ -18,7 +18,7 @@ public:
 
 	uint32_t GetId() const noexcept;
 	bool HasChildren() const noexcept;
-	void RecursivePushComponent(ComponentWindow& probe);
+	void RecursivePushComponent(ModelComponentWindow& probe);
 	void PushAddon(ITechniqueWindow& probe);
 	const char* GetName() const;
 private:

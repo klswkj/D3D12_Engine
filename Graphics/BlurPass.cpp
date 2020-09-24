@@ -24,7 +24,7 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/VerticalBlurCS.h"
 #endif
 
-BlurPass::BlurPass(const char* Name, std::vector<std::shared_ptr<RenderingResource>> binds)
+BlurPass::BlurPass(std::string Name, std::vector<std::shared_ptr<RenderingResource>> binds)
 	: Pass(Name), m_RenderingResourcesHorizontal(std::move(binds))
 {
 	CalcGaussWeights(m_BlurSigma, m_BlurRadius);
@@ -131,7 +131,7 @@ void BlurPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	UINT BufferWidth = m_PingPongBuffer1.GetWidth();
 	UINT BufferHeight = m_PingPongBuffer1.GetHeight();
 
-	for (size_t i{ 0 }; i < m_BlurCount; ++i)
+	for (size_t i= 0; i < m_BlurCount; ++i)
 	{
 		// Horizontal Blur pass.
 
@@ -186,7 +186,7 @@ void BlurPass::CalcGaussWeights(float Sigma, UINT Radius)
 
 	float CoefficientsSum{ 0.0f };
 	
-	for (UINT i{ 0 }; i < Diameter; ++i)
+	for (UINT i= 0; i < Diameter; ++i)
 	{
 		const float x = float(i - Radius);
 		const float Gauss = gauss(x, Sigma);
@@ -195,7 +195,7 @@ void BlurPass::CalcGaussWeights(float Sigma, UINT Radius)
 		m_Weights[i] = Gauss;
 	}
 
-	for (size_t i{ 0 }; i < Diameter; ++i)
+	for (size_t i= 0; i < Diameter; ++i)
 	{
 		m_Weights[i] /= CoefficientsSum;
 	}

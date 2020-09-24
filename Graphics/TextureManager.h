@@ -14,7 +14,7 @@ std::wstring MakeWStr(const std::string& str);
 
 namespace TextureManager
 {
-    void Initialize(const std::wstring& TextureLibRoot);
+    void Initialize(const std::wstring TextureLibRoot = L"");
     void Shutdown(void);
 
     std::wstring GetRootPath();
@@ -24,7 +24,8 @@ namespace TextureManager
     const ManagedTexture* LoadDDSFromFile(const std::wstring& fileName, bool bStandardRGB = false);
     const ManagedTexture* LoadTGAFromFile(const std::wstring& fileName, bool bStandardRGB = false);
     const ManagedTexture* LoadPIXImageFromFile(const std::wstring& fileName);
-    const ManagedTexture* LoadWICFromFile(const std::wstring& fileName, bool bStandardRGB = false);
+    const ManagedTexture* LoadWICFromFile(const std::wstring& fileName, UINT RootIndex = -1, UINT Offset = -1, bool bStandardRGB = false);
+
     // https://www.gamedev.net/forums/topic/702319-how-to-upload-alpha-texture-to-compute-shader/
     // https://github.com/microsoft/DirectXTK12/wiki/WICTextureLoader
 

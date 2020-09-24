@@ -2364,7 +2364,7 @@ const ImWchar*  ImFontAtlas::GetGlyphRangesJapanese()
         0x31F0, 0x31FF, // Katakana Phonetic Extensions
         0xFF00, 0xFFEF  // Half-width characters
     };
-    static ImWchar full_ranges[IM_ARRAYSIZE(base_ranges) + IM_ARRAYSIZE(accumulative_offsets_from_0x4E00)*2 + 1] = { 0 };
+    static ImWchar full_ranges[IM_ARRAYSIZE(base_ranges) + IM_ARRAYSIZE(accumulative_offsets_from_0x4E00) * 2 + 1] = { 0 };
     if (!full_ranges[0])
     {
         memcpy(full_ranges, base_ranges, sizeof(base_ranges));

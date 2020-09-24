@@ -35,7 +35,7 @@ namespace OBJFileManager
 	{
 		static const char* typestring = "obj";
 
-		for (size_t i{ 0 }; i < 3; ++i)
+		for (size_t i = 0; i < 3; ++i)
 		{
 			g_AssetFormat[i] = typestring[i];
 		}
@@ -65,7 +65,7 @@ namespace OBJFileManager
 		{
 			std::string pathName;
 
-			pathName += "../";
+			pathName += "..\\";
 			pathName += g_PathName;
 
 			for (auto& p : std::filesystem::recursive_directory_iterator(pathName))
