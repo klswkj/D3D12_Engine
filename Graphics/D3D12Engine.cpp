@@ -23,7 +23,7 @@ D3D12Engine::D3D12Engine(const std::wstring& CommandLine/* = ""*/)
 	m_MainViewport.Height = (float)bufferManager::g_SceneColorBuffer.GetHeight();
 	m_MainViewport.MinDepth = 0.0f;
 	m_MainViewport.MaxDepth = 1.0f;
-
+	();
 	m_MainScissor.left = 0;
 	m_MainScissor.top = 0;
 	m_MainScissor.right = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
