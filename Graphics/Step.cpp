@@ -32,7 +32,7 @@ void Step::PushBack(std::shared_ptr<RenderingResource> _RenderingResource) noexc
 {
 	std::lock_guard<std::mutex> LockGuard(sm_mutex);
 
-	m_RenderingResources.push_back(_RenderingResource);
+	m_RenderingResources.push_back(std::move(_RenderingResource));
 }
 void Step::Submit(const Entity& _Entity) const
 {
@@ -50,7 +50,7 @@ void Step::InitializeParentReferences(const Entity & parent) noexcept
 {
 	for (const auto& e : m_RenderingResources)
 	{
-		// e->InitializeParentReference(parent);
+		e->InitializeParentReference(parent);
 	}
 }
 void Step::Accept(ITechniqueWindow& probe)

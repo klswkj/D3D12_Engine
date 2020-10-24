@@ -98,12 +98,23 @@ namespace custom
 
         D3D12_ROOT_SIGNATURE_DESC RootDesc;
         RootDesc.NumParameters = m_numRootParameters;
+#ifdef _RAW_PTR
+        RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray;
+#else
         RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray.get();
+#endif
+
 
         RootDesc.NumStaticSamplers = m_numStaticSamplers;
+#ifdef _RAW_PTR
+        RootDesc.pStaticSamplers = (const D3D12_STATIC_SAMPLER_DESC*)m_staticSamplerArray;
+#else
         RootDesc.pStaticSamplers = (const D3D12_STATIC_SAMPLER_DESC*)m_staticSamplerArray.get();
-
+#endif
         RootDesc.Flags = Flags;
+
+#undef RAW_PTR
+#undef SHARED_PTR
 
         m_descriptorTableBitMap = 0;
         m_staticSamplerTableBitMap = 0;
@@ -148,7 +159,6 @@ namespace custom
 
         ID3D12RootSignature** RSRef = nullptr;
         // bool firstCompiled = false;
-
         {
             static std::mutex s_HashMapMutex;
             std::lock_guard<std::mutex> CS(s_HashMapMutex);
@@ -171,9 +181,11 @@ namespace custom
 		{
 			Microsoft::WRL::ComPtr<ID3DBlob> pOutBlob, pErrorBlob;
 
+            HRESULT hardwareResult;
+
 			ASSERT_HR
 			(
-				D3D12SerializeRootSignature
+                hardwareResult = D3D12SerializeRootSignature
 				(
 					&RootDesc, D3D_ROOT_SIGNATURE_VERSION_1,
 					pOutBlob.GetAddressOf(), pErrorBlob.GetAddressOf()
@@ -182,7 +194,7 @@ namespace custom
 
 			ASSERT_HR
 			(
-				device::g_pDevice->CreateRootSignature
+                hardwareResult = device::g_pDevice->CreateRootSignature
 				(
 					1, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)
 				)

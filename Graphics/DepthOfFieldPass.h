@@ -3,7 +3,6 @@
 #include "Pass.h"
 #include "UpdateConstantBuffer.h"
 
-#include "UAVBuffer.h"
 #include "RootSignature.h"
 #include "PSO.h"
 
@@ -40,17 +39,17 @@ private:
 	ComputePSO DoFCombineCS;                // Combine DoF blurred buffer with focused color buffer
 	ComputePSO DoFCombineFastCS;            // Upsample DoF blurred buffer
 
-	uint32_t m_bEnable{ true };
-	uint32_t m_bEnablePreFilter{ true };
-	uint32_t m_bMedianFilter{ true };
-	uint32_t m_bMedianAlpha{ true };
-	uint32_t m_bDebugMode{ true };
-	uint32_t m_bDebugTile{ true };
+	uint32_t m_bEnable          = true;
+	uint32_t m_bEnablePreFilter = true;
+	uint32_t m_bMedianFilter    = true;
+	uint32_t m_bMedianAlpha     = true;
+	uint32_t m_bDebugMode       = true;
+	uint32_t m_bDebugTile       = true;
 
-	float m_FocalDepth{ 0.1f };
-	float m_FocalRange{ 0.1f };
-	float m_ForegroundRange{ 100.0f };
-	float m_AntiSparkleWeight{ 100.0f };
+	float m_FocalDepth        = 0.1f;
+	float m_FocalRange        = 0.1f;
+	float m_ForegroundRange   = 100.0f;
+	float m_AntiSparkleWeight = 100.0f;
 
 	__declspec(align(16)) struct DoFConstantBuffer
 	{
@@ -66,40 +65,4 @@ private:
 	};
 
 	DoFConstantBuffer cBuffer;
-	// uint32_t m_bDebugMode{ true };
-	// uint32_t m_bDebugTiles{ true };
-
-	// float focalDepth[4]{ 0.1f, 0.0f, 1.0f, 0.01f }; // value, minValue, maxValue, stepSize
-	// float focalRange[4]{ 0.1f, 0.0f, 1.0f, 0.01f };
-	// float foregroundRange[4]{ 0.1f, 0.0f, 1.0f, 0.01f };
-	// float antiSparkleWeight[4]{ 1.0f, 0.0f, 10.0f, 1.0f };
-
-	///////////////////////бщ Convert to /////////////////////////
-
-	// std::shared_ptr<CachingPixelConstantBufferEx> bEnable;           // { true }
-	// std::shared_ptr<CachingPixelConstantBufferEx> bEnablePreFilter;  // { true }
-	// std::shared_ptr<CachingPixelConstantBufferEx> bMedianFilter;     // { true }
-	// std::shared_ptr<CachingPixelConstantBufferEx> bMedianAlpha;      // { true }
-	// std::shared_ptr<CachingPixelConstantBufferEx> NearClipDist;      // 
-	// std::shared_ptr<CachingPixelConstantBufferEx> FarClipDist;       // 
-	// std::shared_ptr<CachingPixelConstantBufferEx> FocalDepth;        // { 0.1f, 0.0f, 1.0f, 0.01f } 
-	// std::shared_ptr<CachingPixelConstantBufferEx> FocalRange;        // { 0.1f, 0.0f, 1.0f, 0.01f }
-	// std::shared_ptr<CachingPixelConstantBufferEx> ForegroundRange;   // { 0.1f, 0.0f, 1.0f, 0.01f }
-	// std::shared_ptr<CachingPixelConstantBufferEx> AntiSparkleWeight; // { 1.0f, 0.0f, 10.0f, 1.0f }
-    // std::shared_ptr<CachingPixelConstantBufferEx> DOFCBuffer;
 };
-
-/*
-	DoFConstantBuffer cbuffer =
-	{
-		(float)FocalDepth, 1.0f / (float)FocalRange,
-		(float)FocalDepth - (float)FocalRange, (float)FocalDepth + (float)FocalRange,
-		1.0f / BufferWidth, 1.0f / BufferHeight,
-		BufferWidth, BufferHeight,
-		(int32_t)HashInternal::DivideByMultiple(BufferWidth, 2), (int32_t)HashInternal::DivideByMultiple(BufferHeight, 2),
-		TiledWidth, TiledHeight,
-		1.0f / TiledWidth, 1.0f / TiledHeight,
-		(uint32_t)DebugMode, EnablePreFilter ? 0u : 1u,
-		ForegroundRange / FarClipDist, FarClipDist / ForegroundRange, (float)AntiSparkleWeight
-	};
-	*/

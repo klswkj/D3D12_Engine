@@ -81,8 +81,8 @@ public:
 		return buffer.empty();
 	}
 	void Flush() noexcept;
-	void EnableRaw() noexcept;
-	void DisableRaw() noexcept;
+	void EnableRawMouse() noexcept;
+	void DisableRawMouse() noexcept;
 	bool RawEnabled() const noexcept;
 	void OnMouseMove(int x, int y) noexcept;
 	void OnMouseLeave() noexcept;
@@ -104,7 +104,7 @@ private:
 	bool rightIsPressed = false;
 	bool isInWindow = false;
 	int wheelDeltaCarry = 0;
-	bool rawEnabled = false;
+	bool rawMouseEnabled = false;
 	std::queue<MouseEvent> buffer;
 	std::queue<POINT> rawDeltaBuffer;
 };

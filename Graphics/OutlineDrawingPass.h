@@ -1,5 +1,7 @@
 #pragma once
 #include "RenderQueuePass.h"
+#include "RootSignature.h"
+#include "PSO.h"
 
 namespace custom
 {

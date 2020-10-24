@@ -3,15 +3,15 @@
 
 BOOL MyKeyboard::KeyIsPressed(unsigned char keycode) const noexcept
 {
-	return keystates[keycode];
+	return keyStatesBitMap[keycode];
 }
 
-KeyboardEvent MyKeyboard::ReadKey() noexcept
+KeyboardEvent MyKeyboard::ReadEvent() noexcept
 {
-	if(0u < keybuffer.size())
+	if(0u < keyboardEventBuffer.size())
 	{
-		KeyboardEvent key = keybuffer.front();
-		keybuffer.pop();
+		KeyboardEvent key = keyboardEventBuffer.front();
+		keyboardEventBuffer.pop();
 		return key;
 	}
 	else
@@ -22,15 +22,15 @@ KeyboardEvent MyKeyboard::ReadKey() noexcept
 
 BOOL MyKeyboard::KeyIsEmpty() const noexcept
 {
-	return keybuffer.empty();
+	return keyboardEventBuffer.empty();
 }
 
 char MyKeyboard::ReadChar() noexcept
 {
-	if(0u < charbuffer.size())
+	if(0u < charBuffer.size())
 	{
-		unsigned char charcode = charbuffer.front();
-		charbuffer.pop();
+		unsigned char charcode = charBuffer.front();
+		charBuffer.pop();
 		return charcode;
 	}
 	return 0;
@@ -38,17 +38,17 @@ char MyKeyboard::ReadChar() noexcept
 
 BOOL MyKeyboard::CharIsEmpty() const noexcept
 {
-	return charbuffer.empty();
+	return charBuffer.empty();
 }
 
 void MyKeyboard::FlushKey() noexcept
 {
-	keybuffer = std::queue<KeyboardEvent>();
+	keyboardEventBuffer = std::queue<KeyboardEvent>();
 }
 
 void MyKeyboard::FlushChar() noexcept
 {
-	charbuffer = std::queue<char>();
+	charBuffer = std::queue<char>();
 }
 
 void MyKeyboard::Flush() noexcept
@@ -74,27 +74,27 @@ BOOL MyKeyboard::AutorepeatIsEnabled() const noexcept
 
 void MyKeyboard::OnKeyPressed(unsigned char keycode) noexcept
 {
-	keystates[keycode] = true;
-	keybuffer.push(KeyboardEvent(KeyboardEvent::Type::Press, keycode));
-	TrimBuffer(keybuffer);
+	keyStatesBitMap[keycode] = true;
+	keyboardEventBuffer.push(KeyboardEvent(KeyboardEvent::Type::Press, keycode));
+	TrimBuffer(keyboardEventBuffer);
 }
 
 void MyKeyboard::OnKeyReleased(unsigned char keycode) noexcept
 {
-	keystates[keycode] = false;
-	keybuffer.push(KeyboardEvent(KeyboardEvent::Type::Release, keycode));
-	TrimBuffer(keybuffer);
+	keyStatesBitMap[keycode] = false;
+	keyboardEventBuffer.push(KeyboardEvent(KeyboardEvent::Type::Release, keycode));
+	TrimBuffer(keyboardEventBuffer);
 }
 
 void MyKeyboard::OnChar(char character) noexcept
 {
-	charbuffer.push(character);
-	TrimBuffer(charbuffer);
+	charBuffer.push(character);
+	TrimBuffer(charBuffer);
 }
 
 void MyKeyboard::ClearState() noexcept
 {
-	keystates.reset();
+	keyStatesBitMap.reset();
 }
 
 template<typename T>

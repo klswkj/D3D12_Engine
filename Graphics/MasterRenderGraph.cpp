@@ -3,6 +3,7 @@
 
 #include "ShadowBuffer.h"
 #include "BufferManager.h"
+#include "PreMadePSO.h"
 #include "ObjectFilterFlag.h"
 #include "Matrix4.h"
 #include "ShaderConstantsTypeDefinitions.h"
@@ -50,11 +51,13 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/VerticalBlurCS.h"
 #endif
 
-/*
-일단 처음 만들 떄는 Pass들 돌기 전에 한번만 Shadow Camera, MainCamera 세팅하고 한번돌리고, 업데이트하고 한번 돌리고 하는 식이면,
-
-// MainLightManager만들면 생성자에 std::vector<Math::vector3>& 컨테이너 레퍼런스 만들어서 Pass 안에서 각각 .size()만큼 돌리기
-*/
+// TODO :Pass들 세팅
+// https://developer.nvidia.com/sites/all/modules/custom/gpugems/books/GPUGems/gpugems_ch12.html
+// https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
+// https://www.gamedev.net/forums/topic/657728-standard-approach-to-shadow-mapping-multiple-light-sources/
+// http://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
+// http://ivizlab.sfu.ca/papers/cgf2012.pdf
+// https://www.slideshare.net/blindrenderer/rendering-tech-of-space-marinekgc-2011?next_slideshow=1
 
 MasterRenderGraph::MasterRenderGraph()
 //: m_pRenderTarget(), m_pMasterDepth()
@@ -75,7 +78,7 @@ MasterRenderGraph::MasterRenderGraph()
 	    // Texture2D<float4> texLightmap    : register(t4);
 	    // Texture2D<float4> texReflection  : register(t5);
 
-		m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
+		m_RootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL);
 		// Texture2D<float>            texSSAO             : register(t64);
 		// Texture2D<float>            texShadow           : register(t65);
 		// StructuredBuffer<LightData> lightBuffer         : register(t66);
@@ -124,65 +127,75 @@ MasterRenderGraph::MasterRenderGraph()
 		m_MainRenderPSO.SetVertexShader(g_pModelVS_TexNormal, sizeof(g_pModelVS_TexNormal));
 		m_MainRenderPSO.SetPixelShader(g_pModelPS_TexNormal, sizeof(g_pModelPS_TexNormal));
 		m_MainRenderPSO.Finalize();
-
-		// 여러개 올 수 있음 그냥 Model_Common, Model_TexCoord 추가가능
 	}
-	// TODO :Pass들 세팅
-	// https://developer.nvidia.com/sites/all/modules/custom/gpugems/books/GPUGems/gpugems_ch12.html
-	// https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
-	// https://www.gamedev.net/forums/topic/657728-standard-approach-to-shadow-mapping-multiple-light-sources/
-	// http://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
-	// http://ivizlab.sfu.ca/papers/cgf2012.pdf
-	// https://www.slideshare.net/blindrenderer/rendering-tech-of-space-marinekgc-2011?next_slideshow=1
+
 	// *1* LightingPrePass
 	{
 		std::unique_ptr<LightPrePass> _LightPrePass = std::make_unique<LightPrePass>("LightPrePass");
-		appendPass(std::move(_LightPrePass));
+		appendPass(std::move(_LightPrePass));		
+		// m_pLightPrePass = (LightPrePass*)m_pPasses.back().get();
+		m_pLightPrePass = dynamic_cast<LightPrePass*>(m_pPasses.back().get());
+		ASSERT(m_pLightPrePass);
 	}
 	// *2* ShadowPrePass
 	{
 		std::unique_ptr<ShadowPrePass> _ShadowPrePass = std::make_unique<ShadowPrePass>("ShadowPrePass", &m_RootSignature);
 		appendPass(std::move(_ShadowPrePass));
+		// m_pShadowPrePass = (ShadowPrePass*)m_pPasses.back().get();
+		m_pShadowPrePass = dynamic_cast<ShadowPrePass*>(m_pPasses.back().get());
+		ASSERT(m_pShadowPrePass);
 	}
 	// *3* Z-PrePass
 	{
 		std::unique_ptr<Z_PrePass> _Z_PrePass = std::make_unique<Z_PrePass>("Z_PrePass", &m_RootSignature);
 		appendPass(std::move(_Z_PrePass));
+		// m_pZ_PrePass = (Z_PrePass*)m_pPasses.back().get();
+		m_pZ_PrePass = dynamic_cast<Z_PrePass*>(m_pPasses.back().get());
+		ASSERT(m_pZ_PrePass);
 	}
 	// *4* SSAOPass
 	{
 		std::unique_ptr<SSAOPass> _SSAOPass = std::make_unique<SSAOPass>("SSAOPass");
 		appendPass(std::move(_SSAOPass));
+		m_pSSAOPass = dynamic_cast<SSAOPass*>(m_pPasses.back().get());
+		ASSERT(m_pSSAOPass);
 	}
 	// *5* FillLightGridPass
 	{
 		std::unique_ptr<FillLightGridPass> _FillLightGridPass = std::make_unique<FillLightGridPass>("FillLightGridPass");
 		appendPass(std::move(_FillLightGridPass));
+		m_pFillLightGridPass = dynamic_cast<FillLightGridPass*>(m_pPasses.back().get());
+		ASSERT(m_pFillLightGridPass);
 	}
 	// *6* ShadowMappingPass
 	{
 		std::unique_ptr<ShadowMappingPass> _ShadowMappingPass = std::make_unique<ShadowMappingPass>("ShadowMappingPass", &m_RootSignature);
 		appendPass(std::move(_ShadowMappingPass));
+		m_pShadowMappingPass = dynamic_cast<ShadowMappingPass*>(m_pPasses.back().get());
+		ASSERT(m_pShadowMappingPass);
 	}
 	// *7* MainRenderPass
 	{
-		std::unique_ptr<MainRenderPass> _MainRenderPass = std::make_unique<MainRenderPass>("MainRenderPass", &m_RootSignature);
+		std::unique_ptr<MainRenderPass> _MainRenderPass = std::make_unique<MainRenderPass>("MainRenderPass");
 		appendPass(std::move(_MainRenderPass));
+		m_pMainRenderPass = dynamic_cast<MainRenderPass*>(m_pPasses.back().get());
+		ASSERT(m_pMainRenderPass);
 	}
 
 	finalize();
+
+	m_pCurrentActiveCamera = nullptr;
+	m_pMainLights = nullptr;
 }
 
 MasterRenderGraph::~MasterRenderGraph()
 {
 }
 
-// Pass window창 보여주고, 원하는 Pass만 Enable->Disable
 void MasterRenderGraph::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
-	ASSERT(finalized);
+	ASSERT(m_pCurrentActiveCamera);
 
-	// 여기서 BaseContext에 MainCamera, S
 	BaseContext.SetMainCamera(*m_pCurrentActiveCamera);
 
 	for (auto& p : m_pPasses)
@@ -204,17 +217,59 @@ void MasterRenderGraph::ShowPassesWindows()
 
 void MasterRenderGraph::Reset() noexcept
 {
-	assert(finalized);
 	for (auto& p : m_pPasses)
 	{
 		p->Reset();
 	}
 }
 
+void MasterRenderGraph::Profiling()
+{
+	for (auto& p : m_pPasses)
+	{
+		printf("%s's operational time : %.5f\n", p->GetRegisteredName().c_str(), p->m_DeltaTime);
+	}
+	printf("\n");
+}
+
+// 현재 할거, 기억나는 거
+// 할거1. D3D12Engine의 VSConstantsUpdate(), PSConstantsUpdate()를, MasterRenderGraph::Update()로 통합.
+// 기억나는거1. CommandContext의 멤버변수 Camera* m_pMainCamera,     ShadowCamera* m_pMainLightShadowCamera
+//                                      VSConstants m_VSConstants, PSConstants m_PSConstants 는 그대로 유지하기로 했었나?
+// 기억나는거2. MasterRenderGraph에 멤버변수를 추가를 해야하나? 
+//             아니면 Update()에 파라미터를 같이 받아서 그걸로 그냥 업데이를 해야하나? <- 이게 괜찮은 듯
+// 기억나는거3. 만약에 CommandContext의 멤버변수들 4개를 다 빼버리면?
+//             각각 Pass들이 Camera, Constants들을 각각 가져야되는데 그러면 너무 비효율적임.
+//             현재가 더 나은듯. 어차피 각 패스들이 모두 똑같은거를 써야되잖아.
+// 기억나는거4. 여기 Update()에서 BaseContext가 활성화된 카메라를 담으면,
+//             나중에 그림자 매핑할 때, 활성화된 카메라를 광원 시점에서 그려야되는데, 
+//             그러면 활성화된 카메라(메인카메라)를 잠시 ShadowMappingCamera::Execute() 스택 안에 잠시 담아놔야되는 문제가 생김.
+// 기억나는거5. SetmainCamera()로 VSConstants의 modelToProjection, viewerPos를 채우는데
+//                                             modelToShadow는 메인라이트잖아? 그거는 언제 채워? 채우는 시점은? 지금 Update()할 때 같이 채워져야되지 않나.
+
+void MasterRenderGraph::Update()
+{
+	ASSERT(m_pCurrentActiveCamera != nullptr);
+	ASSERT(m_pMainLights != nullptr);
+
+	custom::CommandContext& BaseContext = custom::CommandContext::Begin(L"MasterRenderGraph::Update()");
+
+	{
+		MainLight FirstLight = m_pMainLights->front();
+		m_pShadowMappingPass->SetLightDirection(FirstLight.GetMainLightDirection());
+		BaseContext.SetPSConstants(FirstLight); // PS
+	}
+
+	BaseContext.SetMainCamera(*m_pCurrentActiveCamera); // VS
+	BaseContext.SetShadowTexelSize(1 / bufferManager::g_ShadowBuffer.GetWidth()); // PS
+	BaseContext.SetSpecificLightIndex(m_pLightPrePass->GetFirstConeLightIndex(), m_pLightPrePass->GetFirstConeShadowedLightIndex()); // PS
+	BaseContext.SetTileDimension(bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight(), m_pFillLightGridPass->m_WorkGroupSize);
+	BaseContext.SetSync();
+	BaseContext.Finish();
+}
+
 void MasterRenderGraph::appendPass(std::unique_ptr<Pass> pass)
 {
-	assert(!finalized);
-	// validate name uniqueness
 	for (const auto& p : m_pPasses)
 	{
 		if (pass->GetRegisteredName() == p->GetRegisteredName())
@@ -223,7 +278,6 @@ void MasterRenderGraph::appendPass(std::unique_ptr<Pass> pass)
 		}
 	}
 
-	// Add to container of passes
 	m_pPasses.push_back(std::move(pass));
 }
 
@@ -256,28 +310,20 @@ Pass& MasterRenderGraph::FindPass(const std::string& PassName)
 
 void MasterRenderGraph::finalize()
 {
-	ASSERT(!finalized);
-
 	for (const auto& p : m_pPasses)
 	{
 		p->finalize();
 	}
-
-	finalized = true;
 }
 
 void MasterRenderGraph::BindMainCamera(Camera* pCamera)
 {
+	ASSERT(pCamera != nullptr);
 	m_pCurrentActiveCamera = pCamera;
 }
 
-void MasterRenderGraph::BindMainLightContainer(std::vector<Math::Matrix4>* MainLightContainer)
+void MasterRenderGraph::BindMainLightContainer(std::vector<MainLight>* MainLightContainer)
 {
-	m_pSunShadows = MainLightContainer;
-}
-void MasterRenderGraph::BindShadowMatrix(Math::Matrix4& _ShadowMatrix)
-{
-	ASSERT(m_pSunShadows != nullptr);
-
-	m_pSunShadows->push_back(_ShadowMatrix);
+	ASSERT(MainLightContainer != nullptr);
+	m_pMainLights = MainLightContainer;
 }

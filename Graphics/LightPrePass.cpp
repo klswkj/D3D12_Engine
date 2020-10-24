@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "LightPrePass.h"
-#include "Matrix4.h"
 #include "UAVBuffer.h"
 #include "ColorBuffer.h"
 #include "BufferManager.h"
@@ -15,6 +14,13 @@
 
 uint32_t LightPrePass::sm_MaxLight = 128u;
 const char* LightPrePass::sm_LightLabel[3] = { "Sphere Light", "Cone Light", "Cone Light with ShadowMap" };
+
+constexpr uint32_t LightPrePass::sm_kShadowBufferSize = 512u;
+constexpr uint32_t LightPrePass::sm_kMinWorkGroupSize = 8u;
+
+// sm_kLightGridCells = 0x00007e90
+constexpr uint32_t LightPrePass::sm_kLightGridCells = 0x7e90u;
+constexpr uint32_t LightPrePass::sm_lightGridBitMaskSizeBytes = 0x7e900u;
 
 /*
 struct LightData
@@ -47,27 +53,35 @@ LightPrePass::LightPrePass(std::string pName)
     bufferManager::g_Lights.reserve(sm_MaxLight * 2 + 1);
     bufferManager::g_LightShadowMatrixes.reserve(sm_MaxLight * 2 + 1);
 
-    if (bufferManager::g_Lights.size() || bufferManager::g_LightShadowMatrixes.size())
-    {
-        recreateBuffers();
-    }
+    CreateSphereLight();
+
+    bufferManager::g_LightGridBitMask.Create(L"g_LightGridBitMask", sm_lightGridBitMaskSizeBytes, 1, nullptr);
+    bufferManager::g_CumulativeShadowBuffer.Create(L"g_CumulativeShadowBuffer", sm_kShadowBufferSize, sm_kShadowBufferSize);
 }
 
 LightPrePass::~LightPrePass()
 {
-    bufferManager::g_LightBuffer.Destroy();
-    bufferManager::g_LightGrid.Destroy();
-    bufferManager::g_LightGridBitMask.Destroy();
-    bufferManager::g_LightShadowArray.Destroy();
-    bufferManager::g_CumulativeShadowBuffer.Destroy();
-    bufferManager::g_Lights.clear();
-    bufferManager::g_LightShadowMatrixes.clear();
 }
 
 void LightPrePass::Execute(custom::CommandContext& BaseContext)
 {
-    
+#ifdef _DEBUG
+    graphics::InitDebugStartTick();
+    float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
+    sortContainer();
+
+#ifdef _DEBUG
+    float DeltaTime2 = graphics::GetDebugFrameTime();
+    m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
 }
+
+//////////////////////////////////////////////////////////
+// LightPrePass                                         //
+// Create Sphere Light
+// Create Cone   Light
 
 void LightPrePass::RenderWindow() DEBUG_EXCEPT
 {
@@ -86,24 +100,16 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
 
         if (m_Lights.size() < sm_MaxLight)
         {
-            bool bDirty = false;
-
             if (ImGui::Button("Create Sphere Light"))
             {
                 CreateSphereLight();
-                bDirty = true;
             }
-            if (ImGui::Button("Create Cone Light"))
+            if (ImGui::Button("Create Cone   Light"))
             {
                 CreateConeLight();
-                bDirty = true;
-            }
-
-            if (bDirty)
-            {
-                recreateBuffers();
             }
         }
+
         ImGui::EndChild();
         ImGui::NextColumn();
     }
@@ -256,8 +262,8 @@ void LightPrePass::CreateSphereLight()
         // *(Math::Matrix4*)(NewLight.shadowTextureMatrix) = m_LightShadowMatrixes.back();
 	}
 
-    // In HLSL code, to use BIT_MASKING Tehcnique,  we need sort containers. 
-    sortContainers();
+    // In HLSL code, to use BIT_MASKING Tehcnique, we need sort containers. 
+    recreateBuffers();
 }
 
 void LightPrePass::CreateConeLight()
@@ -295,9 +301,8 @@ void LightPrePass::CreateConeLight()
         memcpy_s(&NewLight.shadowTextureMatrix[0], sizeof(Math::Matrix4), &m_LightShadowMatrixes.back(), sizeof(Math::Matrix4));
         // *(Math::Matrix4*)(NewLight.shadowTextureMatrix) = m_LightShadowMatrixes.back();
     }
-
-    // In HLSL code, to use BIT_MASKING Tehcnique,  we need sorted containers. 
-    sortContainers();
+ 
+    recreateBuffers();
 }
 
 void LightPrePass::recreateBuffers()
@@ -309,46 +314,20 @@ void LightPrePass::recreateBuffers()
     size_t LightShadowMatrixesSize = m_LightShadowMatrixes.size();
     ASSERT(LightDataSize == LightShadowMatrixesSize, "Light and ShadowMatrix containers' sizes are not the same.");
 
-    for (uint32_t n = 0; n < sm_MaxLight; n++)
-    {
-        if (m_Lights[n].type == 1)
-        {
-            m_FirstConeLightIndex = n;
-            break;
-        }
-        m_FirstConeLightIndex = -1;
-    }
-    for (uint32_t n = 0; n < sm_MaxLight; n++)
-    {
-        if (m_Lights[n].type == 2)
-        {
-            m_FirstConeShadowedLightIndex = n;
-            break;
-        }
-        m_FirstConeLightIndex = -1;
-    }
+    sortContainer();
 
-    bufferManager::g_LightBuffer.Destroy();
-    bufferManager::g_LightGrid.Destroy();
-    bufferManager::g_LightGridBitMask.Destroy();
-    bufferManager::g_CumulativeShadowBuffer.Destroy();
+	{
+		uint32_t lightGridSizeBytes = sm_kLightGridCells * (4 + LightDataSize * 4);
 
-    bufferManager::g_LightBuffer.Create(L"m_LightBuffer", LightDataSize, sizeof(LightData), m_Lights.data());
-
-    // todo: assumes max resolution of 1920x1080
-    uint32_t lightGridCells = Math::DivideByMultiple(1920, m_kMinWorkGroupSize) * Math::DivideByMultiple(1080, m_kMinWorkGroupSize);
-    uint32_t lightGridSizeBytes = lightGridCells * (4 + LightDataSize * 4);
-    bufferManager::g_LightGrid.Create(L"m_LightGrid", lightGridSizeBytes, 1, nullptr);
-
-    uint32_t lightGridBitMaskSizeBytes = lightGridCells * 4 * 4;
-    bufferManager::g_LightGridBitMask.Create(L"m_LightGridBitMask", lightGridBitMaskSizeBytes, 1, nullptr);
-
-    bufferManager::g_LightShadowArray.CreateArray(L"m_LightShadowArray", m_kShadowBufferSize, m_kShadowBufferSize, LightDataSize, DXGI_FORMAT_R16_UNORM);
-    bufferManager::g_CumulativeShadowBuffer.Create(L"m_LightShadowTempBuffer", m_kShadowBufferSize, m_kShadowBufferSize);
+		bufferManager::g_LightBuffer.Create(L"g_LightBuffer", LightDataSize, sizeof(LightData), m_Lights.data());
+		bufferManager::g_LightGrid.Create(L"g_LightGrid", lightGridSizeBytes, 1, nullptr);
+		bufferManager::g_LightShadowArray.CreateArray(L"g_LightShadowArray", sm_kShadowBufferSize, sm_kShadowBufferSize, LightDataSize, DXGI_FORMAT_R16_UNORM);
+	}
 }
 
 // sort lights by type(Sphere, Cone, Cone w/ shadow Map)
-void LightPrePass::sortContainers()
+// In HLSL code, to use BIT_MASKING Tehcnique, we need sorted container.
+void LightPrePass::sortContainer()
 {
     std::vector<LightData>& m_Lights = bufferManager::g_Lights;
     std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;
@@ -357,15 +336,15 @@ void LightPrePass::sortContainers()
     size_t LightShadowMatrixesSize = m_LightShadowMatrixes.size();
     ASSERT(LightDataSize == LightShadowMatrixesSize, "Light and ShadowMatrix containers' size are not the same.");
 
-    LightData* CopyLights = (LightData*)malloc(sizeof(LightData) * LightDataSize);
+    LightData* CopyLights = new LightData[LightDataSize];
     memcpy_s(&CopyLights[0], sizeof(LightData) * LightDataSize, m_Lights.data(), sizeof(LightData) * LightDataSize);
 
-    Math::Matrix4* CopyLightShadowMatrixes = (Math::Matrix4*)malloc(sizeof(Math::Matrix4*) * (LightShadowMatrixesSize));
-    memcpy_s(&CopyLightShadowMatrixes[0], sizeof(Math::Matrix4) * LightShadowMatrixesSize, m_Lights.data(), sizeof(Math::Matrix4) * LightShadowMatrixesSize);
+    Math::Matrix4* CopyLightShadowMatrixes = new Math::Matrix4[LightShadowMatrixesSize];
+    memcpy_s(&CopyLightShadowMatrixes[0], sizeof(Math::Matrix4) * LightShadowMatrixesSize, m_LightShadowMatrixes.data(), sizeof(Math::Matrix4) * LightShadowMatrixesSize);
 
-    uint32_t* SortArray = (uint32_t*)malloc(sizeof(uint32_t) * LightDataSize);
+    uint32_t* SortArray = new uint32_t[LightDataSize];
 
-    for (uint32_t i= 0; i < LightDataSize; ++i)
+    for (uint32_t i = 0; i < LightDataSize; ++i)
     {
         SortArray[i] = i;
     }
@@ -379,13 +358,41 @@ void LightPrePass::sortContainers()
         }
     );
 
-    for (size_t i= 0; i < LightDataSize; ++i)
+    for (size_t i = 0; i < LightDataSize; ++i)
     {
         m_Lights[i] = CopyLights[SortArray[i]];
         m_LightShadowMatrixes[i] = CopyLightShadowMatrixes[SortArray[i]];
     }
 
+    for (uint32_t n = 0; n < LightDataSize; ++n)
+    {
+        if (m_Lights[n].type == 1)
+        {
+            m_FirstConeLightIndex = n;
+            break;
+        }
+        m_FirstConeLightIndex = -1;
+    }
+    for (uint32_t n = 0; n < LightDataSize; ++n)
+    {
+        if (m_Lights[n].type == 2)
+        {
+            m_FirstConeShadowedLightIndex = n;
+            break;
+        }
+        m_FirstConeLightIndex = -1;
+    }
+
     delete[] CopyLights;
     delete[] CopyLightShadowMatrixes;
     delete[] SortArray;
+}
+
+uint32_t LightPrePass::GetFirstConeLightIndex()
+{
+    return m_FirstConeLightIndex;
+}
+uint32_t LightPrePass::GetFirstConeShadowedLightIndex()
+{
+    return m_FirstConeShadowedLightIndex;
 }

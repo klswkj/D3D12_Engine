@@ -1,22 +1,9 @@
 #pragma once
-#include "Window.h" // for g_windowHeight, g_windowWidth.
-#include "PSO.h"
-#include "RootSignature.h"
-#include "ColorBuffer.h"
+#include "Window.h"
+// #include "ColorBuffer.h"
 
-class ColorBuffer; // for SwapChainResource
+class ColorBuffer;
 class DepthBuffer;
-class GraphicsPSO;
-class CommandContextManager;
-class CommandQueueManager;
-class CommandSignature;
-class ContextManager;
-class DescriptorHeapManager;
-// GraphicsCore.h
-#pragma once
-#include "stdafx.h"
-
-class ColorBuffer; // for SwapChainResource
 class CommandContextManager;
 class CommandQueueManager;
 class CommandSignature;
@@ -29,11 +16,6 @@ namespace device
     HRESULT Resize(uint32_t width, uint32_t height);
     void Terminate();
     void Destroy();
-    void Present();
-
-    uint64_t GetFrameCount();
-    float GetFrameTime();
-    float GetFrameRate();
 
     HRESULT queryCaps();
     HRESULT createDeviceDependentStateInternal();
@@ -57,8 +39,12 @@ namespace device
     extern bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT;
 
     extern IDXGISwapChain3* g_pDXGISwapChain;
+    extern ID3D12DescriptorHeap* g_ImguiFontHeap;
 
     extern UINT g_DisplayBufferCount;
+
+    extern uint32_t g_DisplayWidth;
+    extern uint32_t g_DisplayHeight;
 
 #if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     extern Platform::Agile<Windows::UI::Core::CoreWindow>  g_window;

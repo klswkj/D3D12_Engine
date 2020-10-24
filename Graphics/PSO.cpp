@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Device.h"
 #include "PSO.h"
-#include "RootSignature.h"
+// #include "RootSignature.h"
 #include "CommandContext.h"
 
 static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_graphicsPSOHashMap;
@@ -20,6 +20,16 @@ GraphicsPSO::GraphicsPSO()
     m_PSODesc.SampleMask = 0xFFFFFFFFu;
     m_PSODesc.SampleDesc.Count = 1;
     m_PSODesc.InputLayout.NumElements = 0;
+}
+
+GraphicsPSO::GraphicsPSO(GraphicsPSO& _GraphicsPSO) noexcept
+{
+    m_pRootSignature        = &_GraphicsPSO.GetRootSignature();
+    m_PersonalRootSignature = _GraphicsPSO.GetRootSignature();
+    m_PSO                   = _GraphicsPSO.m_PSO;
+    m_PSODesc               = _GraphicsPSO.m_PSODesc;
+    m_inputLayouts          = _GraphicsPSO.m_inputLayouts;
+    m_hash                  = _GraphicsPSO.m_hash;
 }
 
 ComputePSO::ComputePSO()
@@ -142,10 +152,11 @@ void ComputePSO::Bind(custom::CommandContext& BaseContext)
     BaseContext.SetPipelineState(*this);
 }
 
-void GraphicsPSO::Finalize()
+void GraphicsPSO::Finalize(const std::wstring& name)
 {
     // Make sure the root signature is finalized first
-    m_PSODesc.pRootSignature = m_RootSignature->GetSignature();
+    // m_PSODesc.pRootSignature = m_pRootSignature->GetSignature();
+    m_PSODesc.pRootSignature = m_PersonalRootSignature.GetSignature();
     ASSERT(m_PSODesc.pRootSignature != nullptr);
 
     m_PSODesc.InputLayout.pInputElementDescs = nullptr;
@@ -175,8 +186,16 @@ void GraphicsPSO::Finalize()
 
     if (firstCompile)
     {
-        ASSERT_HR(device::g_pDevice->CreateGraphicsPipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
+        HRESULT hardwareResult;
+
+        ASSERT_HR(hardwareResult = device::g_pDevice->CreateGraphicsPipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
         s_graphicsPSOHashMap[HashCode].Attach(m_PSO);
+
+#ifdef _DEBUG
+        m_PSO->SetName(name.c_str());
+#elif
+        name;
+#endif
     }
     else
     {
@@ -188,10 +207,10 @@ void GraphicsPSO::Finalize()
     }
 }
 
-void ComputePSO::Finalize()
+void ComputePSO::Finalize(const std::wstring& name)
 {
     // Make sure the root signature is finalized first
-    m_PSODesc.pRootSignature = m_RootSignature->GetSignature();
+    m_PSODesc.pRootSignature = m_pRootSignature->GetSignature();
     ASSERT(m_PSODesc.pRootSignature != nullptr);
 
     m_hash.SetHashSeed(m_PSODesc);
@@ -219,7 +238,13 @@ void ComputePSO::Finalize()
     if (firstCompile)
     {
         ASSERT_HR(device::g_pDevice->CreateComputePipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
-        s_computePSOHashMap[HashCode].Attach(m_PSO);
+        s_computePSOHashMap[HashCode].Attach(m_PSO); 
+
+#ifdef _DEBUG
+            m_PSO->SetName(name.c_str());
+#elif
+        name;
+#endif
     }
     else
     {

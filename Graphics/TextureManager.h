@@ -26,9 +26,6 @@ namespace TextureManager
     const ManagedTexture* LoadPIXImageFromFile(const std::wstring& fileName);
     const ManagedTexture* LoadWICFromFile(const std::wstring& fileName, UINT RootIndex = -1, UINT Offset = -1, bool bStandardRGB = false);
 
-    // https://www.gamedev.net/forums/topic/702319-how-to-upload-alpha-texture-to-compute-shader/
-    // https://github.com/microsoft/DirectXTK12/wiki/WICTextureLoader
-
     inline const ManagedTexture* LoadFromFile(const std::string& fileName, bool bStandardRGB = false)
     {
         return LoadFromFile(MakeWStr(fileName), bStandardRGB);

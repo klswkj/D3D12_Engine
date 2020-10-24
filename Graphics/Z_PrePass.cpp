@@ -33,6 +33,8 @@ Z_PrePass::Z_PrePass(std::string pName, custom::RootSignature* pRootSignature/* 
 		(*m_RootSignature)[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
 
 		m_RootSignature->Finalize(L"InitAtShadowPrePass", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		m_bAllocateRootSignature = true;
 	}
 
 	if (m_DepthPSO == nullptr)
@@ -57,26 +59,56 @@ Z_PrePass::Z_PrePass(std::string pName, custom::RootSignature* pRootSignature/* 
 		m_DepthPSO->SetRenderTargetFormats(0, nullptr, bufferManager::g_SceneDepthBuffer.GetFormat());
 		m_DepthPSO->SetVertexShader(g_pDepthVS, sizeof(g_pDepthVS));
 		m_DepthPSO->Finalize();
+
+		m_bAllocatePSO = true;
+	}
+}
+
+Z_PrePass::~Z_PrePass()
+{
+	if (m_bAllocateRootSignature && m_RootSignature != nullptr)
+	{
+		delete m_RootSignature;
+		m_RootSignature = nullptr;
+	}
+
+	if (m_bAllocatePSO && m_DepthPSO != nullptr)
+	{
+		delete m_DepthPSO;
+		m_DepthPSO = nullptr;
 	}
 }
 
 void Z_PrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
-	// No Root Signature has been set, so setting a root cbv doesn't make sense and is invalid.[ EXECUTION ERROR #710: SET_ROOT_CONSTANT_BUFFER_VIEW_INVALID]
+	graphicsContext.PIXBeginEvent(L"3_Z_PrePass");
+
 	graphicsContext.SetRootSignature(*m_RootSignature);
+	graphicsContext.SetPipelineState(*m_DepthPSO);
+
+	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+	graphicsContext.ClearDepth(bufferManager::g_SceneDepthBuffer);
+	graphicsContext.SetOnlyDepthStencil(bufferManager::g_SceneDepthBuffer.GetDSV());
 
 	graphicsContext.SetVSConstantsBuffer(0u);
 	graphicsContext.SetPSConstantsBuffer(1u);
 
-	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-	graphicsContext.ClearDepth(bufferManager::g_SceneDepthBuffer);
-	graphicsContext.SetPipelineState(*m_DepthPSO);
-	graphicsContext.SetOnlyDepthStencil(bufferManager::g_SceneDepthBuffer.GetDSV());
-	// graphicsContext.SetViewportAndScissor(m_pMainViewport, m_pMainScissor);
+	// Camera, ShadowCamera??
 
 	RenderQueuePass::Execute(BaseContext);
+
+	graphicsContext.PIXEndEvent();
+#ifdef _DEBUG
+	float DeltaTime2 = graphics::GetDebugFrameTime();
+	m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
 }
 void Z_PrePass::Reset() DEBUG_EXCEPT
 {

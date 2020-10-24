@@ -1,13 +1,5 @@
 #pragma once
 #include "Device.h"
-//
-// DescriptorHeapManager ¦¡¦¡ DescriptorAllocator[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES]
-// 
-
-// namespace-device
-// ID3D12Device* g_pDevice;
-// uint32_t g_DescriptorSize[];
-
 
 class DescriptorHeapAllocator
 {
@@ -20,7 +12,7 @@ public:
 
     D3D12_CPU_DESCRIPTOR_HANDLE Allocate(uint32_t Count);
 
-    static void DestroyAll(void);
+    static void DestroyAll();
 
 protected:
     static ID3D12DescriptorHeap* RequestNewHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type);

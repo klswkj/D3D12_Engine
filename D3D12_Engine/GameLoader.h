@@ -6,7 +6,7 @@
 #define NOMINMAX
 
 #include <Windows.h>
-class Engine;
+class D3D12Engine;
 
 class SystemManager;
 class IAllocator;
@@ -20,8 +20,8 @@ class GameLoader
 {
 public:
 	void	InitializeLoader(EngineContext* context);
-	void	LoadSystems(Engine* game, IAllocator* allocator);
-	Engine*   CreateGame(IAllocator* allocator);
+	void	LoadSystems(D3D12Engine* _Engine, IAllocator* allocator);
+	D3D12Engine* CreateGame(IAllocator* allocator);
 	void	LoadGameLibrary(const char* dll);
 	void	FreeGameLibrary();
 private:

@@ -3,6 +3,9 @@
 #include "Window.h"
 #include "Device.h"
 
+#include "CommandContext.h"
+
+#include "ColorBuffer.h"
 #include "DepthStencil.h"
 #include "DepthBuffer.h"
 

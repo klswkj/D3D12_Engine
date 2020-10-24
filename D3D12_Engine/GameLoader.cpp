@@ -1,22 +1,22 @@
 #include "GameLoader.h"
-/*#include "Game.h"
+#include "../Graphics/D3D12Engine.h"
 
 void GameLoader::InitializeLoader(EngineContext* context)
 {
 	initializeFunc(context);
 }
 
-void GameLoader::LoadSystems(Engine* game, IAllocator* allocator)
+void GameLoader::LoadSystems(D3D12Engine* game, IAllocator* allocator)
 {
 	auto manager = game->GetGameSystemsManager();
 	manager->Destroy();
 	loadSystemsFunc(manager, allocator);
 	manager->Initialize();
 }
-*/
-Engine* GameLoader::CreateGame(IAllocator* allocator)
+
+D3D12Engine* GameLoader::CreateGame(IAllocator* allocator)
 {
-	return (Engine*)createGameFunc(allocator);
+	return (D3D12Engine*)createGameFunc(allocator);
 }
 
 void GameLoader::LoadGameLibrary(const char* dll)

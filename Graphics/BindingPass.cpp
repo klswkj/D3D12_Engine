@@ -32,7 +32,7 @@ void IBindingPass::bindBufferResources(custom::CommandContext& BaseContext) cons
 
 void IBindingPass::bindAll(custom::CommandContext& BaseContext) const noexcept
 {
-	bindBufferResources(BaseContext);
+	// bindBufferResources(BaseContext);
 
 	for (auto& RenderingResource : m_RenderingResources)
 	{

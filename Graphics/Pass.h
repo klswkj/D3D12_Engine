@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-
+#include "Graphics.h"
 //                                                                                           忙式式式 Buffer (Target)  
 //                                                                                           弛 忙式 RegisteredName
 //                                                                                           弛 戍式 PassName
@@ -36,8 +36,10 @@ public:
 
 public:
 	bool m_bActive{ true };
-	int32_t m_PassIndex;
-
+	uint32_t m_PassIndex;
+#ifdef _DEBUG
+	float m_DeltaTime = 0.0f;
+#endif
 private:
 	std::string m_Name;
 };

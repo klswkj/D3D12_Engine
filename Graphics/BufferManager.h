@@ -3,7 +3,6 @@
 #include "DepthBuffer.h"
 #include "ShadowBuffer.h"
 #include "UAVBuffer.h"
-#include "Graphics.h"
 #include "ShaderConstantsTypeDefinitions.h"
 
 namespace bufferManager
@@ -75,7 +74,6 @@ namespace bufferManager
     extern ColorBuffer g_GenMipsBuffer;
 
     // LightPrePass
-
     extern std::vector<LightData>     g_Lights;               
     extern std::vector<Math::Matrix4> g_LightShadowMatrixes;
 
@@ -88,4 +86,4 @@ namespace bufferManager
 
     void InitializeAllBuffers(uint32_t Width, uint32_t Height);
     void DestroyRenderingBuffers();
-} // namespace Graphics
+}

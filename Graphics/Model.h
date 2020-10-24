@@ -2,7 +2,7 @@
 #include "ModelPart.h"
 
 // Model  忙式 ModelPart* Root 
-//        戌式 vector<Mesh* : public Entity>   忙式 XMFLOAT4X4   transform
+//        戌式 vector<Mesh* : public Entity>   忙式 XMFLOAT4X4   m_Transform
 //                                           弛  VertexBuffer           <- class Material::Vertex (FLOAT3) =>  StructuredBuffer
 //                                           弛  IndexBuffer            <- class Material::Index  (FLOAT3) => ByteAddressBuffer
 //                                           弛  Topology               <  D3D11_PRIMITIVE_TOPOLOGY
@@ -37,11 +37,12 @@ public:
 	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
 
 private:
-	std::unique_ptr<ModelPart> ParseNode(uint32_t& nextId, const aiNode& node, float scale) noexcept;
-
+	std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, float _Scale) noexcept;
+    std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, std::string NormalizedString, float _Scale);
 private:
-	std::unique_ptr<ModelPart> pRoot;
-	std::vector<std::unique_ptr<Mesh>> meshPtrs; // <- Input is Material class.
+    std::string m_ModelName;
+	std::unique_ptr<ModelPart> m_pModelPart;
+	std::vector<std::unique_ptr<Mesh>> m_pMeshes; // <- Input is Material class.
 };
 
 

@@ -101,11 +101,14 @@ namespace AssertInternal
         }
 
 #define ASSERT_HR( hr, ... ) \
-        if (FAILED(hr)) { \
+        if (FAILED(hr))      \
+        {                    \
             AssertInternal::Print("\nAssertion failed in " STRINGIFY_BUILTIN(__FILE__) " @ \n" "Line : "  STRINGIFY_BUILTIN(__LINE__) "@" " \n"); \
             AssertInternal::PrintSubMessage("hr = 0x%08X", hr); \
             AssertInternal::PrintSubMessage(__VA_ARGS__); \
             AssertInternal::Print("\n"); \
             __debugbreak(); \
         }
+#elif
+#define ASSERT(x) ;
 #endif

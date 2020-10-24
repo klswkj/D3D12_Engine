@@ -50,7 +50,7 @@ public:
 
 	// key event stuff
 	BOOL          KeyIsPressed(unsigned char keycode) const noexcept;
-	KeyboardEvent ReadKey()                           noexcept;
+	KeyboardEvent ReadEvent()                           noexcept;
 	BOOL          KeyIsEmpty()                        const noexcept;
 	void          FlushKey()                          noexcept;
 
@@ -77,7 +77,7 @@ private:
 	static constexpr unsigned int        kMaxKey           = 256u;
 	static constexpr unsigned int        kBufferSize       = 16u;
 	BOOL                                 autorepeatEnabled = false;
-	std::bitset<kMaxKey>                 keystates;
-	std::queue<KeyboardEvent>            keybuffer;
-	std::queue<char>                     charbuffer;
+	std::bitset<kMaxKey>                 keyStatesBitMap;
+	std::queue<KeyboardEvent>            keyboardEventBuffer;
+	std::queue<char>                     charBuffer;
 };

@@ -11,11 +11,11 @@ namespace bufferManager
 {
      DepthBuffer g_SceneDepthBuffer;    // D32_FLOAT_S8_UINT
      ColorBuffer g_SceneColorBuffer;    // R11G11B10_FLOAT
-     ColorBuffer g_PostEffectsBuffer;    // R32_UINT (to support Read-Modify-Write with a UAV)
-     ColorBuffer g_OverlayBuffer;        // R8G8B8A8_UNORM
+     ColorBuffer g_PostEffectsBuffer;   // R32_UINT (to support Read-Modify-Write with a UAV)
+     ColorBuffer g_OverlayBuffer;       // R8G8B8A8_UNORM
      ColorBuffer g_HorizontalBuffer;    // For separable (bicubic) upsampling
 
-     ColorBuffer  g_VelocityBuffer;    // R10G10B10  (3D velocity)
+     ColorBuffer  g_VelocityBuffer;     // R10G10B10  (3D velocity)
      ShadowBuffer g_ShadowBuffer;
 
      ColorBuffer g_StencilBuffer;
@@ -98,12 +98,12 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     bufferWidth[0] = Width;
     bufferHeight[0] = Height;
 
-    for (size_t i{ 1 }; i < 7; ++i)
+    for (size_t i = 1; i < 7; ++i)
     {
         bufferWidth[i] = bufferWidth[i - 1] >> 1;
     }
     
-    for (size_t i{ 1 }; i < 7; ++i)
+    for (size_t i = 1; i < 7; ++i)
     {
         bufferHeight[i] = bufferHeight[i - 1] >> 1;
     }
@@ -193,8 +193,8 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
 
     g_GenMipsBuffer.Create(L"GenMips", bufferWidth[0], bufferHeight[0], 0, DXGI_FORMAT_R11G11B10_FLOAT);
     
-    g_OverlayBuffer.Create(L"UI Overlay", window::g_windowWidth, window::g_windowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
-    g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_windowWidth, bufferHeight[0], 1, DefaultColorFormat);
+    g_OverlayBuffer.Create(L"UI Overlay", window::g_TargetWindowWidth, window::g_TargetWindowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+    g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_TargetWindowWidth, bufferHeight[0], 1, DefaultColorFormat);
 
     graphicsContext.Finish();
 }
@@ -278,4 +278,7 @@ void bufferManager::DestroyRenderingBuffers()
 
     g_LightGrid.Destroy();        // lightGrid           : register(t68);
     g_LightGridBitMask.Destroy(); // lightGridBitMask    : register(t69);
+
+    bufferManager::g_Lights.clear();
+    bufferManager::g_LightShadowMatrixes.clear();
 }

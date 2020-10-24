@@ -1,7 +1,9 @@
 #pragma once
 #include "stdafx.h"
 #include "Pass.h"
-
+#include "RootSignature.h"
+#include "PSO.h"
+#include "ColorBuffer.h"
 // Binding Pass + FullScreen Pass
 
 class RenderingResource;

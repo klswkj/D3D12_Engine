@@ -34,7 +34,7 @@ namespace custom
 		{
 		}
 
-		static void DestroyAll(void)
+		static void DestroyAll()
 		{
 			sm_descriptorHeapPool[0].clear();
 			sm_descriptorHeapPool[1].clear();

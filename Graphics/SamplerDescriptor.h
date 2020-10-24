@@ -10,19 +10,19 @@ namespace custom
 	public:
 		SamplerDescriptor()
 		{
-			Filter = D3D12_FILTER_ANISOTROPIC;
-			AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			MipLODBias = 0.0f;
-			MaxAnisotropy = 16;
+			Filter         = D3D12_FILTER_ANISOTROPIC;
+			AddressU       = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			AddressV       = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			AddressW       = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			MipLODBias     = 0.0f;
+			MaxAnisotropy  = 16;
 			ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 			BorderColor[0] = 1.0f;
 			BorderColor[1] = 1.0f;
 			BorderColor[2] = 1.0f;
 			BorderColor[3] = 1.0f;
-			MinLOD = 0.0f;
-			MaxLOD = D3D12_FLOAT32_MAX;
+			MinLOD         = 0.0f;
+			MaxLOD         = D3D12_FLOAT32_MAX;
 		}
 
 		void SetTextureAddressMode(D3D12_TEXTURE_ADDRESS_MODE AddressMode)
@@ -48,8 +48,8 @@ namespace custom
 
 	private:
 		static std::unordered_map<size_t, D3D12_CPU_DESCRIPTOR_HANDLE> sm_samplerDescriptorHashMap;
-		BOOL m_finalized{ false };
-		uint64_t m_refCount= 0;
+		BOOL m_finalized    = false;
+		uint64_t m_refCount = 0;
 
 		struct SamplerDescriptorHash
 		{

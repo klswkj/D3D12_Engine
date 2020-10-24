@@ -1,16 +1,3 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-// Developed by Minigraph
-//
-// Author:  James Stanard 
-//
-
 //--------------------------------------------------------------------------------------
 // Simple bicubic filter
 //
@@ -51,7 +38,7 @@ float3 GetColor(uint s, uint t)
 }
 
 [RootSignature(Present_RootSig)]
-float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
+float4 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 {
     float2 t = uv * TextureSize + 0.5;
     float2 f = frac(t);
@@ -74,6 +61,6 @@ float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 #ifdef GAMMA_SPACE
         return Color;
 #else
-        return ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT);
+    return (float4) (ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT), 0);
 #endif
 }

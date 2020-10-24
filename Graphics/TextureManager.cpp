@@ -47,7 +47,7 @@ namespace TextureManager
 		// This was the first time it was requested, so indicate that the caller must read the file
 		return std::make_pair(NewTexture, true);
 	}
-
+	
 	const custom::Texture& GetBlackTex2D()
 	{
 		auto ManagedTex = FindOrLoadTexture(L"DefaultBlackTexture");

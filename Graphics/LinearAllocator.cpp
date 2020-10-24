@@ -3,7 +3,25 @@
 #include "CommandQueueManager.h"
 #include "LinearAllocator.h"
 
+// Container
+
+// static class LinearAllocationPageManager sm_pageManager ( GPU-Writable, CPU-Writable )
+// ¦§ std::vector<std::unique_ptr<LinearAllocationPage>> m_pagePool;
+// ¦§ std::queue<LinearAllocationPage*> m_availablePages;
+// ¦§ std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_retiredPages;
+// ¦¦ std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deletionQueue;
+//                                       ¦¢
+//                                       ¦¢
+//               GPU-Writable                                                   CPU-Writable
+//  class LinearAllocator                                         class LinearAllocator
+//  ¦§ std::vector<LinearAllocationPage*> m_retiredPages;          ¦§ std::vector<LinearAllocationPage*> m_retiredPages;
+//  ¦¦ std::vector<LinearAllocationPage*> m_largePageList;         ¦¦ std::vector<LinearAllocationPage*> m_largePageList;
+
+#pragma region LINEAR_ALLOCATION_PAGE_MANAGER
+
 LinearAllocatorType LinearAllocator::LinearAllocationPageManager::sm_autoType = LinearAllocatorType::GPU_WRITEABLE;
+
+LinearAllocator::LinearAllocationPageManager LinearAllocator::sm_pageManager[2];
 
 LinearAllocator::LinearAllocationPageManager::LinearAllocationPageManager()
 {
@@ -11,8 +29,6 @@ LinearAllocator::LinearAllocationPageManager::LinearAllocationPageManager()
     sm_autoType = (LinearAllocatorType)((uint32_t)sm_autoType + 1);
     ASSERT(sm_autoType <= LinearAllocatorType::COUNT);
 }
-
-LinearAllocator::LinearAllocationPageManager LinearAllocator::sm_pageManager[2];
 
 LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::RequestPage()
 {
@@ -33,7 +49,7 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::RequestPage(
     }
     else
     {
-        PagePtr = CreateNewPage();
+        PagePtr = CreateNewPage(0);
         m_pagePool.emplace_back(PagePtr);
     }
 
@@ -116,8 +132,11 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
     return new LinearAllocationPage(pBuffer, DefaultUsage);
 }
 
+#pragma endregion LINEAR_ALLOCATION_PAGE_MANAGER
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
+
+#pragma region LINEAR_ALLOCATOR
 
 void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
 {
@@ -147,7 +166,7 @@ LinearBuffer LinearAllocator::allocateLargePage(size_t SizeInBytes)
     return ret;
 }
 
-LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment)
+LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment /*= 256ul*/)
 {
     const size_t AlignmentMask = Alignment - 1;
 
@@ -161,6 +180,7 @@ LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment)
     {
         return allocateLargePage(AlignedSize);
     }
+
     m_currentOffset = HashInternal::AlignUp(m_currentOffset, Alignment);
 
     if (m_pageSize < m_currentOffset + AlignedSize)
@@ -184,3 +204,5 @@ LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment)
 
     return ret;
 }
+
+#pragma endregion LINEAR_ALLOCATOR

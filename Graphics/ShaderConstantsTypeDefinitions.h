@@ -12,8 +12,8 @@ struct VSConstants
 __declspec(align(16)) struct PSConstants
 {
     Math::Vector3 sunDirection; // Declaration at MasterRenderGraph
-    Math::Vector3 sunLight;
-    Math::Vector3 ambientLight;
+    Math::Vector3 sunLightColor;
+    Math::Vector3 ambientColor;
     float ShadowTexelSize[4]; // ShadowTexelSize[0] = Inv of ShadowBuffer.Width()
 
     // keep in sync with HLSL

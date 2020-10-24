@@ -20,12 +20,14 @@ std::mutex CameraManager::sm_Mutex;
 
 CameraManager::CameraManager()
 {
+	m_Cameras.reserve(20);
 	AddCamera(std::make_shared<Camera>("InitCamera"));
+	m_ActiveCameraIndex = 0;
 
 	// Set { Up, North, East } <=> { { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f } }
-	m_WorldUp = Math::Normalize(Math::Vector3(Math::EYUnitVector::kYUnitVector));
+	m_WorldUp    = Math::Normalize(Math::Vector3(Math::EYUnitVector::kYUnitVector));
 	m_WorldNorth = -Normalize(Cross(m_WorldUp, Math::Vector3(Math::EXUnitVector::kXUnitVector)));
-	m_WorldEast = Cross(m_WorldNorth, m_WorldUp);
+	m_WorldEast  = Cross(m_WorldNorth, m_WorldUp);
 
 	m_HorizontalLookSensitivity = 2.0f;
 	m_VerticalLookSensitivity = 2.0f;
@@ -34,14 +36,12 @@ CameraManager::CameraManager()
 	m_MouseSensitivityX = 1.0f;
 	m_MouseSensitivityY = 1.0f;
 
-	m_Cameras.reserve(20);
-
 	m_bSlowMovement = false;
 	m_bSlowRotation = false;
-	m_Momentum = true;
+	m_Momentum      = true;
 	
 	m_CurrentPitch = 0.0f;
-	m_CurrentYaw = 0.0f;
+	m_CurrentYaw   = 0.0f;
 	// Must be init Pitch, forward, Heading
 
 	Camera& InitCamera = **m_Cameras.begin();
@@ -72,29 +72,22 @@ void CameraManager::SetUpCamera(Camera* pCamera)
 	// m_CurrentYaw = ATan2(-Dot(forward, m_WorldEast), Dot(forward, m_WorldNorth))
 	m_CurrentYaw = pCamera->GetYaw(); 
 
-	m_LastYaw = 0.0f;
-	m_LastPitch = 0.0f;
+	m_LastYaw     = 0.0f;
+	m_LastPitch   = 0.0f;
 	m_LastForward = 0.0f;
-	m_LastStrafe = 0.0f;
-	m_LastAscent = 0.0f;
+	m_LastStrafe  = 0.0f;
+	m_LastAscent  = 0.0f;
 }
 
-void CameraManager::Update(float deltaTime)
+void CameraManager::Update(float DeltaTime)
 {
-	Camera& TargetCamera = *m_Cameras[m_ActiveCameraIndex];
-
 	if (windowInput::IsFirstPressed(windowInput::DigitalInput::kLThumbClick) ||
 		windowInput::IsFirstPressed(windowInput::DigitalInput::kKey_lshift))
 	{
 		m_bSlowMovement = !m_bSlowMovement;
 	}
 
-	if (windowInput::IsFirstPressed(windowInput::DigitalInput::kRThumbClick))
-	{
-		m_bSlowRotation = !m_bSlowRotation;
-	}
-
-	const float SpeedScale = (m_bSlowMovement) ? 0.5f : 1.0f;
+	const float SpeedScale    = (m_bSlowMovement) ? 0.5f : 1.0f;
 	const float RotationScale = (m_bSlowRotation) ? 0.5f : 1.0f;
 
 	float yaw = windowInput::GetTimeCorrectedAnalogInput(windowInput::AnalogInput::kAnalogRightStickX) *
@@ -106,33 +99,35 @@ void CameraManager::Update(float deltaTime)
 	float forward = m_MoveSpeed * SpeedScale *
 		(
 			windowInput::GetTimeCorrectedAnalogInput(windowInput::AnalogInput::kAnalogLeftStickY) +
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_w) ? deltaTime : 0.0f) +
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_s) ? -deltaTime : 0.0f)
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_w) ? DeltaTime : 0.0f) +
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_s) ? -DeltaTime : 0.0f)
 			);
+
 	float strafe = m_StrafeSpeed * SpeedScale *
 		(
 			windowInput::GetTimeCorrectedAnalogInput(windowInput::AnalogInput::kAnalogLeftStickX) +
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_d) ? deltaTime : 0.0f) +
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_a) ? -deltaTime : 0.0f)
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_d) ? DeltaTime : 0.0f) +
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_a) ? -DeltaTime : 0.0f)
 			);
 	float ascent = m_StrafeSpeed * SpeedScale *
 		(
 			windowInput::GetTimeCorrectedAnalogInput(windowInput::AnalogInput::kAnalogRightTrigger) -
 			windowInput::GetTimeCorrectedAnalogInput(windowInput::AnalogInput::kAnalogLeftTrigger) +
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_e) ? deltaTime : 0.0f) + // Up
-			(windowInput::IsPressed(windowInput::DigitalInput::kKey_q) ? -deltaTime : 0.0f) // Down
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_e) ? DeltaTime : 0.0f) + // Up
+			(windowInput::IsPressed(windowInput::DigitalInput::kKey_q) ? -DeltaTime : 0.0f) // Down
 			);
 
+	
 	if (m_Momentum)
 	{
-		ApplyMomentum(m_LastYaw, yaw, deltaTime);
-		ApplyMomentum(m_LastPitch, pitch, deltaTime);
-		ApplyMomentum(m_LastForward, forward, deltaTime);
-		ApplyMomentum(m_LastStrafe, strafe, deltaTime);
-		ApplyMomentum(m_LastAscent, ascent, deltaTime);
+		ApplyMomentum(m_LastYaw,     yaw,     DeltaTime);
+		ApplyMomentum(m_LastPitch,   pitch,   DeltaTime);
+		ApplyMomentum(m_LastForward, forward, DeltaTime);
+		ApplyMomentum(m_LastStrafe,  strafe,  DeltaTime);
+		ApplyMomentum(m_LastAscent,  ascent,  DeltaTime);
 	}
 
-	yaw += windowInput::GetAnalogInput(windowInput::AnalogInput::kAnalogMouseX) * m_MouseSensitivityX;
+	yaw   += windowInput::GetAnalogInput(windowInput::AnalogInput::kAnalogMouseX) * m_MouseSensitivityX;
 	pitch += windowInput::GetAnalogInput(windowInput::AnalogInput::kAnalogMouseY) * m_MouseSensitivityY;
 
 	m_CurrentPitch += pitch;
@@ -149,6 +144,8 @@ void CameraManager::Update(float deltaTime)
 		m_CurrentYaw += DirectX::XM_2PI;
 	}
 
+	Camera& TargetCamera = *m_Cameras[m_ActiveCameraIndex];
+
 	TargetCamera.SetPitch(m_CurrentPitch);
 	TargetCamera.SetYaw(m_CurrentYaw);
 
@@ -157,14 +154,34 @@ void CameraManager::Update(float deltaTime)
 	// Y : Up
 	// Z : Forward
 	// Position À§Ä¡
-	Math::Matrix3 orientation = Math::Matrix3(m_WorldEast, m_WorldUp, -m_WorldNorth) * 
+	Math::Matrix3 orientation = 
+		Math::Matrix3(m_WorldEast, m_WorldUp, -m_WorldNorth) * 
 		Math::Matrix3::MakeYRotation(m_CurrentYaw) *   // -yaw
 		Math::Matrix3::MakeXRotation(m_CurrentPitch);  // +Pitch
 
 	// Math::Vector3 position = orientation * Math::Vector3(strafe, ascent, -forward) + m_TargetCamera.GetPosition();
-	Math::Vector3 position = orientation * Math::Vector3(strafe, ascent, -forward) + TargetCamera.GetPosition();
+	Math::Vector3 position = (orientation * Math::Vector3(strafe, ascent, -forward)) + TargetCamera.GetPosition();
 	const DirectX::XMMATRIX CameraWorldMatrix = DirectX::XMMatrixLookToLH(DirectX::XMVECTOR(position), DirectX::XMVECTOR(orientation.GetZ()), DirectX::XMVECTOR(orientation.GetY()));
+#ifdef _DEBUG
+	float xx = position.GetX();
+	float yy = position.GetY();
+	float zz = position.GetZ();
 
+	float upX = TargetCamera.GetUpVec().GetX();
+	float upY = TargetCamera.GetUpVec().GetY();
+	float upZ = TargetCamera.GetUpVec().GetZ();
+
+	float rightX = TargetCamera.GetRightVec().GetX();
+	float rightY = TargetCamera.GetRightVec().GetY();
+	float rightZ = TargetCamera.GetRightVec().GetZ();
+	
+	float yawyaw = TargetCamera.GetYaw();
+
+	printf("Camera Position : %.5f, %.5f, %.5f \n", xx, yy, zz);
+	printf("Camera Up : %.5f, %.5f, %.5f \n", upX, upY, upZ);
+	printf("Camera Right : %.5f, %.5f, %.5f \n", rightX, rightY, rightZ);
+	printf("Camera Yaw : %.5f\n\n\n", yawyaw);
+#endif
 	// Original Code : m_TargetCamera.SetTransform( Math::AffineTransform( orientation, position ) );
 	//m_TargetCamera.SetTransform(Math::OrthogonalTransform(Math::Quaternion(orientation), position));
 	//m_TargetCamera.Update();
@@ -175,6 +192,7 @@ void CameraManager::Update(float deltaTime)
 void CameraManager::ApplyMomentum(float& oldValue, float& newValue, float deltaTime)
 {
 	float blendedValue;
+
 	if (Math::Abs(oldValue) < Math::Abs(newValue))
 	{
 		blendedValue = Math::Lerp(newValue, oldValue, Math::Pow(0.6f, deltaTime * 60.0f));
@@ -194,6 +212,8 @@ void CameraManager::ApplyMomentum(float& oldValue, float& newValue, float deltaT
 
 void CameraManager::RenderWindows()
 {
+
+
 	if (ImGui::Begin("Cameras"))
 	{
 		std::shared_ptr<Camera> ActivatingCamera = GetActiveCamera();

@@ -4,7 +4,6 @@
 #include <utility>
 #include <rpcndr.h>
 #include <assert.h>
-#include "EngineManager.h"
 
 constexpr uint32_t CMaxStackHeapSize = 1024 * 1024 * 64; //64MB
 constexpr uint32_t CMaxScratchSize = 1024 * 1024 * 16; //16MB
@@ -150,15 +149,15 @@ public:
 	}
 
 private:
-	byte* buffer = nullptr;
-	byte* current = nullptr;
-	byte* marker = nullptr;
+	byte*       buffer = nullptr;
+	byte*       current = nullptr;
+	byte*       marker = nullptr;
 	size_t		totalSize = 0;
 	IAllocator* parent = nullptr;
 };
 
 
-namespace Mem
+namespace custom
 {
 	void* Alloc(size_t sizeInBytes)
 	{
@@ -172,11 +171,6 @@ namespace Mem
 	static IAllocator* GetDefaultAllocator()
 	{
 		return LinearAllocator::GetInstance();
-	}
-
-	static IAllocator* GetFrameAllocator()
-	{
-		return GContext->FrameAllocator;
 	}
 
 	template<typename T, typename ...Args>

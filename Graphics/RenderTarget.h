@@ -21,9 +21,12 @@ public:
 
 	ColorBuffer& GetSceneBuffer() { return m_SceneBuffer; }
 	D3D12_CPU_DESCRIPTOR_HANDLE GetRTV();
+
 protected:
 	RenderTarget(ColorBuffer& colorBuffer) // g_SceneColorBuffer
-		: m_SceneBuffer(colorBuffer) {}
+		: m_SceneBuffer(colorBuffer) 
+	{
+	}
 
 protected:
 	ColorBuffer& m_SceneBuffer; // or m_RenderTarget;

@@ -5,7 +5,8 @@
 class LinearAllocationPage : public custom::GPUResource
 {
 public:
-    LinearAllocationPage(ID3D12Resource* pResource, D3D12_RESOURCE_STATES Usage) : custom::GPUResource()
+    LinearAllocationPage(ID3D12Resource* pResource, D3D12_RESOURCE_STATES Usage) 
+        : custom::GPUResource()
     {
         SafeRelease(m_pResource);
         m_pResource = pResource;

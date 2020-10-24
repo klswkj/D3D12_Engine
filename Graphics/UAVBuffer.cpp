@@ -6,6 +6,24 @@
 
 namespace custom
 {
+	std::map<std::wstring, std::shared_ptr<UAVBuffer>> s_VertexBufferCache2;
+	std::map<std::wstring, std::shared_ptr<UAVBuffer>> s_IndexBufferCache2;
+
+	std::map<std::wstring, std::shared_ptr<StructuredBuffer>> s_VertexBufferCache;
+	std::map<std::wstring, std::shared_ptr<ByteAddressBuffer>> s_IndexBufferCache;
+
+	void StructuredBuffer::DestroyVertexBuffer()
+	{
+		s_VertexBufferCache.clear();
+		s_VertexBufferCache2.clear();
+	}
+
+	void ByteAddressBuffer::DestroyIndexBuffer()
+	{
+		s_IndexBufferCache.clear();
+		s_IndexBufferCache2.clear();
+	}
+
 	void UAVBuffer::Create
 	(
 		const std::wstring& name,
@@ -106,7 +124,7 @@ namespace custom
 		return hCBV;
 	}
 
-	D3D12_RESOURCE_DESC UAVBuffer::resourceDescriptor(void)
+	D3D12_RESOURCE_DESC UAVBuffer::resourceDescriptor()
 	{
 		ASSERT(m_bufferSize != 0);
 
@@ -124,11 +142,8 @@ namespace custom
 		Desc.Width = (UINT64)m_bufferSize;
 		return Desc;
 	}
-}
-
-namespace custom
-{
-	void ByteAddressBuffer::CreateUAV(void)
+	
+	void ByteAddressBuffer::CreateUAV()
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -138,7 +153,9 @@ namespace custom
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
 		if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+		{
 			m_SRV = device::g_descriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 		device::g_pDevice->CreateShaderResourceView(m_pResource, &SRVDesc, m_SRV);
 
 		D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
@@ -154,7 +171,7 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &UAVDesc, m_UAV);
 	}
 
-	void StructuredBuffer::CreateUAV(void)
+	void StructuredBuffer::CreateUAV()
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -165,7 +182,9 @@ namespace custom
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+		{
 			m_SRV = device::g_descriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 		device::g_pDevice->CreateShaderResourceView(m_pResource, &SRVDesc, m_SRV);
 
 		D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
@@ -185,7 +204,7 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, m_CounterBuffer.GetResource(), &UAVDesc, m_UAV);
 	}
 
-	void TypedBuffer::CreateUAV(void)
+	void TypedBuffer::CreateUAV()
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -195,7 +214,9 @@ namespace custom
 		SRVDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
 		if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+		{
 			m_SRV = device::g_descriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 		device::g_pDevice->CreateShaderResourceView(m_pResource, &SRVDesc, m_SRV);
 
 		D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
@@ -211,6 +232,61 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &UAVDesc, m_UAV);
 	}
 
+	StructuredBuffer* StructuredBuffer::CreateVertexBuffer
+	(
+		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+		const void* initialData
+	)
+	{
+		{
+			static std::mutex s_Mutex;
+			std::lock_guard<std::mutex> Guard(s_Mutex);
+
+			auto iter = s_VertexBufferCache.find(name);
+			if (iter != s_VertexBufferCache.end())
+			{
+				return iter->second.get();
+			}
+		}
+
+		StructuredBuffer* NewVertexBuffer = new StructuredBuffer();
+
+		NewVertexBuffer->Create(name, NumElements, ElementSize, initialData);
+
+		static std::mutex s_Mutex;
+		std::lock_guard<std::mutex> Guard(s_Mutex);
+
+		s_VertexBufferCache[name].reset(NewVertexBuffer);
+		return NewVertexBuffer;
+	}
+
+	ByteAddressBuffer* ByteAddressBuffer::CreateIndexBuffer
+	(
+		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+		const void* initialData
+	)
+	{
+		{
+			static std::mutex s_Mutex;
+			std::lock_guard<std::mutex> Guard(s_Mutex);
+
+			auto iter = s_IndexBufferCache.find(name);
+			if (iter != s_IndexBufferCache.end())
+			{
+				return iter->second.get();
+			}
+		}
+
+		ByteAddressBuffer* NewIndexBuffer = new ByteAddressBuffer();
+		NewIndexBuffer->Create(name, NumElements, ElementSize, initialData);
+
+		static std::mutex s_Mutex;
+		std::lock_guard<std::mutex> Guard(s_Mutex);
+
+		s_IndexBufferCache[name].reset(NewIndexBuffer);
+		return NewIndexBuffer;
+	}
+
 	const D3D12_CPU_DESCRIPTOR_HANDLE& StructuredBuffer::GetCounterSRV(CommandContext& Context)
 	{
 		Context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -223,3 +299,63 @@ namespace custom
 		return m_CounterBuffer.GetUAV();
 	}
 }
+
+
+/*
+// static function
+StructuredBuffer* StructuredBuffer::CreateVertexBuffer
+	(
+		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+		const void* initialData
+	)
+	{
+		{
+			static std::mutex s_Mutex;
+			std::lock_guard<std::mutex> Guard(s_Mutex);
+
+			auto iter = s_VertexBufferCache.find(name);
+			if (iter != s_VertexBufferCache.end())
+			{
+				return iter->second.get();
+			}
+		}
+
+		StructuredBuffer* NewVertexBuffer = new StructuredBuffer();
+
+		NewVertexBuffer->Create(name, NumElements, ElementSize, initialData);
+
+		static std::mutex s_Mutex;
+		std::lock_guard<std::mutex> Guard(s_Mutex);
+
+		s_VertexBufferCache[name].reset(NewVertexBuffer);
+		return NewVertexBuffer;
+	}
+
+	// static function
+	ByteAddressBuffer* ByteAddressBuffer::CreateIndexBuffer
+	(
+		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+		const void* initialData
+	)
+	{
+		{
+			static std::mutex s_Mutex;
+			std::lock_guard<std::mutex> Guard(s_Mutex);
+
+			auto iter = s_IndexBufferCache.find(name);
+			if (iter != s_IndexBufferCache.end())
+			{
+				return iter->second.get();
+			}
+		}
+
+		ByteAddressBuffer* NewIndexBuffer = new ByteAddressBuffer();
+		NewIndexBuffer->Create(name, NumElements, ElementSize, initialData);
+
+		static std::mutex s_Mutex;
+		std::lock_guard<std::mutex> Guard(s_Mutex);
+
+		s_IndexBufferCache[name].reset(NewIndexBuffer);
+		return NewIndexBuffer;
+	}
+*/

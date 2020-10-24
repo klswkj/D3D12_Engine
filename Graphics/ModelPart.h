@@ -11,16 +11,16 @@ class ModelPart
 {
 	friend class Model;
 public:
-	ModelPart(uint32_t ID, const char* name, std::vector<Mesh*> meshPtrs, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT;
-	void Submit(eObjectFilterFlag filter, DirectX::XMMATRIX accumulatedTransform) const DEBUG_EXCEPT;
-	void SetAppliedTransform(DirectX::XMMATRIX transform) noexcept;
+	ModelPart(uint32_t _ID, std::string _Name, std::vector<Mesh*> pMeshes, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT;
+	void Submit(eObjectFilterFlag _FilterFlag, DirectX::XMMATRIX AccumulatedTransformMatrix) const DEBUG_EXCEPT;
+	void SetAppliedTransform(DirectX::XMMATRIX _Transform) noexcept;
 	const DirectX::XMFLOAT4X4& GetAppliedTransform() const noexcept;
 
 	uint32_t GetId() const noexcept;
 	bool HasChildren() const noexcept;
-	void RecursivePushComponent(ModelComponentWindow& probe);
-	void PushAddon(ITechniqueWindow& probe);
-	const char* GetName() const;
+	void RecursivePushComponent(ModelComponentWindow& _ModelWindow);
+	void PushAddon(ITechniqueWindow& _TechniqueWindow);
+	std::string GetName() const;
 private:
 	void AddChild(std::unique_ptr<ModelPart> pChild) DEBUG_EXCEPT;
 
@@ -28,11 +28,11 @@ private:
 	std::vector<std::unique_ptr<ModelPart>> childPtrs;
 	std::vector<Mesh*> meshPtrs;
 
-	const char* name;
-	uint32_t id;
-	DirectX::XMFLOAT4X4 transform;
-	DirectX::XMFLOAT4X4 appliedTransform;
+	std::string m_Name;
+	uint32_t m_ID;
+	DirectX::XMFLOAT4X4 m_Transform;
+	DirectX::XMFLOAT4X4 m_AppliedTransform;
 };
 
 inline bool ModelPart::HasChildren() const noexcept { return 0 < childPtrs.size(); }
-inline const char* ModelPart::GetName() const { return name; }
+inline std::string ModelPart::GetName() const { return m_Name; }

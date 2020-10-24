@@ -1,6 +1,5 @@
 #pragma once
 
-
 namespace Math
 {
     // To allow floats to implicitly construct Scalars, we need to clarify these operators and suppress

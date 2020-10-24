@@ -37,6 +37,8 @@ ShadowMappingPass::ShadowMappingPass(std::string pName, custom::RootSignature* p
 		(*m_pRootSignature)[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL); // 
 
 		m_pRootSignature->Finalize(L"InitAtShadowMappingPass", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		m_bAllocateRootSignature = true;
 	}
 
 	if (m_pShadowPSO == nullptr)
@@ -62,6 +64,8 @@ ShadowMappingPass::ShadowMappingPass(std::string pName, custom::RootSignature* p
 		m_pShadowPSO->SetPixelShader(g_pDepthPS, sizeof(g_pDepthPS));
 		m_pShadowPSO->SetRenderTargetFormats(0, nullptr, bufferManager::g_ShadowBuffer.GetFormat());
 		m_pShadowPSO->Finalize();
+
+		m_bAllocatePSO = true;
 	}
 
 	float costheta = cosf(m_SunOrientation);
@@ -75,9 +79,31 @@ ShadowMappingPass::ShadowMappingPass(std::string pName, custom::RootSignature* p
 	m_BufferPrecision = 16;
 }
 
+ShadowMappingPass::~ShadowMappingPass()
+{
+	if (m_bAllocateRootSignature && m_pRootSignature != nullptr)
+	{
+		delete m_pRootSignature;
+		m_pRootSignature = nullptr;
+	}
+
+	if (m_bAllocatePSO && m_pShadowPSO != nullptr)
+	{
+		delete m_pShadowPSO;
+		m_pShadowPSO = nullptr;
+	}
+}
+
 void ShadowMappingPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+
+	graphicsContext.PIXBeginEvent(L"6_ShadpwMappingPass");
 
 	// graphicsContext.SetPSConstantsBuffer(1); Be Omitted.
 	{
@@ -93,24 +119,36 @@ void ShadowMappingPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEP
 
 	ShadowBuffer& MainShadowBuffer = bufferManager::g_ShadowBuffer;
 
-	// 여기서부터 MainLightContainer Loop시작
 	MainShadowBuffer.BeginRendering(graphicsContext);
 	{
+		// m_LightDirection입력 받아야됨.
 		m_ShadowCamera.UpdateShadowMatrix
 		(
 			-m_LightDirection, m_ShadowCenter, m_ShadowBounds,
 			MainShadowBuffer.GetWidth(), MainShadowBuffer.GetHeight(), 16
 		);
 
-		graphicsContext.SetModelToShadowByShadowCamera(m_ShadowCamera);
+		graphicsContext.SetModelToShadowByShadowCamera(m_ShadowCamera); // 문제
+		
 
 		RenderQueuePass::Execute(BaseContext);
 	}
 	MainShadowBuffer.EndRendering(graphicsContext);
+
+	graphicsContext.PIXEndEvent();
+
+#ifdef _DEBUG
+	float DeltaTime2 = graphics::GetDebugFrameTime();
+	m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
 }
-// PointLightManager(SunLight) 만들고 하자. => 일단 만들고 MainLightManager 만들자.
 
 void ShadowMappingPass::Reset() DEBUG_EXCEPT
 {
 
+}
+
+void ShadowMappingPass::SetLightDirection(const Math::Vector3 Direction)
+{
+	m_LightDirection = Direction;
 }

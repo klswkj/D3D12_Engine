@@ -29,7 +29,8 @@ namespace custom
 			Destroy();
 		}
 
-		// Create a buffer.  If initial data is provided, it will be copied into the buffer using the default command context.
+		// Create a buffer. 
+		// If initial data is provided, it will be copied into the buffer using the default command context.
 		void Create
 		(
 			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
@@ -129,17 +130,33 @@ namespace custom
 	{
 	public:
 		virtual void CreateUAV() override;
+
+		static ByteAddressBuffer* CreateIndexBuffer
+		(
+			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+			const void* initialData = nullptr
+		);
+
+		static void DestroyIndexBuffer();
 	};
 
 	class StructuredBuffer : public UAVBuffer
 	{
 	public:
-		virtual void CreateUAV(void) override;
+		virtual void CreateUAV() override;
+
+		static StructuredBuffer* CreateVertexBuffer
+		(
+			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+			const void* initialData = nullptr
+		);
+
+		static void DestroyVertexBuffer();
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterSRV(CommandContext& Context);
 		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterUAV(CommandContext& Context);
 
-		ByteAddressBuffer& GetCounterBuffer(void) 
+		ByteAddressBuffer& GetCounterBuffer() 
 		{ 
 			return m_CounterBuffer; 
 		}
@@ -169,7 +186,7 @@ namespace custom
 			: m_DataFormat(Format) 
 		{
 		}
-		virtual void CreateUAV(void) override;
+		virtual void CreateUAV() override;
 
 	protected:
 		DXGI_FORMAT m_DataFormat;

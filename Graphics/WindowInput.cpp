@@ -340,6 +340,13 @@ namespace
             ASSERT(false, "Mouse SetCooperativeLevel failed.");
 #endif
 
+        RAWINPUTDEVICE RawInputDevice;
+        RawInputDevice.usUsagePage = 0x01; // mouse page
+        RawInputDevice.usUsage = 0x02; // mouse usage
+        RawInputDevice.dwFlags = 0;
+        RawInputDevice.hwndTarget = nullptr;
+        ASSERT(RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RawInputDevice)) != FALSE);
+
         KbmZeroInputs();
     }
 

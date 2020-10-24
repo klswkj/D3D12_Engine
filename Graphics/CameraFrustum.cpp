@@ -2,15 +2,12 @@
 #include "CameraFrustum.h"
 #include "PremadePSO.h"
 #include "BufferManager.h"
-#include "RootSignature.h"
-#include "PSO.h"
 
-#include "Vector.h"
 #include "IBaseCamera.h"
 #include "Camera.h"
 #include "Technique.h"
 #include "Step.h"
-#include "VariableConstantBuffer.h"
+#include "MaterialConstants.h"
 
 #if defined(_DEBUG) | !defined(NDEBUG)
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h"
@@ -45,15 +42,14 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 
 	m_IndicesBuffer.Create(L"Camera Frustum Index Buffer", _countof(Indices), sizeof(uint8_t), &Indices[0]);
 
-	Technique line{ "Draw Frustum", eObjectFilterFlag::kOpaque };
+	Technique DrawFrustumTechnique{ "Draw Frustum", eObjectFilterFlag::kOpaque };
 
 	{
 		m_RootSignature.Reset(2, 0);
 		m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
 		m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
 		m_RootSignature.Finalize(L"Camera Frustum RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-	}
-	{
+
 		D3D12_INPUT_ELEMENT_DESC vertexElements[] =
 		{
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -75,35 +71,35 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		m_PSO.Finalize();
 	}
 	{
-		Step occuluded("MainRenderPass");
+		Step DrawLineInMainPass("MainRenderPass");
 
-		occuluded.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
-		occuluded.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
+		DrawLineInMainPass.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
+		DrawLineInMainPass.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
 
-		Float3Buffer colorBuffer;
-		colorBuffer = DirectX::XMFLOAT3(0.2f, 0.2f, 0.6f);
-		occuluded.PushBack(std::make_shared<Float3Buffer>(colorBuffer));
+		Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.6f });
+		DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(colorBuffer));
 
-		occuluded.PushBack(std::make_shared<TransformBuffer>());
+		DrawLineInMainPass.PushBack(std::make_shared<TransformBuffer>());
 
-		line.PushBackStep(std::move(occuluded));
+		DrawFrustumTechnique.PushBackStep(std::move(DrawLineInMainPass));
 	}
 	{
-		Step occuluded("MainRenderPass");
+		/*
+		Step occuluded("wireframe");
 
 		occuluded.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 		occuluded.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
 
-		Float3Buffer colorBuffer;
-		colorBuffer = DirectX::XMFLOAT3(0.25f, 0.08f, 0.08f);
-		occuluded.PushBack(std::make_shared<Float3Buffer>(colorBuffer));
+		Color3Buffer colorBuffer({0.25f, 0.08f, 0.08f});
 
+		occuluded.PushBack(std::make_shared<Color3Buffer>(colorBuffer));
 		occuluded.PushBack(std::make_shared<TransformBuffer>());
 
-		line.PushBackStep(std::move(occuluded));
+		DrawFrustumTechnique.PushBackStep(std::move(occuluded));
+		*/
 	}
-	// techniques.push_back(std::move(line));
-	AddTechnique(std::move(line));
+	// techniques.push_back(std::move(DrawFrustumTechnique));
+	AddTechnique(std::move(DrawFrustumTechnique));
 }
 //         UpVector axis           
 // float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip

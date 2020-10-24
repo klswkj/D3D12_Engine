@@ -1,0 +1,21 @@
+Vertices
+Position  0 : 465.381, 133.751, 219.701
+Normal    0 : -0, 0, -1
+Texcoord  0 : 0.677, 1
+Tangent   0 : 0.958456, -0.285241, 0
+BiTangnet 0 : 0.285215, 0.958464, 0
+Position  1 : 489.072, 213.32, 219.701
+Normal    1 : 0, 0, -1
+Texcoord  1 : -2.1013, 0.1485
+Tangent   1 : -0.285241, -0.285241, 0
+BiTangnet 1 : 0.958464, 0.958464, 0
+Position  2 : 485.594, 214.355, 219.701
+Normal    2 : -0, 0, -1
+Texcoord  2 : 0.1467, 1
+Tangent   2 : 0, -0.271077, 0
+BiTangnet 2 : 0, 0.958461, 0
+Position  3 : 461.903, 134.786, 219.701
+Normal    3 : -0, 0, -1
+Texcoord  3 : 0, -1
+Tangent   3 : 0.958456, -0.285241, 0
+BiTangnet 3 : 0.285215, 0.958464, 0

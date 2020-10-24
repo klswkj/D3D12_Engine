@@ -80,7 +80,6 @@ uint PullNextBit(inout uint bits)
     vsOutput.shadowCoord
 #endif
 
-
 #ifndef POINT_LIGHT_ARGS
 #define POINT_LIGHT_ARGS \
     diffuseAlbedo,       \
@@ -121,6 +120,7 @@ float3 main(VSOutput vsOutput) : SV_Target0
     }
 
     float gloss = 128.0;
+
     float3 normal;
     {
         normal = texNormal.Sample(sampler0, vsOutput.texCoord) * 2.0 - 1.0;
@@ -128,10 +128,11 @@ float3 main(VSOutput vsOutput) : SV_Target0
         float3x3 tbn = float3x3(normalize(vsOutput.tangent), normalize(vsOutput.bitangent), normalize(vsOutput.normal));
         normal = normalize(mul(normal, tbn));
     }
-
-    float3 specularAlbedo = float3(0.56, 0.56, 0.56);
+    
     float specularMask = texSpecular.Sample(sampler0, vsOutput.texCoord).g;
+    float3 specularAlbedo = float3(0.56, 0.56, 0.56);
     float3 viewDir = normalize(vsOutput.viewDir);
+    
     colorSum += ApplyDirectionalLight
     (
         DIRECTIONAL_LIGHT_ARGS,
@@ -292,7 +293,7 @@ float3 main(VSOutput vsOutput) : SV_Target0
         // strip the current set of uniform threads from the exec mask for the next loop iteration
         threadMask &= ~uniformMask;
     }
-
+    
 #elif defined(SCALAR_BRANCH)
 
     if (Ballot64(tileOffset == WaveReadLaneFirst(tileOffset)) == ~0ull)

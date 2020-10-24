@@ -7,15 +7,13 @@
 #include "CommandContext.h"
 #include "CommandSignature.h"
 #include "DepthBuffer.h"
-#include "PixelBuffer.h"
 #include "GPUResource.h"
 #include "UAVBuffer.h"
 #include "BufferManager.h"
 #include "DynamicDescriptorHeap.h"
 #include "PSO.h"
 #include "RootSignature.h"
-#include "Color.h"
-#include "GPUResource.h"
+#include "ColorBuffer.h"
 #include "UAVBuffer.h"
 #include "LinearAllocator.h"
 #include "DynamicDescriptorHeap.h"
@@ -64,7 +62,7 @@ namespace custom
 		CommandContext* NewContext = device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
 		NewContext->setName(ID);
 		//        if (ID.length() > 0)
-		//             EngineProfiling::BeginBlock(ID, NewContext);
+		//             Profiling::BeginBlock(ID, NewContext);
 		return *NewContext;
 	}
 
@@ -74,9 +72,10 @@ namespace custom
 
 		FlushResourceBarriers();
 
-		//        if (m_ID.length() > 0)
-		//            EngineProfiling::EndBlock(this);
-
+		// if (0 < m_ID.length())
+		// {
+		//     Profiling::EndBlock(this);
+		// }
 		ASSERT(m_currentCommandAllocator != nullptr);
 
 		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
@@ -201,10 +200,13 @@ namespace custom
 
 	void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
 	{
+		/*
 		if (!Resource.GetResource())
 		{
 			return;
 		}
+		*/
+		ASSERT(Resource.GetResource());
 
 		D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
 
@@ -458,6 +460,17 @@ namespace custom
 		InitContext.Finish(true);
 	}
 
+	void CommandContext::SetPipelineStateByPtr(ID3D12PipelineState* pPSO)
+	{
+		if (pPSO == m_CurPipelineState)
+		{
+			return;
+		}
+
+		m_commandList->SetPipelineState(pPSO);
+		m_CurPipelineState = pPSO;
+	}
+
 	void CommandContext::SetPipelineState(const PSO& PSO)
 	{
 		ID3D12PipelineState* PipelineState = PSO.GetPipelineStateObject();
@@ -561,62 +574,65 @@ namespace custom
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma region CAMERA_LIGHTS
-	void CommandContext::SetModelToProjection(Math::Matrix4& _ViewProjMatrix)
+	void CommandContext::SetModelToProjection(const Math::Matrix4& _ViewProjMatrix)
 	{
 		m_VSConstants.modelToProjection = _ViewProjMatrix;
 	}
+	
 	void CommandContext::SetModelToProjectionByCamera(IBaseCamera& _IBaseCamera)
 	{
 		m_VSConstants.modelToProjection = _IBaseCamera.GetProjMatrix();
-		m_VSConstants.viewerPos = _IBaseCamera.GetPosition();
+		DirectX::XMStoreFloat3(&m_VSConstants.viewerPos, _IBaseCamera.GetPosition());
 	}
-	void CommandContext::SetModelToShadow(Math::Matrix4& _ShadowMatrix)
+
+	void CommandContext::SetModelToShadow(const Math::Matrix4& _ShadowMatrix)
 	{
 		m_VSConstants.modelToShadow = _ShadowMatrix;
 	}
+
 	void CommandContext::SetModelToShadowByShadowCamera(ShadowCamera& _ShadowCamera)
 	{
 		m_pMainLightShadowCamera = &_ShadowCamera;
-		m_VSConstants.modelToShadow = m_pMainLightShadowCamera->GetShadowMatrix();
+		SetModelToShadow(m_pMainLightShadowCamera->GetShadowMatrix());
 	}
+
 	void CommandContext::SetMainCamera(Camera& _Camera)
 	{
 		m_pMainCamera = &_Camera;
-		m_VSConstants.viewerPos = _Camera.GetPosition();
+		SetModelToProjectionByCamera(_Camera);
 	}
 
 	Camera* CommandContext::GetpMainCamera()
 	{
 		ASSERT(m_pMainCamera != nullptr);
-
 		return m_pMainCamera;
 	}
-
+	
 	void CommandContext::SetMainLightDirection(Math::Vector3 MainLightDirection)
 	{
-		m_PSConstants.sunDirection = MainLightDirection;
+		m_PSConstants.sunDirection = MainLightDirection; // Not hit.
 	}
+
 	void CommandContext::SetMainLightColor(Math::Vector3 Color, float Intensity)
 	{
-		m_PSConstants.sunLight = Color * Intensity;
+		m_PSConstants.sunLightColor = Color * Intensity; // Not hit.
 	}
+
 	void CommandContext::SetAmbientLightColor(Math::Vector3 Color, float Intensity)
 	{
-		m_PSConstants.ambientLight = Color * Intensity;
+		m_PSConstants.ambientColor = Color * Intensity; // Not hit.
 	}
+
 	void CommandContext::SetShadowTexelSize(float TexelSize)
 	{
-		if (1.0f < TexelSize)
-		{
-			TexelSize = 1.0f / TexelSize;
-		}
-
+		ASSERT(0.0f < TexelSize && TexelSize < 1.0f);
 		m_PSConstants.ShadowTexelSize[0] = TexelSize;
+		m_PSConstants.ShadowTexelSize[1] = TexelSize;
 	}
 
 	void CommandContext::SetTileDimension(float MainColorBufferWidth, float MainColorBufferHeight, uint32_t LightWorkGroupSize)
 	{
-		ASSERT(1.0f < LightWorkGroupSize);
+		ASSERT(1u < LightWorkGroupSize);
 
 		m_PSConstants.InvTileDim[0] = 1.0f / LightWorkGroupSize;
 		m_PSConstants.InvTileDim[1] = m_PSConstants.InvTileDim[0];
@@ -633,9 +649,9 @@ namespace custom
 
 	void CommandContext::SetPSConstants(MainLight& _MainLight)
 	{
-		m_PSConstants.sunDirection = _MainLight.GetMainLightDirection();
-		m_PSConstants.sunLight = _MainLight.m_LightColor * _MainLight.m_LightIntensity;
-		m_PSConstants.ambientLight = _MainLight.m_AmbientColor * _MainLight.m_AmbientIntensity;
+		SetMainLightDirection(_MainLight.GetMainLightDirection());
+		SetMainLightColor(_MainLight.m_LightColor, _MainLight.m_LightIntensity);
+		SetAmbientLightColor(_MainLight.m_AmbientColor, _MainLight.m_AmbientIntensity);
 	}
 
 	void CommandContext::SetSync()
@@ -777,13 +793,26 @@ namespace custom
 		SetScissor(x, y, x + w, y + h);
 	}
 
+	void GraphicsContext::SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1)
+	{
+		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
+		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
+	}
+
+	void GraphicsContext::SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1, float _32BitParameter2)
+	{
+		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
+		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
+		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter2), 2);
+	}
+
 	void GraphicsContext::SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData)
 	{
 		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-		LinearBuffer cb = m_CPULinearAllocator.Allocate(BufferSize);
-		//SIMDMemCopy(cb.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-		memcpy(cb.pData, BufferData, BufferSize);
-		m_commandList->SetGraphicsRootConstantBufferView(RootIndex, cb.GPUAddress);
+		LinearBuffer ConstantBuffer = m_CPULinearAllocator.Allocate(BufferSize);
+		//SIMDMemCopy(ConstantBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+		memcpy(ConstantBuffer.pData, BufferData, BufferSize);
+		m_commandList->SetGraphicsRootConstantBufferView(RootIndex, ConstantBuffer.GPUAddress);
 	}
 
 	void GraphicsContext::SetDynamicVB(UINT Slot, size_t NumVertices, size_t VertexStride, const void* VertexData)
@@ -791,12 +820,12 @@ namespace custom
 		ASSERT(VertexData != nullptr && HashInternal::IsAligned(VertexData, 16));
 
 		size_t BufferSize = HashInternal::AlignUp(NumVertices * VertexStride, 16);
-		LinearBuffer vb = m_CPULinearAllocator.Allocate(BufferSize);
+		LinearBuffer VertexBuffer = m_CPULinearAllocator.Allocate(BufferSize);
 
-		SIMDMemCopy(vb.pData, VertexData, BufferSize >> 4);
+		SIMDMemCopy(VertexBuffer.pData, VertexData, BufferSize >> 4);
 
 		D3D12_VERTEX_BUFFER_VIEW VBView;
-		VBView.BufferLocation = vb.GPUAddress;
+		VBView.BufferLocation = VertexBuffer.GPUAddress;
 		VBView.SizeInBytes = (UINT)BufferSize;
 		VBView.StrideInBytes = (UINT)VertexStride;
 
@@ -808,12 +837,12 @@ namespace custom
 		ASSERT(IndexData != nullptr && HashInternal::IsAligned(IndexData, 16));
 
 		size_t BufferSize = HashInternal::AlignUp(IndexCount * sizeof(uint16_t), 16);
-		LinearBuffer ib = m_CPULinearAllocator.Allocate(BufferSize);
+		LinearBuffer IndexBuffer = m_CPULinearAllocator.Allocate(BufferSize);
 
-		SIMDMemCopy(ib.pData, IndexData, BufferSize >> 4);
+		SIMDMemCopy(IndexBuffer.pData, IndexData, BufferSize >> 4);
 
 		D3D12_INDEX_BUFFER_VIEW IBView;
-		IBView.BufferLocation = ib.GPUAddress;
+		IBView.BufferLocation = IndexBuffer.GPUAddress;
 		IBView.SizeInBytes = (UINT)(IndexCount * sizeof(uint16_t));
 		IBView.Format = DXGI_FORMAT_R16_UINT;
 
@@ -823,9 +852,9 @@ namespace custom
 	void GraphicsContext::SetDynamicSRV(UINT RootIndex, size_t BufferSize, const void* BufferData)
 	{
 		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-		LinearBuffer cb = m_CPULinearAllocator.Allocate(BufferSize);
-		SIMDMemCopy(cb.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-		m_commandList->SetGraphicsRootShaderResourceView(RootIndex, cb.GPUAddress);
+		LinearBuffer temp = m_CPULinearAllocator.Allocate(BufferSize);
+		SIMDMemCopy(temp.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+		m_commandList->SetGraphicsRootShaderResourceView(RootIndex, temp.GPUAddress);
 	}
 
 	void GraphicsContext::SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset)

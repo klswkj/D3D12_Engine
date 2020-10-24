@@ -4,9 +4,6 @@
     <Filter Include="Header Files Only">
       <UniqueIdentifier>{ec739b3a-d966-4131-95c4-e54419ea1d37}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files Only\Allocator">
-      <UniqueIdentifier>{4a840ea9-910b-4475-be7d-62e866e180ad}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files Only\Defines">
       <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
     </Filter>
@@ -129,9 +126,6 @@
     <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Present">
       <UniqueIdentifier>{ff3c0262-e642-4d25-818f-73fd9f64f640}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test">
-      <UniqueIdentifier>{6dcd9bad-bc31-4c91-9847-5a2d4f6bd95e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\SSAO">
       <UniqueIdentifier>{e1eda7bd-4248-4b7c-a3b7-8b6fb48ef1c3}</UniqueIdentifier>
     </Filter>
@@ -155,6 +149,39 @@
     </Filter>
     <Filter Include="SceneGraph\Renderer\Pass\ComputePass">
       <UniqueIdentifier>{aeb6bd58-b527-4536-ae69-7412223d46fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Allocator">
+      <UniqueIdentifier>{107aa8d9-32d1-4438-a10f-0ac9ca3db140}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Global Range\CustomCPUAllocator%28Ongoing%29">
+      <UniqueIdentifier>{ed90297b-7365-4203-9225-ccb9a2aae1ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Font Header">
+      <UniqueIdentifier>{5c992384-cba0-47cb-90d8-46c9440c6e8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Text">
+      <UniqueIdentifier>{26b133e9-2e3d-43fc-a6ac-db5ead4c27d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="StringHash">
+      <UniqueIdentifier>{33243749-446d-4043-b946-9a2cac8171c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Rader%28To be Done%29">
+      <UniqueIdentifier>{41019afb-5ab4-48e2-b3c5-b2300ca50e31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Rader%28To be Done%29\Topographics Rader">
+      <UniqueIdentifier>{22b7f74b-2725-4640-a072-e475918ef587}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test%28To be Done%29">
+      <UniqueIdentifier>{6dcd9bad-bc31-4c91-9847-5a2d4f6bd95e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader">
+      <UniqueIdentifier>{906d8b2e-823e-49ef-96c8-6f031957afd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\External Dependency">
+      <UniqueIdentifier>{668e33b9-5a06-4464-a64b-526dba688409}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various">
+      <UniqueIdentifier>{1d376fbb-419a-4428-adf6-fa7b71f511cb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -272,14 +299,8 @@
     <ClCompile Include="PreMadePSO.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="SystemTime.cpp">
-      <Filter>Time</Filter>
-    </ClCompile>
     <ClCompile Include="GpuTime.cpp">
       <Filter>Time</Filter>
-    </ClCompile>
-    <ClCompile Include="TextRenderer.cpp">
-      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="TextureManager.cpp">
       <Filter>Graphics\D3D12Resource\Texture</Filter>
@@ -331,9 +352,6 @@
     </ClCompile>
     <ClCompile Include="Job.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="eLayoutFlags.cpp">
-      <Filter>SceneGraph\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="CameraProjector.cpp">
       <Filter>SceneGraph\Camera\CameraComponent</Filter>
@@ -412,6 +430,42 @@
     <ClCompile Include="ModelComponentWindow.cpp">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClCompile>
+    <ClCompile Include="CustomMemory.cpp">
+      <Filter>Allocator</Filter>
+    </ClCompile>
+    <ClCompile Include="CPULinearAllocator.cpp">
+      <Filter>Graphics\Global Range\CustomCPUAllocator%28Ongoing%29</Filter>
+    </ClCompile>
+    <ClCompile Include="ScopedPtr.cpp">
+      <Filter>Graphics\Global Range\CustomCPUAllocator%28Ongoing%29</Filter>
+    </ClCompile>
+    <ClCompile Include="CpuTime.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="Profiling.cpp">
+      <Filter>Time</Filter>
+    </ClCompile>
+    <ClCompile Include="TextManager.cpp">
+      <Filter>Graphics\Global Range</Filter>
+    </ClCompile>
+    <ClCompile Include="StringHash.cpp">
+      <Filter>StringHash</Filter>
+    </ClCompile>
+    <ClCompile Include="RawPSO.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialConstants.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_demo.cpp">
+      <Filter>External Dependencies\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="FundamentlaTexture.cpp">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="FundamentalVertexBuffer.cpp">
+      <Filter>Graphics\D3D12Resource\UAV</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h">
@@ -452,9 +506,6 @@
     </ClInclude>
     <ClInclude Include="Window.h">
       <Filter>Graphics\Global Range</Filter>
-    </ClInclude>
-    <ClInclude Include="IAllocator.h">
-      <Filter>Header Files Only\Allocator</Filter>
     </ClInclude>
     <ClInclude Include="ImGuiManager.h">
       <Filter>Header Files Only</Filter>
@@ -555,9 +606,6 @@
     <ClInclude Include="SamplerDescriptor.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="SVDescriptor.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>SceneGraph\Model</Filter>
     </ClInclude>
@@ -606,14 +654,8 @@
     <ClInclude Include="PreMadePSO.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="SystemTime.h">
-      <Filter>Time</Filter>
-    </ClInclude>
     <ClInclude Include="GpuTime.h">
       <Filter>Time</Filter>
-    </ClInclude>
-    <ClInclude Include="TextRenderer.h">
-      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="TextureManager.h">
       <Filter>Graphics\D3D12Resource\Texture</Filter>
@@ -660,9 +702,6 @@
     <ClInclude Include="MathBasic.h">
       <Filter>Header Files Only\Math\Basic</Filter>
     </ClInclude>
-    <ClInclude Include="MathFunctions.inl">
-      <Filter>Header Files Only\Math\Basic</Filter>
-    </ClInclude>
     <ClInclude Include="BoundingSphere.h">
       <Filter>Header Files Only\Math</Filter>
     </ClInclude>
@@ -692,9 +731,6 @@
     </ClInclude>
     <ClInclude Include="eLayoutFlags.h">
       <Filter>SceneGraph\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="VariableConstantBuffer.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
     </ClInclude>
     <ClInclude Include="CameraProjector.h">
       <Filter>SceneGraph\Camera\CameraComponent</Filter>
@@ -782,6 +818,42 @@
     <ClInclude Include="ModelComponentWindow.h">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
     </ClInclude>
+    <ClInclude Include="CustomMemory.h">
+      <Filter>Allocator</Filter>
+    </ClInclude>
+    <ClInclude Include="CPULinearAllocator.h">
+      <Filter>Graphics\Global Range\CustomCPUAllocator%28Ongoing%29</Filter>
+    </ClInclude>
+    <ClInclude Include="ScopedPtr.h">
+      <Filter>Graphics\Global Range\CustomCPUAllocator%28Ongoing%29</Filter>
+    </ClInclude>
+    <ClInclude Include="CpuTime.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="Profiling.h">
+      <Filter>Time</Filter>
+    </ClInclude>
+    <ClInclude Include="TextManager.h">
+      <Filter>Graphics\Global Range</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Font Header\consola24.h">
+      <Filter>Resource Files%28Icon, Shader%29\Font Header</Filter>
+    </ClInclude>
+    <ClInclude Include="StringHash.h">
+      <Filter>StringHash</Filter>
+    </ClInclude>
+    <ClInclude Include="RawPSO.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialConstants.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="FundamentalTexture.h">
+      <Filter>Graphics\D3D12Resource\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="FundamentalVertexBuffer.h">
+      <Filter>Graphics\D3D12Resource\UAV</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IconResource.rc">
@@ -866,6 +938,24 @@
     </None>
     <None Include="..\Shader\Viewer\Vertex Shader\ModelVS_Common.hlsli">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
+    </None>
+    <None Include="..\Shader\Text\TextRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Text</Filter>
+    </None>
+    <None Include="MathFunctions.inl">
+      <Filter>Header Files Only\Math\Basic</Filter>
+    </None>
+    <None Include="..\Shader\ModelTest\ModelTest_PS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader</Filter>
+    </None>
+    <None Include="..\Shader\ModelTest\ModelTest_RS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader</Filter>
+    </None>
+    <None Include="..\Shader\ModelTest\LightData.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\External Dependency</Filter>
+    </None>
+    <None Include="..\Shader\ModelTest\ShadowFunctions.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\External Dependency</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -954,7 +1044,7 @@
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Present</Filter>
     </FxCompile>
     <FxCompile Include="VHS_PS.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test</Filter>
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\VHS Test%28To be Done%29</Filter>
     </FxCompile>
     <FxCompile Include="..\Shader\SSAO\AoBlurUpsampleBlendOutCS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\SSAO</Filter>
@@ -1021,6 +1111,42 @@
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Depth Shader\DepthPS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Depth Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextVS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Text</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextAntialiasPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Text</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextShadowPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Text</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Diffuse_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseSpecular_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseSpecularNormal_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Normal_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Specular_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_SpecularNormal_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_VS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseNormal_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_None_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

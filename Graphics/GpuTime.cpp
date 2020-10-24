@@ -6,11 +6,11 @@
 
 // be Initialized at Device.h
 
-namespace GpuTime
+namespace GPUTime
 {
-    ID3D12QueryHeap* sm_QueryHeap = nullptr;
+    ID3D12QueryHeap* sm_QueryHeap     = nullptr;
     ID3D12Resource* sm_ReadBackBuffer = nullptr;
-    uint64_t* sm_TimeStampBuffer = nullptr; // will be mapped
+    uint64_t* sm_TimeStampBuffer      = nullptr; // will be mapped
     uint64_t sm_Fence = 0;
     uint32_t sm_MaxNumTimers = 0;
     uint32_t sm_NumTimers = 1;
@@ -19,7 +19,7 @@ namespace GpuTime
     double sm_GpuTickDelta = 0.0f;
 }
 
-void GpuTime::Initialize(uint32_t MaxNumTimers/*= 4096*/)
+void GPUTime::ClockInitialize(uint32_t MaxNumTimers/*= 4096*/)
 {
     uint64_t GpuFrequency;
     device::g_commandQueueManager.GetCommandQueue()->GetTimestampFrequency(&GpuFrequency);
@@ -47,6 +47,7 @@ void GpuTime::Initialize(uint32_t MaxNumTimers/*= 4096*/)
 
     ASSERT_HR(device::g_pDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &BufferDesc,
         D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&sm_ReadBackBuffer)));
+
     sm_ReadBackBuffer->SetName(L"GpuTimeStamp Buffer");
 
     D3D12_QUERY_HEAP_DESC QueryHeapDesc;
@@ -59,35 +60,37 @@ void GpuTime::Initialize(uint32_t MaxNumTimers/*= 4096*/)
     sm_MaxNumTimers = (uint32_t)MaxNumTimers;
 }
 
-void GpuTime::Shutdown()
+void GPUTime::Shutdown()
 {
     if (sm_ReadBackBuffer != nullptr)
     {
         sm_ReadBackBuffer->Release();
+        sm_ReadBackBuffer = nullptr;
     }
 
     if (sm_QueryHeap != nullptr)
     {
         sm_QueryHeap->Release();
+        sm_ReadBackBuffer = nullptr;
     }
 }
 
-uint32_t GpuTime::NewTimer(void)
+uint32_t GPUTime::NewTimer()
 {
     return sm_NumTimers++;
 }
 
-void GpuTime::StartTimer(custom::CommandContext& Context, uint32_t TimerIdx)
+void GPUTime::StartTimer(custom::CommandContext& Context, uint32_t TimerIdx)
 {
     Context.InsertTimeStamp(sm_QueryHeap, TimerIdx * 2);
 }
 
-void GpuTime::StopTimer(custom::CommandContext& Context, uint32_t TimerIdx)
+void GPUTime::StopTimer(custom::CommandContext& Context, uint32_t TimerIdx)
 {
     Context.InsertTimeStamp(sm_QueryHeap, TimerIdx * 2 + 1);
 }
 
-void GpuTime::BeginReadBack(void)
+void GPUTime::BeginReadBack(void)
 {
     device::g_commandQueueManager.WaitForFence(sm_Fence);
 
@@ -107,7 +110,7 @@ void GpuTime::BeginReadBack(void)
     }
 }
 
-void GpuTime::EndReadBack(void)
+void GPUTime::EndReadBack(void)
 {
     // Unmap with an empty range to indicate nothing was written by the CPU
     D3D12_RANGE EmptyRange = {};
@@ -121,7 +124,7 @@ void GpuTime::EndReadBack(void)
     sm_Fence = Context.Finish();
 }
 
-float GpuTime::GetTime(uint32_t TimerIdx)
+float GPUTime::GetTime(uint32_t TimerIdx)
 {
     ASSERT(sm_TimeStampBuffer != nullptr, "Time stamp readback buffer is not mapped.");
     ASSERT(TimerIdx < sm_NumTimers, "Invalid GPU timer index.");

@@ -1,24 +1,3 @@
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-// Developed by Minigraph
-//
-// Author:  James Stanard 
-//
-
-//--------------------------------------------------------------------------------------
-// Simple bicubic filter
-//
-// http://en.wikipedia.org/wiki/Bicubic_interpolation
-// http://http.developer.nvidia.com/GPUGems/gpugems_ch24.html
-//
-//--------------------------------------------------------------------------------------
-
 #include "../Miscellaneous/ShaderUtility.hlsli"
 #include "PresentRS.hlsli"
 
@@ -43,15 +22,15 @@ float3 GetColor(float2 UV)
 }
 
 [RootSignature(Present_RootSig)]
-float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
+float4 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 {
     float3 Color = WB * GetColor(uv) - WA * (
         GetColor(uv + UVOffset0) + GetColor(uv - UVOffset0) +
         GetColor(uv + UVOffset1) + GetColor(uv - UVOffset1));
 
 #ifdef GAMMA_SPACE
-    return Color;
+    return (float4)(Color, 0);
 #else
-    return ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT);
+    return (float4) (ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT), 0);
 #endif
 }

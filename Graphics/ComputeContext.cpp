@@ -1,9 +1,9 @@
 #include "stdafx.h"
+#include "ComputeContext.h"
 #include "Device.h"
 #include "Graphics.h"
 #include "UAVBuffer.h"
 #include "ColorBuffer.h"
-#include "ComputeContext.h"
 #include "CommandContextManager.h"
 #include "CommandSignature.h"
 #include "DynamicDescriptorHeap.h"
@@ -22,7 +22,7 @@ namespace custom
 
         //if (0 < ID.length())
         ////{
-        //    EngineProfiling::BeginBlock(ID, &NewContext);
+        //    Profiling::BeginBlock(ID, &NewContext);
         //}
 
         return NewContext;
@@ -78,18 +78,18 @@ namespace custom
     void ComputeContext::SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData)
     {
         ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-        LinearBuffer cb = m_CPULinearAllocator.Allocate(BufferSize);
-        SIMDMemCopy(cb.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-        // memcpy(cb.pData, BufferData, BufferSize);
-        m_commandList->SetComputeRootConstantBufferView(RootIndex, cb.GPUAddress);
+        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(BufferSize);
+        SIMDMemCopy(CPUBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+        // memcpy(CPUBuffer.pData, BufferData, BufferSize);
+        m_commandList->SetComputeRootConstantBufferView(RootIndex, CPUBuffer.GPUAddress);
     }
 
     void ComputeContext::SetDynamicSRV(UINT RootIndex, size_t BufferSize, const void* BufferData)
     {
         ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-        LinearBuffer cb = m_CPULinearAllocator.Allocate(BufferSize);
-        SIMDMemCopy(cb.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-        m_commandList->SetComputeRootShaderResourceView(RootIndex, cb.GPUAddress);
+        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(BufferSize);
+        SIMDMemCopy(CPUBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+        m_commandList->SetComputeRootShaderResourceView(RootIndex, CPUBuffer.GPUAddress);
     }
 
     void ComputeContext::SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset)
@@ -163,7 +163,7 @@ namespace custom
 
     void ComputeContext::DispatchIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
     {
-        ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+        // ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
     }
     /*
     void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,

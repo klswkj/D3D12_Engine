@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "DepthStencil.h"
 #include "DepthBuffer.h"
-
+#include "ColorBuffer.h"
 #include "ShadowBuffer.h"
 #include "RenderTarget.h"
 #include "Matrix4.h"
@@ -23,8 +23,8 @@ void DepthStencil::BindAsBuffer(custom::CommandContext& BaseContext, IDisplaySur
 	ASSERT(dynamic_cast<RenderTarget*>(_RenderTarget) != nullptr);
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.TransitionResource(m_DepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.TransitionResource(static_cast<RenderTarget*>(_RenderTarget)->GetSceneBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-	graphicsContext.SetRenderTarget(static_cast<RenderTarget*>(_RenderTarget)->GetRTV(), GetDSV());
+	graphicsContext.TransitionResource((static_cast<RenderTarget*>(_RenderTarget))->GetSceneBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SetRenderTarget((static_cast<RenderTarget*>(_RenderTarget))->GetRTV(), GetDSV());
 }
 
 void DepthStencil::Clear(custom::CommandContext& BaseContext) DEBUG_EXCEPT

@@ -23,20 +23,6 @@ void ManagedTexture::SetToInvalidTexture()
     m_IsValid = false;
 }
 
-void ManagedTexture::SetRootIndex(UINT RootIndex, UINT Offset)
-{
-    m_RootParameterIndex = RootIndex;
-    m_ShaderOffset = Offset;
-}
-
-void ManagedTexture::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
-{
-    custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-
-    graphicsContext.SetDynamicDescriptor(m_RootParameterIndex, m_ShaderOffset, m_hCpuDescriptorHandle);
-}
-
-
 const ManagedTexture* TextureManager::LoadFromFile(const std::wstring& fileName, bool bStandardRGB)
 {
     std::wstring CatPath = fileName;
@@ -163,7 +149,7 @@ const ManagedTexture* TextureManager::LoadWICFromFile(const std::wstring& fileNa
         ManTex->SetToInvalidTexture();
     }
 
-    ManTex->SetRootIndex(RootIndex, Offset);
+    // ManTex->SetRootIndex(RootIndex, Offset);
 
     return ManTex;
 }

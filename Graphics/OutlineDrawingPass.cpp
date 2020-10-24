@@ -1,13 +1,11 @@
 #include "stdafx.h"
+#include "OutlineDrawingPass.h"
 #include "CommandContext.h"
 #include "BindingPass.h"
 #include "RenderQueuePass.h"
-#include "OutlineDrawingPass.h"
 #include "RenderTarget.h"
 #include "BufferManager.h"
 #include "PremadePSO.h"
-#include "RootSignature.h"
-#include "PSO.h"
 
 
 #if defined(_DEBUG) | !defined(NDEBUG)

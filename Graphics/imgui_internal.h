@@ -136,7 +136,7 @@ extern IMGUI_API ImGuiContext* GImGui;  // Current implicit context pointer
 
 #define IM_PI           3.14159265358979323846f
 #ifdef _WIN32
-#define IM_NEWLINE      "\r\n"   // Play it nice with Windows users (2018/05 news: Microsoft announced that Notepad will finally display Unix-style carriage returns!)
+#define IM_NEWLINE      "\r\n"   // Run it nice with Windows users (2018/05 news: Microsoft announced that Notepad will finally display Unix-style carriage returns!)
 #else
 #define IM_NEWLINE      "\n"
 #endif
@@ -1708,8 +1708,8 @@ IMGUI_API void              ImFontAtlasBuildMultiplyRectAlpha8(const unsigned ch
 #ifdef IMGUI_ENABLE_TEST_ENGINE
 extern void                 ImGuiTestEngineHook_PreNewFrame(ImGuiContext* ctx);
 extern void                 ImGuiTestEngineHook_PostNewFrame(ImGuiContext* ctx);
-extern void                 ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID id);
-extern void                 ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGuiID id, const char* label, ImGuiItemStatusFlags flags);
+extern void                 ImGuiTestEngineHook_ItemAdd(ImGuiContext* ctx, const ImRect& bb, ImGuiID m_ID);
+extern void                 ImGuiTestEngineHook_ItemInfo(ImGuiContext* ctx, ImGuiID m_ID, const char* label, ImGuiItemStatusFlags flags);
 extern void                 ImGuiTestEngineHook_Log(ImGuiContext* ctx, const char* fmt, ...);
 #define IMGUI_TEST_ENGINE_ITEM_ADD(_BB, _ID)                ImGuiTestEngineHook_ItemAdd(&g, _BB, _ID)               // Register item bounding box
 #define IMGUI_TEST_ENGINE_ITEM_INFO(_ID, _LABEL, _FLAGS)    ImGuiTestEngineHook_ItemInfo(&g, _ID, _LABEL, _FLAGS)   // Register item label and status flags (optional)

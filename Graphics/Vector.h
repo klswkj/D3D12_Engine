@@ -13,6 +13,7 @@ namespace Math
     // The actual value of the fourth component is undefined for performance reasons.
     class Vector3
     {
+        friend Vector4;
         friend Camera;
     public:
         __forceinline Vector3() { m_vec = SplatOne(); }
@@ -49,6 +50,11 @@ namespace Math
         __forceinline Vector3 operator* (float  v2) const { return *this * Scalar(v2); }
         __forceinline Vector3 operator/ (float  v2) const { return *this / Scalar(v2); }
 
+        __forceinline Vector3 operator= (Vector3 v2) { this->m_vec.m128_f32[0] = v2.m_vec.m128_f32[0]; this->m_vec.m128_f32[1] = v2.m_vec.m128_f32[1]; this->m_vec.m128_f32[2] = v2.m_vec.m128_f32[2]; return *this; }
+        __forceinline void operator= (Vector4 v2);
+        __forceinline void operator= (DirectX::XMFLOAT3 Float3) { this->m_vec.m128_f32[0] = Float3.x; this->m_vec.m128_f32[1] = Float3.y; this->m_vec.m128_f32[2] = Float3.z; }
+        __forceinline void operator= (DirectX::XMFLOAT4 Float4) { this->m_vec.m128_f32[0] = Float4.x; this->m_vec.m128_f32[1] = Float4.y; this->m_vec.m128_f32[2] = Float4.z; }
+
         __forceinline Vector3& operator += (Vector3 v) { *this = *this + v; return *this; }
         __forceinline Vector3& operator -= (Vector3 v) { *this = *this - v; return *this; }
         __forceinline Vector3& operator *= (Vector3 v) { *this = *this * v; return *this; }
@@ -66,6 +72,7 @@ namespace Math
     // A 4-vector, completely defined.
     class Vector4
     {
+        friend Vector3;
     public:
         __forceinline Vector4() {}
         __forceinline Vector4(float x, float y, float z, float w) { m_vec = DirectX::XMVectorSet(x, y, z, w); }
@@ -104,6 +111,11 @@ namespace Math
         __forceinline Vector4 operator* (float   v2) const { return *this * Scalar(v2); }
         __forceinline Vector4 operator/ (float   v2) const { return *this / Scalar(v2); }
 
+        __forceinline void operator= (Vector3 v2) { this->m_vec.m128_f32[0] = v2.m_vec.m128_f32[0]; this->m_vec.m128_f32[1] = v2.m_vec.m128_f32[1]; this->m_vec.m128_f32[2] = v2.m_vec.m128_f32[2]; }
+        __forceinline void operator= (Vector4 v2) { this->m_vec.m128_f32[0] = v2.m_vec.m128_f32[0]; this->m_vec.m128_f32[1] = v2.m_vec.m128_f32[1]; this->m_vec.m128_f32[2] = v2.m_vec.m128_f32[2]; this->m_vec.m128_f32[3] = v2.m_vec.m128_f32[3]; }
+        __forceinline void operator= (DirectX::XMFLOAT3 Float3) { this->m_vec.m128_f32[0] = Float3.x; this->m_vec.m128_f32[1] = Float3.y; this->m_vec.m128_f32[2] = Float3.z; }
+        __forceinline void operator= (DirectX::XMFLOAT4 Float4) { this->m_vec.m128_f32[0] = Float4.x; this->m_vec.m128_f32[1] = Float4.y; this->m_vec.m128_f32[2] = Float4.z; this->m_vec.m128_f32[3] = Float4.w; }
+
         __forceinline void operator*= (float   v2) { *this = *this * Scalar(v2); }
         __forceinline void operator/= (float   v2) { *this = *this / Scalar(v2); }
 
@@ -120,6 +132,13 @@ namespace Math
     {
         Scalar W = v.GetW();
         m_vec = DirectX::XMVectorSelect(DirectX::XMVectorDivide(v, W), v, DirectX::XMVectorEqual(W, SplatZero()));
+    }
+
+    __forceinline void Vector3::operator= (Vector4 v2) 
+    { 
+        this->m_vec.m128_f32[0] = v2.m_vec.m128_f32[0]; 
+        this->m_vec.m128_f32[1] = v2.m_vec.m128_f32[1]; 
+        this->m_vec.m128_f32[2] = v2.m_vec.m128_f32[2]; 
     }
 
     class BoolVector

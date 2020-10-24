@@ -14,6 +14,7 @@ class Z_PrePass : public RenderQueuePass
 {
 public:
 	Z_PrePass(std::string pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pDepthPSO = nullptr);
+	~Z_PrePass();
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;
 	// Binding된거는 불변(Immutable)해야하는거 명심
@@ -24,4 +25,7 @@ private:
 
 	custom::RootSignature* m_RootSignature;
 	GraphicsPSO* m_DepthPSO;
+
+	bool m_bAllocateRootSignature = false;
+	bool m_bAllocatePSO = false;
 };

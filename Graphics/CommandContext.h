@@ -1,11 +1,11 @@
 #pragma once
-#include "Color.h"
 #include "GPUResource.h"
 #include "UAVBuffer.h"
 #include "LinearAllocator.h"
 #include "DynamicDescriptorHeap.h"
 #include "CommandSignature.h"
 
+#include "Color.h"
 #include "Vector.h"
 #include "Matrix4.h"
 #include "ShaderConstantsTypeDefinitions.h"
@@ -108,17 +108,17 @@ namespace custom
         void PIXSetMarker(const wchar_t* label);
 
         void SetPipelineState(const PSO& PSO);
+        void SetPipelineStateByPtr(ID3D12PipelineState* pPSO);
         void SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr);
         void SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[]);
 
         // Will not be used.
         void SetPredication(ID3D12Resource* Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op);
 
-        
-        void SetModelToProjection(Math::Matrix4& _ViewProjMatrix);
+        void SetModelToProjection(const Math::Matrix4& _ViewProjMatrix);
         void SetModelToProjectionByCamera(IBaseCamera& _IBaseCamera); // Camera Or ShadowCamera
 
-        void SetModelToShadow(Math::Matrix4& _ShadowMatrix);
+        void SetModelToShadow(const Math::Matrix4& _ShadowMatrix);
         void SetModelToShadowByShadowCamera(ShadowCamera& _ShadowCamera);
 
         void SetMainCamera(Camera& _Camera);
@@ -208,9 +208,16 @@ namespace custom
         void SetBlendFactor(custom::Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
         void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) { m_commandList->IASetPrimitiveTopology(Topology); }
 
-        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) { m_commandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, 0); }
-
-        void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV) { m_commandList->SetComputeRootConstantBufferView(RootIndex, CBV); }
+        void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) 
+        { 
+            m_commandList->SetGraphicsRoot32BitConstants(RootIndex, NumConstants, pConstants, 0); 
+        }
+        void SetConstants(UINT RootIndex, float _32BitParameter1, float _32BitParameter2);
+        void SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1, float _32BitParameter2);
+        void SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV) 
+        { 
+            m_commandList->SetGraphicsRootConstantBufferView(RootIndex, CBV); 
+        }
         void SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData);
         void SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset = 0);
         void SetBufferUAV(UINT RootIndex, const UAVBuffer& UAV, UINT64 Offset = 0);

@@ -15,6 +15,14 @@ ObjModelManager::ObjModelManager()
 
 	for (const auto& FileName : FileNames)
 	{
+		// Sponza
+		// m_pRoot    => child' size 0x186,
+		// m_meshPtrs => ptrs   size 0x189
+
+		// Cat 
+		// m_pRoot => child's size 0x01
+		// m_meshPtrs => ptrs size 0x01
+
 		m_Models.emplace_back(FileName);
 	}
 

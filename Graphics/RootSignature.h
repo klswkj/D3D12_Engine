@@ -8,6 +8,11 @@
 // Descriptor table pointer = 1 DWORD
 // Static samplers = 0 DWORDS (compiled into shader)
 
+#define DESCRIPTOR_TABLE_SIZE 16
+
+#define _SHARED_PTR 1
+// #define _RAW_PTR 0
+
 namespace custom
 {
 	class CommandContext;
@@ -22,11 +27,56 @@ namespace custom
 			Reset(NumRootParams, NumStaticSamplers);
 		}
 
+		void operator=(const RootSignature& Other)
+		{
+			ASSERT(Other.m_numInitializedStaticSamplers == Other.m_numStaticSamplers);
+
+			Reset(Other.m_numRootParameters, Other.m_numStaticSamplers);
+			m_numInitializedStaticSamplers = Other.m_numInitializedStaticSamplers;
+#ifdef _RAW_PTR
+			memcpy_s(&m_rootParamArray[0], sizeof(RootParameter) * m_numRootParameters, &Other.m_rootParamArray[0], sizeof(RootParameter) * m_numRootParameters);
+			memcpy_s(&m_staticSamplerArray[0], sizeof(D3D12_STATIC_SAMPLER_DESC) * m_numStaticSamplers, &Other.m_staticSamplerArray[0], sizeof(D3D12_STATIC_SAMPLER_DESC) * m_numStaticSamplers);
+#else
+			memcpy(&m_rootParamArray.get()[0], &Other.m_rootParamArray.get()[0], sizeof(RootParameter) * m_numRootParameters);
+			memcpy(&m_staticSamplerArray.get()[0], &Other.m_staticSamplerArray.get()[0], sizeof(D3D12_STATIC_SAMPLER_DESC) * m_numStaticSamplers);
+#endif
+
+			for (size_t i = 0; i < m_numRootParameters; ++i)
+			{
+				if (Other.m_rootParamArray.get()[i].m_D3D12RootParameter.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+				{
+					UINT RangeCount = m_rootParamArray.get()[i].m_D3D12RootParameter.DescriptorTable.NumDescriptorRanges;
+
+					m_rootParamArray.get()[i].m_D3D12RootParameter.DescriptorTable.pDescriptorRanges = new D3D12_DESCRIPTOR_RANGE[RangeCount];
+
+					memcpy_s
+					(
+						(void*)&m_rootParamArray.get()[i].m_D3D12RootParameter.DescriptorTable.pDescriptorRanges[0],
+						RangeCount * sizeof(D3D12_DESCRIPTOR_RANGE),
+						&Other.m_rootParamArray.get()[i].m_D3D12RootParameter.DescriptorTable.pDescriptorRanges[0],
+						RangeCount * sizeof(D3D12_DESCRIPTOR_RANGE)
+					);
+				}
+			}
+
+
+			for (size_t i = 0; i < DESCRIPTOR_TABLE_SIZE; ++i)
+			{
+				m_descriptorTableSize[i] = Other.m_descriptorTableSize[i];
+			}
+
+			if (m_finalized = Other.m_finalized)
+			{
+				m_rootSignature = Other.m_rootSignature;
+			}
+			m_firstCompiled = Other.m_firstCompiled;
+			m_descriptorTableBitMap = Other.m_descriptorTableBitMap;
+			m_staticSamplerTableBitMap = Other.m_staticSamplerTableBitMap;
+		}
+
 		~RootSignature()
 		{
-			// delete[] m_rootParamArray;
-			// delete[] m_staticSamplerArray;
-			/*
+#ifdef _RAW_PTR
 			if (m_firstCompiled)
 			{
 				if (m_rootParamArray != nullptr)
@@ -41,33 +91,49 @@ namespace custom
 					m_staticSamplerArray = nullptr;
 				}
 			}
-			*/
+#endif
 		}
 
 		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
 		{
 			if (0 < NumRootParams)
 			{
+#ifdef _RAW_PTR
+				delete[] m_rootParamArray;
+				m_rootParamArray = new RootParameter[NumRootParams];
+#else
 				m_rootParamArray.reset(new RootParameter[NumRootParams]);
-
-				// delete[] m_rootParamArray;
-				//m_rootParamArray = new RootParameter[NumRootParams];
+#endif
 			}
 			else
 			{
+#ifdef _RAW_PTR
+				if (m_rootParamArray)
+				{
+					delete[] m_rootParamArray;
+				}
+#endif
 				m_rootParamArray = nullptr;
 			}
 
 
 			if (0 < NumStaticSamplers)
 			{
+#ifdef _RAW_PTR
+				delete[] m_staticSamplerArray;
+				m_staticSamplerArray = new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers];
+#else
 				m_staticSamplerArray.reset(new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers]);
-
-				// delete[] m_staticSamplerArray;
-				// m_staticSamplerArray = new D3D12_STATIC_SAMPLER_DESC[NumStaticSamplers];
+#endif
 			}
 			else
 			{
+#ifdef _RAW_PTR
+				if (m_staticSamplerArray)
+				{
+					delete[] m_rootParamArray;
+				}
+#endif
 				m_staticSamplerArray = nullptr;
 			}
 
@@ -79,15 +145,21 @@ namespace custom
 		RootParameter& operator[] (size_t EntryIndex)
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
-			// return m_rootParamArray.get()[EntryIndex];
+#ifdef _RAW_PTR
+			return m_rootParamArray[EntryIndex];
+#else
 			return m_rootParamArray.get()[EntryIndex];
+#endif
 		}
 
 		const RootParameter& operator[] (size_t EntryIndex) const
 		{
 			ASSERT(EntryIndex < m_numRootParameters);
-			// return m_rootParamArray.get()[EntryIndex];
-			return m_rootParamArray.get()[EntryIndex];
+#ifdef _RAW_PTR
+			return m_rootParamArray[EntryIndex];
+#else
+		    return m_rootParamArray.get()[EntryIndex];
+#endif
 		}
 
 		void InitStaticSampler
@@ -106,24 +178,26 @@ namespace custom
 		static void DestroyAll();
 
 		void Bind(CommandContext& BaseContext) DEBUG_EXCEPT override;
-
-	protected:
-		std::shared_ptr<RootParameter[]> m_rootParamArray;
-		std::shared_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
-
-		// RootParameter* m_rootParamArray;
-		// D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray;
-
-		ID3D12RootSignature* m_rootSignature;
-
+	public:
 		BOOL     m_finalized;
-		BOOL     m_firstCompiled = false;
 		uint32_t m_numRootParameters;
 		uint32_t m_numStaticSamplers;
 		uint32_t m_numInitializedStaticSamplers;
-		uint32_t m_descriptorTableBitMap;         // One bit is set for root parameters that are non-sampler descriptor tables
-		uint32_t m_staticSamplerTableBitMap;      // One bit is set for root parameters that are sampler descriptor tables
-		uint32_t m_descriptorTableSize[16];       // Non-sampler descriptor tables need to know their descriptor count
+
+	protected:
+#ifdef _RAW_PTR
+		RootParameter* m_rootParamArray = nullptr;
+		D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray = nullptr;
+#else
+		std::shared_ptr<RootParameter[]> m_rootParamArray;
+		std::shared_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
+#endif
+		ID3D12RootSignature* m_rootSignature = nullptr;
+
+		BOOL     m_firstCompiled = false;
+		uint32_t m_descriptorTableBitMap;                      // One bit is set for root parameters that are non-sampler descriptor tables
+		uint32_t m_staticSamplerTableBitMap;                   // One bit is set for root parameters that are sampler descriptor tables
+		uint32_t m_descriptorTableSize[DESCRIPTOR_TABLE_SIZE]; // Non-sampler descriptor tables need to know their descriptor count
 	};
 }
 

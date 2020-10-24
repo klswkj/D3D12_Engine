@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "RootSignature.h"
 #include "RenderingResource.h"
 //                PSO
 //      忙式式式式式式式式式式扛式式式式式式式式式忖
@@ -17,7 +18,7 @@ namespace custom
     {
     public:
         PSO()
-            : m_RootSignature(nullptr), m_PSO(nullptr)
+            : m_pRootSignature(nullptr), m_PSO(nullptr)
         {
         }
 
@@ -25,19 +26,23 @@ namespace custom
 
         void SetRootSignature(const RootSignature& BindMappings)
         {
-            m_RootSignature = &BindMappings;
+            m_pRootSignature = &BindMappings;
+            m_PersonalRootSignature = BindMappings; // Testing 1012
         }
-
+        // Testing 1012
         const RootSignature& GetRootSignature() const
         {
-            ASSERT(m_RootSignature != nullptr);
-            return *m_RootSignature;
+            ASSERT(m_pRootSignature != nullptr);
+            ASSERT(m_PersonalRootSignature.GetSignature() != nullptr);
+            // return *m_pRootSignature;
+            return m_PersonalRootSignature;
         }
 
         ID3D12PipelineState* GetPipelineStateObject() const { return m_PSO; }
 
     protected:
-        const RootSignature* m_RootSignature;
+        const RootSignature* m_pRootSignature = nullptr;
+        RootSignature m_PersonalRootSignature;
         ID3D12PipelineState* m_PSO;
     };
 }
@@ -48,6 +53,7 @@ class GraphicsPSO : public custom::PSO, public RenderingResource
 public:
     // Default state is empty.
     GraphicsPSO();
+    GraphicsPSO(GraphicsPSO& _GraphicsPSO) noexcept;
 
     void SetBlendState(const D3D12_BLEND_DESC& BlendDesc);
     void SetRasterizerState(const D3D12_RASTERIZER_DESC& RasterizerDesc);
@@ -102,7 +108,7 @@ public:
     void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 
     // Perform validation and compute a hash value for fast state block comparisons
-    void Finalize();
+    void Finalize(const std::wstring& name = L"");
 private:
     D3D12_GRAPHICS_PIPELINE_STATE_DESC m_PSODesc;
     std::shared_ptr<const D3D12_INPUT_ELEMENT_DESC> m_inputLayouts;
@@ -190,7 +196,7 @@ public:
 
     void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 
-    void Finalize();
+    void Finalize(const std::wstring& name = L"");
 private:
     D3D12_COMPUTE_PIPELINE_STATE_DESC m_PSODesc;
 

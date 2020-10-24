@@ -336,7 +336,7 @@ CODE
     - See 'enum ImGuiNavInput_' in imgui.h for a description of inputs. For each entry of io.NavInputs[], set the following values:
          0.0f= not held. 1.0f= fully held. Pass intermediate 0.0f..1.0f values for analog triggers/sticks.
     - We uses a simple >0.0f test for activation testing, and won't attempt to test for a dead-zone.
-      Your code will probably need to transform your raw inputs (such as e.g. remapping your 0.2..0.9 raw input range to 0.0..1.0 imgui range, etc.).
+      Your code will probably need to m_Transform your raw inputs (such as e.g. remapping your 0.2..0.9 raw input range to 0.0..1.0 imgui range, etc.).
     - You can download PNG/PSD files depicting the gamepad controls for common controllers at: http://goo.gl/9LgVZW.
     - If you need to share inputs between your game and the imgui parts, the easiest approach is to go all-or-nothing, with a buttons combo
       to toggle the target. Please reach out if you think the game vs navigation input sharing could be improved.
@@ -746,9 +746,9 @@ CODE
      are going to be created:
 
        Begin("MyWindow");
-       Button("Play");        // Label = "Play",   ID = hash of ("MyWindow", "Play")
-       Button("Play##foo1");  // Label = "Play",   ID = hash of ("MyWindow", "Play##foo1")  // Different from above
-       Button("Play##foo2");  // Label = "Play",   ID = hash of ("MyWindow", "Play##foo2")  // Different from above
+       Button("Run");        // Label = "Run",   ID = hash of ("MyWindow", "Run")
+       Button("Run##foo1");  // Label = "Run",   ID = hash of ("MyWindow", "Run##foo1")  // Different from above
+       Button("Run##foo2");  // Label = "Run",   ID = hash of ("MyWindow", "Run##foo2")  // Different from above
        End();
 
    - If you want to completely hide the label, but still need an ID:
@@ -2976,7 +2976,7 @@ bool ImGui::ItemAdd(const ImRect& bb, ImGuiID id, const ImRect* nav_bb_arg)
 
         // [DEBUG] Item Picker tool, when enabling the "extended" version we perform the check in ItemAdd()
 #ifdef IMGUI_DEBUG_TOOL_ITEM_PICKER_EX
-        if (id == g.DebugItemPickerBreakID)
+        if (m_ID == g.DebugItemPickerBreakID)
         {
             IM_DEBUG_BREAK();
             g.DebugItemPickerBreakID = 0;
@@ -2990,8 +2990,8 @@ bool ImGui::ItemAdd(const ImRect& bb, ImGuiID id, const ImRect* nav_bb_arg)
     g.NextItemData.Flags = ImGuiNextItemDataFlags_None;
 
 #ifdef IMGUI_ENABLE_TEST_ENGINE
-    if (id != 0)
-        IMGUI_TEST_ENGINE_ITEM_ADD(nav_bb_arg ? *nav_bb_arg : bb, id);
+    if (m_ID != 0)
+        IMGUI_TEST_ENGINE_ITEM_ADD(nav_bb_arg ? *nav_bb_arg : bb, m_ID);
 #endif
 
     // Clipping test

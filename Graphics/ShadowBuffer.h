@@ -40,7 +40,7 @@ public:
 
     void EndRendering(custom::GraphicsContext& Context)
     {
-        Context.TransitionResource(*this, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Context.TransitionResource(*this, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetSRV() const

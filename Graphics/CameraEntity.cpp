@@ -7,8 +7,8 @@
 #include "UAVBuffer.h"
 
 #include "Technique.h"
-#include "Vector.h"
-#include "VariableConstantBuffer.h"
+#include "MaterialConstants.h"
+
 #include "ObjectFilterFlag.h"
 
 #if defined(_DEBUG) | !defined(NDEBUG)
@@ -19,19 +19,36 @@
 #include "../x64/RELEASE/Graphics(.lib)/CompiledShaders/Flat_PS.h"
 #endif
 
+#pragma push_macro("X")
+#pragma push_macro("Y")
+#pragma push_macro("Z")
+#pragma push_macro("THALF")
+#pragma push_macro("TSPACE")
+
+#define X 1.0f
+#define Y 0.75f
+#define Z -2.0f
+#define THALF 0.5f
+#define TSPACE 0.15f
+
 CameraEntity::CameraEntity()
 {
 	// x = 1.0f; y = 0.75f; z  -2.0f;
 	// tHalf = 0.5f; tSpace = 0.15f
 
-	DirectX::XMFLOAT3 vertices[8] = { {-1.0f, 0.75f, 0.0f},
-			                          {1.0f, 0.75f, 0.0f},
-			                          {1.0f, 0.75f, 0.0f,},
-			                          {-1.0f, -0.75f, 0.0f},
-			                          {0.0f, 0.0f, -2.0f},
-	                                  {-0.5f, 0.75f + 0.5f, 0.0f},
-	                                  {0.5f, 0.75f + 0.5f, 0.0f},
-	                                  {0.0f, 0.5f + 0.15f, 0.0f} };
+	DirectX::XMFLOAT3 vertices[8] = { {-X, Y, 0.0f},
+			                          {X, Y, 0.0f},
+			                          {X, Y, 0.0f,},
+			                          {-X, -Y, 0.0f},
+			                          {0.0f, 0.0f, -Z},
+	                                  {-THALF, Y + THALF, 0.0f},
+	                                  {THALF, Y + THALF, 0.0f},
+	                                  {0.0f, THALF + TSPACE, 0.0f} };
+#pragma pop_macro("X")
+#pragma pop_macro("Y")
+#pragma pop_macro("Z")
+#pragma pop_macro("THALF")
+#pragma pop_macro("TSPACE")
 
 	uint8_t indices[22] = 
 	{   
@@ -52,14 +69,14 @@ CameraEntity::CameraEntity()
 	m_IndicesBuffer.Create(L"Camera Entity IndexBuffer", _countof(indices), sizeof(uint8_t), indices);
 
 	Technique DrawLine{ "Draw Camera", eObjectFilterFlag::kOpaque };
-	Step step("MainRenderPass");
+	Step DrawLineInMainPass("MainRenderPass");
 
 	m_RootSignature.Reset(2, 0);
 	m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
 	m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
 	m_RootSignature.Finalize(L"Camera Entity RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-	step.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
+	// DrawLineInMainPas.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 
 	D3D12_INPUT_ELEMENT_DESC vertexElements[] =
 	{
@@ -81,14 +98,19 @@ CameraEntity::CameraEntity()
 	m_PSO.SetPixelShader(g_pFlat_PS, sizeof(g_pFlat_PS));
 	m_PSO.Finalize();
 
-	step.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
+	DrawLineInMainPass.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 
-	Float3Buffer colorBuffer;
-	colorBuffer = DirectX::XMFLOAT3(0.2f, 0.2f, 0.6f);
-	step.PushBack(std::make_shared<Float3Buffer>(colorBuffer));
+	DrawLineInMainPass.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
 
-	step.PushBack(std::make_shared<TransformBuffer>());
+	Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.6f });
+	DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(colorBuffer));
 
-	DrawLine.PushBackStep(std::move(step));
+	DrawLineInMainPass.PushBack(std::make_shared<TransformBuffer>());
+
+	DrawLine.PushBackStep(std::move(DrawLineInMainPass));
 	AddTechnique(std::move(DrawLine));
+	// DrawLine.PushBackStep(std::move(DrawLineInMainPass));
+	// 
+
+	// AddTechnique(std::move(DrawLine));
 }

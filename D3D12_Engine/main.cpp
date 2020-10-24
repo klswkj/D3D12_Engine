@@ -3,15 +3,16 @@
 #endif
 #define NOMINMAX
 
-// #include "Engine.h"
+#include <DirectXMath.h>
+#include <intrin.h>
 #include <dxgidebug.h>
 #include <thread>
 
-// #include "../Graphics/Game.h"
-#include "GameLoader.h"
 #include "FileWatcher.h"
+#include "../Graphics/D3D12Engine.h"
+#include "GameLoader.h"
 
-static const char* gameDll = "Game.dll";
+static const char* gameDll = "D3D12Engine.dll";
 #if defined(_DEBUG) | defined(DEBUG)
 static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /target:Game /p:Platform=x64 /property:Configuration=Debug";
 #else
@@ -19,8 +20,6 @@ static const char* buildCommandLineStr = "msbuild.exe ../../D3D12_Engine.sln /ta
 #endif
 
 //
-#include <DirectXMath.h>
-#include <intrin.h>
 #include "../Graphics/MathBasic.h"
 //
 
@@ -43,7 +42,6 @@ int main()
 		}
 	}
 
-	/*
 	{
 		GameLoader gameLoader;
 		gameLoader.LoadGameLibrary(gameDll);
@@ -120,13 +118,6 @@ int main()
 		pDebug->Release();
 	}
 #endif
-*/
-
-	Math::OrthogonalTransform a;
-
-	DirectX::XMFLOAT3 b = { 1.0f, 20.0f, 300.0f };
-
-	a.SetRotation(b);
 
 	return 0;
 }

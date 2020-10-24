@@ -56,7 +56,6 @@ Index of this file:
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
-
 #include "imgui.h"
 #include <ctype.h>          // toupper
 #include <limits.h>         // INT_MIN, INT_MAX

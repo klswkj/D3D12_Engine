@@ -3,14 +3,14 @@
 
 void RenderQueuePass::PushBackJob(Job _Job) noexcept
 {
-	m_Jobs.push_back(_Job); // Job -> { pEntity, pStep } -> { pEntity, {RenderingResoruces} }
+	m_Jobs.push_back(_Job); // Job -> { pEntity, pStep } -> { pEntity, {vector<RenderingResoruce>} }
 }
 
 void RenderQueuePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
 	if (m_bActive)
 	{
-		// IBindingPass::bindAll(BaseContext);
+		IBindingPass::bindAll(BaseContext);
 
 		for (const auto& _Job : m_Jobs)
 		{

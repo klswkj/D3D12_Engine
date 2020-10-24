@@ -4,6 +4,7 @@
 #include "graphics.h"
 #include "CommandContext.h"
 #include "ComputeContext.h"
+#include "PSO.h"
 
 void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips)
 {
@@ -146,6 +147,7 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
 	{
 		return;
 	}
+
     custom::ComputeContext& Context = BaseContext.GetComputeContext();
 
     Context.SetRootSignature(graphics::g_GenerateMipsRootSignature);
@@ -165,11 +167,11 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
         uint32_t NonPowerOfTwo = (SrcWidth & 1) | (SrcHeight & 1) << 1;
         if (m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
         {
-            Context.SetPipelineState(graphics::g_GenerateMipsGammaPSO[NonPowerOfTwo]);
+            Context.SetPipelineState(graphics::g_GenerateMipsGammaComputePSO[NonPowerOfTwo]);
         }
         else
         {
-            Context.SetPipelineState(graphics::g_GenerateMipsLinearPSO[NonPowerOfTwo]);
+            Context.SetPipelineState(graphics::g_GenerateMipsLinearComputePSO[NonPowerOfTwo]);
         }
         // We can downsample up to four times, but if the ratio between levels is not
         // exactly 2:1, we have to shift our blend weights, which gets complicated or
@@ -177,10 +179,12 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
         // each successive downsample.  We use _BitScanForward to count number of zeros
         // in the low bits.  Zeros indicate we can divide by two without truncating.
         uint32_t AdditionalMips;
+        size_t BitTarget = (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight);
+
         _BitScanForward
         (
             (unsigned long*)&AdditionalMips,
-            (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight)
+            BitTarget
         );
         uint32_t NumMips = 1 + (3 < AdditionalMips ? 3 : AdditionalMips);
         if (m_numMipMaps < TopMip + NumMips)

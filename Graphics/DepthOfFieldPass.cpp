@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "DepthOfFieldPass.h"
-
+#include "Graphics.h"
 #include "RawBuffer.h"
 #include "GPUResource.h"
 #include "UAVBuffer.h"
@@ -83,7 +83,7 @@ void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, f
 		return;
 	}
 
-	ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[device::GetFrameCount() % device::g_DisplayBufferCount]; // DXGI_FORMAT_R16_UNORM
+	ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[graphics::GetFrameCount() % device::g_DisplayBufferCount]; // DXGI_FORMAT_R16_UNORM
 
 	uint32_t BufferWidth  = LinearDepth.GetWidth();
 	uint32_t BufferHeight = LinearDepth.GetHeight();

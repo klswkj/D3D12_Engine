@@ -58,7 +58,7 @@ bool ModelComponentWindow::PushNode(ModelPart& node)
 	const auto expanded = ImGui::TreeNodeEx
 	(
 		(void*)(uint32_t)node.GetId(),
-		node_flags, node.GetName()
+		node_flags, node.GetName().c_str()
 	);
 
 	// processing for selecting node

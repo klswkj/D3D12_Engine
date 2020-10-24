@@ -187,6 +187,14 @@
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="CommandQueueManager.cpp" />
     <ClCompile Include="CommandSignature.cpp" />
+    <ClCompile Include="CPULinearAllocator.cpp" />
+    <ClCompile Include="CustomMemory.cpp" />
+    <ClCompile Include="FundamentalVertexBuffer.cpp" />
+    <ClCompile Include="FundamentlaTexture.cpp" />
+    <ClCompile Include="imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="MaterialConstants.cpp" />
     <ClCompile Include="ModelComponentWindow.cpp" />
     <ClCompile Include="ComputeContext.cpp" />
     <ClCompile Include="D3D12Engine.cpp">
@@ -200,7 +208,6 @@
     <ClCompile Include="DescriptorHeapManager.cpp" />
     <ClCompile Include="DynamicDescriptorHeap.cpp" />
     <ClCompile Include="DynamicUploadBuffer.cpp" />
-    <ClCompile Include="eLayoutFlags.cpp" />
     <ClCompile Include="Entity.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -243,6 +250,8 @@
     </ClCompile>
     <ClCompile Include="PassWindow.cpp" />
     <ClCompile Include="PreMadePSO.cpp" />
+    <ClCompile Include="Profiling.cpp" />
+    <ClCompile Include="RawPSO.cpp" />
     <ClCompile Include="RenderQueuePass.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -259,6 +268,7 @@
     <ClCompile Include="PSO.cpp" />
     <ClCompile Include="RawBuffer.cpp" />
     <ClCompile Include="RenderTarget.cpp" />
+    <ClCompile Include="ScopedPtr.cpp" />
     <ClCompile Include="ShaderConstantsTypeDefinitions.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -274,9 +284,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Step.cpp" />
-    <ClCompile Include="SystemTime.cpp" />
+    <ClCompile Include="CpuTime.cpp" />
+    <ClCompile Include="StringHash.cpp" />
     <ClCompile Include="Technique.cpp" />
-    <ClCompile Include="TextRenderer.cpp" />
+    <ClCompile Include="TextManager.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="UAVBuffer.cpp" />
@@ -303,6 +314,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Font Header\consola24.h" />
     <ClInclude Include="BindingPass.h" />
     <ClInclude Include="BlurPass.h" />
     <ClInclude Include="BoundingPlane.h" />
@@ -321,6 +333,11 @@
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="CommandQueueManager.h" />
     <ClInclude Include="CommandSignature.h" />
+    <ClInclude Include="CPULinearAllocator.h" />
+    <ClInclude Include="CustomMemory.h" />
+    <ClInclude Include="FundamentalTexture.h" />
+    <ClInclude Include="FundamentalVertexBuffer.h" />
+    <ClInclude Include="MaterialConstants.h" />
     <ClInclude Include="ModelComponentWindow.h" />
     <ClInclude Include="CompressedQuaternion.h" />
     <ClInclude Include="ComputeContext.h" />
@@ -346,7 +363,13 @@
     <ClInclude Include="MainLightManager.h" />
     <ClInclude Include="MasterRenderGraph.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="MathFunctions.inl" />
+    <None Include="..\Shader\ModelTest\LightData.hlsli" />
+    <None Include="..\Shader\ModelTest\ModelTest_PS.hlsli" />
+    <None Include="..\Shader\ModelTest\ModelTest_RS.hlsli" />
+    <None Include="..\Shader\ModelTest\ShadowFunctions.hlsli" />
+    <None Include="MathFunctions.inl">
+      <FileType>Document</FileType>
+    </None>
     <ClInclude Include="IBaseCamera.h" />
     <ClInclude Include="IDisplaySurface.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
@@ -364,7 +387,9 @@
     <ClInclude Include="Pass.h" />
     <ClInclude Include="PassFlag.h" />
     <ClInclude Include="PassWindow.h" />
+    <ClInclude Include="Profiling.h" />
     <ClInclude Include="Quaternion.h" />
+    <ClInclude Include="RawPSO.h" />
     <ClInclude Include="RenderingResource.h" />
     <ClInclude Include="RenderQueuePass.h" />
     <ClInclude Include="Scalar.h" />
@@ -377,6 +402,7 @@
     <ClInclude Include="PSO.h" />
     <ClInclude Include="RawBuffer.h" />
     <ClInclude Include="RenderTarget.h" />
+    <ClInclude Include="ScopedPtr.h" />
     <ClInclude Include="ShaderConstantsTypeDefinitions.h" />
     <ClInclude Include="ShadowBuffer.h" />
     <ClInclude Include="ShadowCamera.h" />
@@ -384,10 +410,11 @@
     <ClInclude Include="ShadowPrePass.h" />
     <ClInclude Include="SSAOPass.h" />
     <ClInclude Include="Step.h" />
-    <ClInclude Include="SystemTime.h" />
+    <ClInclude Include="CpuTime.h" />
+    <ClInclude Include="StringHash.h" />
     <ClInclude Include="Technique.h" />
     <ClInclude Include="TechniqueWindow.h" />
-    <ClInclude Include="TextRenderer.h" />
+    <ClInclude Include="TextManager.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="TextureManager.h" />
     <ClInclude Include="Transform.h" />
@@ -399,7 +426,6 @@
     <ClInclude Include="DescriptorHeapManager.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="GPUResource.h" />
-    <ClInclude Include="IAllocator.h" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuiManager.h" />
@@ -421,10 +447,8 @@
     <ClInclude Include="RootSignature.h" />
     <ClInclude Include="SamplerDescriptor.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="SVDescriptor.h" />
     <ClInclude Include="TypeDefine.h" />
     <ClInclude Include="UpdateConstantBuffer.h" />
-    <ClInclude Include="VariableConstantBuffer.h" />
     <ClInclude Include="Vector.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="WindowInput.h" />
@@ -459,6 +483,7 @@
     <None Include="..\Shader\SSAO\AoBlurAndUpsampleCS.hlsli" />
     <None Include="..\Shader\SSAO\AoComputeCS.hlsli" />
     <None Include="..\Shader\SSAO\SSAORS.hlsli" />
+    <None Include="..\Shader\Text\TextRS.hlsli" />
     <None Include="..\Shader\Viewer\Pixel Shader\ModelPS_Common.hlsli" />
     <None Include="..\Shader\Viewer\Utility\LightData.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -731,6 +756,64 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseNormal_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseSpecularNormal_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_DiffuseSpecular_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Diffuse_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_None_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Normal_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_SpecularNormal_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_Specular_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\ModelTest\ModelTest_VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="..\Shader\OutlineWithBlur\OutlineWithBlurPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -830,7 +913,7 @@
     <FxCompile Include="..\Shader\Present\BufferCopyPS.hlsl">
       <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
@@ -1089,6 +1172,18 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ObjectFileOutput>
     </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextAntialiasPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextShadowPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Text\TextVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Depth Shader\DepthPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -1249,7 +1344,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets" Condition="Exists('..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets')" />
     <Import Project="..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets" Condition="Exists('..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets')" />
     <Import Project="..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets" Condition="Exists('..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets')" />
     <Import Project="..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets" Condition="Exists('..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets')" />
@@ -1257,12 +1351,12 @@
     <Import Project="..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets" Condition="Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" />
     <Import Project="..\packages\assimp_native.4.0.1\build\native\assimp_native.targets" Condition="Exists('..\packages\assimp_native.4.0.1\build\native\assimp_native.targets')" />
     <Import Project="..\packages\assimp_native.redist.4.0.1\build\native\assimp_native.redist.targets" Condition="Exists('..\packages\assimp_native.redist.4.0.1\build\native\assimp_native.redist.targets')" />
+    <Import Project="..\packages\directxmesh_desktop_win10.2020.8.15.1\build\native\directxmesh_desktop_win10.targets" Condition="Exists('..\packages\directxmesh_desktop_win10.2020.8.15.1\build\native\directxmesh_desktop_win10.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets'))" />
     <Error Condition="!Exists('..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtex_desktop_win10.2020.7.2.1\build\native\directxtex_desktop_win10.targets'))" />
     <Error Condition="!Exists('..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtk12_desktop_2017.2020.2.24.1\build\native\directxtk12_desktop_2017.targets'))" />
     <Error Condition="!Exists('..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\VisualLeakDetector.2.5.0.0\build\native\VisualLeakDetector.targets'))" />
@@ -1270,5 +1364,6 @@
     <Error Condition="!Exists('..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\zlib-vc140-static-64.1.2.11\build\native\zlib-vc140-static-64.targets'))" />
     <Error Condition="!Exists('..\packages\assimp_native.4.0.1\build\native\assimp_native.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\assimp_native.4.0.1\build\native\assimp_native.targets'))" />
     <Error Condition="!Exists('..\packages\assimp_native.redist.4.0.1\build\native\assimp_native.redist.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\assimp_native.redist.4.0.1\build\native\assimp_native.redist.targets'))" />
+    <Error Condition="!Exists('..\packages\directxmesh_desktop_win10.2020.8.15.1\build\native\directxmesh_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxmesh_desktop_win10.2020.8.15.1\build\native\directxmesh_desktop_win10.targets'))" />
   </Target>
 </Project>

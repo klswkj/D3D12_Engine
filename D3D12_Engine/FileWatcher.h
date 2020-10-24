@@ -25,7 +25,7 @@ public:
 	{
 		for (auto& file : std::filesystem::recursive_directory_iterator(path_to_watch))
 		{
-			paths_[file.path().string()] = std::filesystem::last_write_time(file);
+			_paths[file.path().string()] = std::filesystem::last_write_time(file);
 		}
 	}
 
@@ -37,13 +37,13 @@ public:
 			// Wait for "delay" milliseconds
 			std::this_thread::sleep_for(delay);
 
-			auto it = paths_.begin();
-			while (it != paths_.end())
+			auto it = _paths.begin();
+			while (it != _paths.end())
 			{
 				if (!std::filesystem::exists(it->first))
 				{
 					action(it->first, FileStatus::erased);
-					it = paths_.erase(it);
+					it = _paths.erase(it);
 				}
 				else
 				{
@@ -61,15 +61,15 @@ public:
 					// File creation
 					if (!contains(file.path().string()))
 					{
-						paths_[file.path().string()] = current_file_last_write_time;
+						_paths[file.path().string()] = current_file_last_write_time;
 						action(file.path().string(), FileStatus::created);
 						// File modification
 					}
 					else
 					{
-						if (paths_[file.path().string()] != current_file_last_write_time)
+						if (_paths[file.path().string()] != current_file_last_write_time)
 						{
-							paths_[file.path().string()] = current_file_last_write_time;
+							_paths[file.path().string()] = current_file_last_write_time;
 							action(file.path().string(), FileStatus::modified);
 						}
 					}
@@ -83,19 +83,19 @@ public:
 		running_ = false;
 	}
 private:
-	std::unordered_map<std::string, std::filesystem::file_time_type> paths_;
-	bool running_ = true;
-
-	// Check if "paths_" contains a given key
-	// If your compiler supports C++20 use paths_.contains(key) instead of this function
+	// Check if "_paths" contains a given key
+	// If your compiler supports C++20 use _paths.contains(key) instead of this function
 	bool contains(const std::string& key)
 	{
-		auto el = paths_.find(key);
-		return el != paths_.end();
+		auto el = _paths.find(key);
+		return el != _paths.end();
 	}
 
 	static bool endsWith(const std::string& str, const std::string& suffix)
 	{
 		return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 	}
+
+	std::unordered_map<std::string, std::filesystem::file_time_type> _paths;
+	bool running_ = true;
 };

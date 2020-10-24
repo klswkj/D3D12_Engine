@@ -5,9 +5,9 @@ namespace custom
     class CommandContext;
 }
 
-namespace GpuTime
+namespace GPUTime
 {
-    void Initialize(uint32_t MaxNumTimers = 4096);
+    void ClockInitialize(uint32_t MaxNumTimers = 4096);
     void Shutdown();
 
     // Reserve a unique timer index

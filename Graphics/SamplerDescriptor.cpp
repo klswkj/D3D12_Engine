@@ -9,7 +9,9 @@ namespace custom
 
 	D3D12_CPU_DESCRIPTOR_HANDLE SamplerDescriptor::RequestHandle()
 	{
-		auto iter = sm_samplerDescriptorHashMap.find(makeHash());
+		size_t HashValue = makeHash();
+
+		auto iter = sm_samplerDescriptorHashMap.find(HashValue);
 		if (iter != sm_samplerDescriptorHashMap.end())
 		{
 			return iter->second;
@@ -17,6 +19,8 @@ namespace custom
 
 		D3D12_CPU_DESCRIPTOR_HANDLE Handle = graphics::g_DescriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 		device::g_pDevice->CreateSampler(this, Handle);
+
+		sm_samplerDescriptorHashMap[HashValue] = Handle;
 
 		m_finalized = true;
 

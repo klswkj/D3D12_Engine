@@ -308,6 +308,7 @@ namespace custom
 
     void DynamicDescriptorHeap::DescriptorHandleCache::StageDescriptorHandles(UINT RootIndex, UINT Offset, UINT NumHandles, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[])
     {
+        // RootIndex = 0x04, UINT offset = 0x00, UINT NumHandles = 0x06, const D3D12_CPU_DESCRIPTOR[] = SSAO, Shadow SRVs
         ASSERT(((1 << RootIndex) & m_rootDescriptorTablesBitMap) != 0, "Root parameter is not a CBV_SRV_UAV descriptor table");
         ASSERT(Offset + NumHandles <= m_rootDescriptorTable[RootIndex].tableSize);
 

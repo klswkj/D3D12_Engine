@@ -45,7 +45,12 @@ namespace custom
         commandQueueDesc.Type = m_type;
         commandQueueDesc.NodeMask = 1;
         ASSERT_HR(pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue)));
-        SET_NAME(m_commandQueue);
+
+        static size_t NumCommandQueue = 0;
+
+        // SET_NAME(m_commandQueue);
+
+        // m_commandQueue->SetName(StringToWString(std::string("0" + NumCommandQueue++)).c_str());
 
         ASSERT_HR(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
         SET_NAME(m_pFence);

@@ -34,7 +34,7 @@ namespace Math
             return Dot(point, m_repr);
         }
 
-        // Most efficient way to transform a plane.  (Involves one quaternion-vector rotation and one dot product.)
+        // Most efficient way to m_Transform a plane.  (Involves one quaternion-vector rotation and one dot product.)
         friend BoundingPlane operator* (const OrthogonalTransform& xform, BoundingPlane plane)
         {
             Vector3 normalToPlane = xform.GetRotation() * plane.GetNormal();
@@ -42,7 +42,7 @@ namespace Math
             return BoundingPlane(normalToPlane, distanceFromOrigin);
         }
 
-        // Less efficient way to transform a plane (but handles affine transformations.)
+        // Less efficient way to m_Transform a plane (but handles affine transformations.)
         friend BoundingPlane operator* (const Matrix4& mat, BoundingPlane plane)
         {
             return BoundingPlane(Transpose(Invert(mat)) * plane.m_repr);

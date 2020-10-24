@@ -1,14 +1,16 @@
 #include "stdafx.h"
 #include "Window.h"
+#include "Graphics.h"
+#include "WindowInput.h"
 #include "MyMouse.h"
 #include "MyKeyboard.h"
 #include "imgui_impl_win32.h"
 
+// https://billthefarmer.github.io/blog/post/handling-resizing-in-windows/#:~:text=The%20WM_SIZE%20message%20is%20sent,in%20the%20WindowProc%20callback%20function
+// TODO : Window Sizing with handler
+
 namespace window
 {
-	uint32_t g_windowWidth{ 1920 };
-	uint32_t g_windowHeight{ 1080 };
-
 	HWND g_hWnd = nullptr;
 
 	std::vector<byte> s_rawInputData;
@@ -50,6 +52,7 @@ namespace window
 		{
 			return true;
 		}
+
 		const auto& imio = ImGui::GetIO();
 
 		switch (msg)
@@ -62,6 +65,7 @@ namespace window
 		case WM_KILLFOCUS:
 		{
 			g_Keyboard.ClearState();
+			windowInput::Update(graphics::GetFrameTime());
 			break;
 		}
 		case WM_ACTIVATE:
@@ -82,9 +86,6 @@ namespace window
 			break;
 		}
 		case WM_KEYDOWN:
-		{
-			break;
-		}
 		case WM_SYSKEYDOWN:
 		{
 			if (imio.WantCaptureKeyboard)
@@ -98,9 +99,6 @@ namespace window
 			break;
 		}
 		case WM_KEYUP:
-		{
-			// break;
-		}
 		case WM_SYSKEYUP:
 		{
 			if (imio.WantCaptureKeyboard)
@@ -139,7 +137,7 @@ namespace window
 				break;
 			}
 
-			if (0 <= pt.x && pt.x < g_windowWidth && 0 <= pt.y && pt.y < g_windowHeight)
+			if (0 <= pt.x && pt.x < g_TargetWindowWidth && 0 <= pt.y && pt.y < g_TargetWindowHeight)
 			{
 				g_Mouse.OnMouseMove(pt.x, pt.y);
 				if (!g_Mouse.IsInWindow())
@@ -181,7 +179,6 @@ namespace window
 		}
 		case WM_RBUTTONDOWN:
 		{
-
 			if (imio.WantCaptureMouse)
 			{
 				break;
@@ -192,7 +189,6 @@ namespace window
 		}
 		case WM_LBUTTONUP:
 		{
-
 			if (imio.WantCaptureMouse)
 			{
 				break;
@@ -200,7 +196,7 @@ namespace window
 			const POINTS pt = MAKEPOINTS(lParam);
 			g_Mouse.OnLeftReleased(pt.x, pt.y);
 
-			if (pt.x < 0 || g_windowWidth <= pt.x || pt.y < 0 || g_windowHeight <= pt.y)
+			if (pt.x < 0 || g_TargetWindowWidth <= pt.x || pt.y < 0 || g_TargetWindowHeight <= pt.y)
 			{
 				ReleaseCapture();
 				g_Mouse.OnMouseLeave();
@@ -216,7 +212,7 @@ namespace window
 			const POINTS pt = MAKEPOINTS(lParam);
 			g_Mouse.OnRightReleased(pt.x, pt.y);
 
-			if (pt.x < 0 || g_windowWidth <= pt.x || pt.y < 0 || g_windowHeight <= pt.y)
+			if (pt.x < 0 || g_TargetWindowWidth <= pt.x || pt.y < 0 || g_TargetWindowHeight <= pt.y)
 			{
 				ReleaseCapture();
 				g_Mouse.OnMouseLeave();
@@ -243,31 +239,22 @@ namespace window
 				break;
 			}
 			UINT size;
-			if(GetRawInputData
-			(
-				reinterpret_cast<HRAWINPUT>(lParam),
-				RID_INPUT,
-				nullptr,
-				&size,
-				sizeof(RAWINPUTHEADER)
-			) == -1)
+			if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT,
+				nullptr, &size, sizeof(RAWINPUTHEADER)) == -1)
 			{
 				break;
 			}
 
 			s_rawInputData.resize(size);
 
-			if (GetRawInputData(
-				reinterpret_cast<HRAWINPUT>(lParam),
-				RID_INPUT,
-				s_rawInputData.data(),
-				&size,
-				sizeof(RAWINPUTHEADER)) != size)
+			if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT,
+				s_rawInputData.data(), &size, sizeof(RAWINPUTHEADER)) != size)
 			{
 				break;
 			}
 
 			auto& ri = reinterpret_cast<const RAWINPUT&>(*s_rawInputData.data());
+
 			if (ri.header.dwType == RIM_TYPEMOUSE &&
 				(ri.data.mouse.lLastX != 0 || ri.data.mouse.lLastY != 0))
 			{
@@ -275,18 +262,26 @@ namespace window
 			}
 			break;
 		}
+
+		case WM_SIZE:
+		{
+			// graphics::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
+			device::Resize((UINT)(UINT64)lParam & 0xFFFF, (UINT)(UINT64)lParam >> 16);
+			break;
+		}
+		default:
+			return DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 
-		return DefWindowProc(hWnd, msg, wParam, lParam);
-
+		return 0;
 	}
 
 	void Initialize
 	(
 		const wchar_t* windowName,  // = L"KSK",
 		const wchar_t* windowTitle, // = L"D3D12_Engine",
-		uint32_t width,             // = g_windowWidth,
-		uint32_t height,            // = g_windowHeight,
+		uint32_t width,             // = g_TargetWindowWidth,
+		uint32_t height,            // = g_TargetWindowHeight,
 		BOOL g_fullscreen,          // = false,
 		int ShowWnd                 // = 1
 	)
@@ -301,12 +296,9 @@ namespace window
 		WC.style = CS_HREDRAW | CS_VREDRAW;
 		WC.lpfnWndProc = HandleMsgSetup;
 		WC.hInstance = GetModuleHandle(0);
-		WC.hIcon = static_cast<HICON>(LoadImage
-		(
-			WC.hInstance,
-			MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON,
-			32, 32, 0
-		));
+		WC.hIcon = static_cast<HICON>(LoadImage(
+					WC.hInstance, MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON,
+					32, 32, 0));
 		WC.hIconSm = WC.hIcon;
 		WC.hCursor = LoadCursor(NULL, IDC_ARROW);
 		WC.hbrBackground = (HBRUSH)COLOR_WINDOW;
@@ -314,14 +306,13 @@ namespace window
 
 		ASSERT(0 != RegisterClassEx(&WC), "Unable to register a window");
 
-		///////////////////////////////
-
 		RECT clientRect;
 		SetRect(&clientRect, 0, 0, width, height);
 		AdjustWindowRect
 		(
 			&clientRect,
-			WS_OVERLAPPEDWINDOW,	// Has a title bar, border, min and max buttons, etc.
+			// WS_OVERLAPPEDWINDOW,
+			WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
 			false
 		);
 
@@ -331,18 +322,20 @@ namespace window
 		int centeredX = (clientRect.right - desktopRect.right) / 2;
 		int centeredY = (clientRect.bottom - desktopRect.bottom) / 2;
 
-		g_hWnd = CreateWindow
+		g_hWnd = CreateWindow // WM_NCCREATE -> WM_NCCALCSIZE -> WM_CREATE -> WM_SHOWWINDOW -> WM_WINDOWPOSCHANGING -> WM_ACTIVATEAPP -> WM_NCACTIVATE ->
+			                 // WM_GETICON -> WM_ACTIVATE -> WM_IME_SETCONTEXT -> WM_IME_NOTIFY -> WM_SETFOCUS -> WM_NCPAINT -> WM_ERASEBKGND
+			                 // -> WM_WINDOWPOSCHANGED -> WM_SIZE -> WM_MOVE
 		(
 			WC.lpszClassName,
 			windowTitle,
 			WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
-			CW_USEDEFAULT, // centeredX,
-			CW_USEDEFAULT, // centeredY,
-			clientRect.right - clientRect.left,	// Calculated width
-			clientRect.bottom - clientRect.top,	// Calculated height
-			nullptr,			// No parent window
-			nullptr,			// No menu
-			WC.hInstance,	// The app's handle
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			clientRect.right - clientRect.left,
+			clientRect.bottom - clientRect.top,
+			nullptr,
+			nullptr,
+			WC.hInstance,
 			0
 		);
 
@@ -353,7 +346,6 @@ namespace window
 			SetWindowLong(g_hWnd, GWL_STYLE, 0);
 		}
 
-		// ShowWindow(g_hWnd, ShowWnd);
 		ImGui_ImplWin32_Init(g_hWnd);
 
 		RAWINPUTDEVICE RawInputDevice;
@@ -364,6 +356,13 @@ namespace window
 		ASSERT(RegisterRawInputDevices(&RawInputDevice, 1, sizeof(RawInputDevice)) != FALSE);
 	}
 
+	void Destroy()
+	{
+		ImGui_ImplWin32_Shutdown();
+		DestroyWindow(g_hWnd);
+		CoUninitialize();
+	}
+
 	HWND GetWindowHandle() noexcept
 	{
 		return g_hWnd;
@@ -372,6 +371,7 @@ namespace window
 	void StartMessagePump(std::function<void()> callback)
 	{
 		MSG msg = {};
+
 		while (msg.message != WM_QUIT)
 		{
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -379,14 +379,11 @@ namespace window
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-			//else
+			else
 			{
 				callback();
 			}
 		}
-
-		ImGui_ImplWin32_Shutdown();
-		DestroyWindow(g_hWnd);
 	}
 
 	///////////////////////////////////////////
@@ -399,7 +396,10 @@ namespace window
 		enableImGuiMouse();
 		freeCursor();
 	}
-
+	bool bCursorEnabled() noexcept
+	{
+		return g_bCursorEnabled;
+	}
 	void DisableCursor() noexcept
 	{
 		g_bCursorEnabled = false;

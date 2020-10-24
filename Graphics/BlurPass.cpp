@@ -1,13 +1,9 @@
 #include "stdafx.h"
+#include "BlurPass.h"
 #include "BufferManager.h"
-#include "GPUResource.h"
-#include "ColorBuffer.h"
-#include "RootSignature.h"
 #include "CommandContext.h"
 #include "ComputeContext.h"
 
-#include "Pass.h"
-#include "BlurPass.h"
 #include "RenderingResource.h"
 #include "RenderTarget.h"
 #include "DepthStencil.h"
@@ -56,6 +52,7 @@ BlurPass::BlurPass(std::string Name, std::vector<std::shared_ptr<RenderingResour
 	CreatePSO(m_HorizontalComputePSO, g_pHoriontalBlurCS);
 	CreatePSO(m_VerticalComputePSO, g_pVerticalBlurCS);
 #undef CreatePSO
+
 	PushBackHorizontal(std::make_shared<ComputePSO>(m_HorizontalComputePSO));
 	PushBackVertical(std::make_shared<ComputePSO>(m_VerticalComputePSO));
 

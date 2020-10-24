@@ -5,6 +5,7 @@
 
 class FillLightGridPass : public Pass
 {
+	friend class MasterRenderGraph;
 public:
 	FillLightGridPass(std::string pName);
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;

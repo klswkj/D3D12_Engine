@@ -40,6 +40,7 @@
 
 #include <dxgiformat.h>
 #include <dxgi1_4.h>
+#include <dxgi1_6.h>
 #include <d3d12.h>
 #include "d3dx12.h"
 #include <DirectXMath.h>
@@ -71,6 +72,9 @@
 #include <cstdlib>
 #include <crtdbg.h>
 #endif
+
+#include "MathCommon.h"
+#include "MathBasic.h"
 
 #define DEBUG_EXCEPT noexcept(!_DEBUG)
 
@@ -123,13 +127,42 @@ std::wstring AnsiToWString(const char* str);
 void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t LineNumber);
 
 DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix);
-
 DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix);
-
 DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale);
 
 #ifndef RELEASE
 #define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
 #else
 #define SET_NAME(X) {}
+#endif
+
+#ifndef CRTDEBUG1
+#ifndef RELEASE
+#define CRTDEBUG1 _CrtMemState s1; \
+          _CrtMemCheckpoint(&s1);  \
+          HANDLE hLogFile;         \
+hLogFile = CreateFile(L"Memory Leaks.txt", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL); \
+_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);   \
+_CrtSetReportFile(_CRT_WARN, hLogFile);            \
+_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);  \
+_CrtSetReportFile(_CRT_ERROR, hLogFile);           \
+_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE); \
+_CrtSetReportFile(_CRT_ASSERT, hLogFile);
+#else
+#define CRTDEBUG1 {}
+#endif
+#endif
+
+#ifndef CRTDEBUG2
+#ifndef RELEASE
+#define CRTDEBUG2 _CrtMemState s2;            \
+_CrtMemCheckpoint(&s2);                       \
+_CrtMemState s3;                              \
+if (_CrtMemDifference(&s3, &s1, &s2) == true) \
+{                                             \
+    _CrtMemDumpStatistics(&s3);               \
+}
+#else
+#define CRTDEBUG2 {}
+#endif
 #endif

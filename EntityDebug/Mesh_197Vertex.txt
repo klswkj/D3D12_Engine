@@ -1,0 +1,151 @@
+Vertices
+Position  0 : 672.888, 674.124, -190.85
+Normal    0 : 0, -1, 0
+Texcoord  0 : 0.4143, 0.2619
+Tangent   0 : -1, 0, 0
+BiTangnet 0 : 0, 0, 1
+Position  1 : 672.888, 674.124, -179.262
+Normal    1 : 0, -1, 0
+Texcoord  1 : 0.1928, 0.3593
+Tangent   1 : 0, 0, 0
+BiTangnet 1 : 0, 0, 1
+Position  2 : 682.113, 674.124, -179.262
+Normal    2 : 0, -1, 0
+Texcoord  2 : 0.3593, 0.2619
+Tangent   2 : 0, 0, 0
+BiTangnet 2 : 1, 0, 1
+Position  3 : 682.113, 674.124, -190.85
+Normal    3 : 0, -1, 0
+Texcoord  3 : 0.1055, 0.4143
+Tangent   3 : -1, 0, 0
+BiTangnet 3 : 0, 0, 1
+Position  4 : 682.113, 687.219, -175.849
+Normal    4 : 0, 1, 0
+Texcoord  4 : 0.4143, 0.0161
+Tangent   4 : 0, 0, 0
+BiTangnet 4 : 0, 0, -1
+Position  5 : 672.888, 687.219, -175.849
+Normal    5 : 0, 1, 0
+Texcoord  5 : 0.0161, 0.4915
+Tangent   5 : 0, 0, 0
+BiTangnet 5 : 1, 0, -1
+Position  6 : 672.888, 687.219, -190.85
+Normal    6 : 0, 1, 0
+Texcoord  6 : 0.4984, 0.0855
+Tangent   6 : -1, 0, 0
+BiTangnet 6 : 0, 0, -1
+Position  7 : 682.113, 687.219, -190.85
+Normal    7 : 0, 1, 0
+Texcoord  7 : 0.0969, 0.4143
+Tangent   7 : 0, 0, 0
+BiTangnet 7 : 0, 0, -1
+Position  8 : 682.113, 674.124, -179.262
+Normal    8 : 1, 0, 0
+Texcoord  8 : 0.3593, 0.1795
+Tangent   8 : 0, 0, 1
+BiTangnet 8 : 1, 0.999987, 0.00506599
+Position  9 : 682.113, 676.028, -178.095
+Normal    9 : 1, 0, 0
+Texcoord  9 : 0.1928, 0.4143
+Tangent   9 : -1, 0.00120833, 0.999999
+BiTangnet 9 : 0, 0.999997, 0.00245457
+Position  10 : 682.113, 674.124, -190.85
+Normal    10 : 1, 0, 0
+Texcoord  10 : 0.4346, 0.1836
+Tangent   10 : 0, 0, 1
+BiTangnet 10 : 0, 0.999994, 0.00337733
+Position  11 : 672.888, 676.028, -178.095
+Normal    11 : 0, -0.7475, 0.6642
+Texcoord  11 : 0.1836, 0.4277
+Tangent   11 : 0, 0, 0
+BiTangnet 11 : 1, 0.664234, 0.747525
+Position  12 : 682.113, 676.028, -178.095
+Normal    12 : 0, -0.7475, 0.6642
+Texcoord  12 : 0.4224, 0.0188
+Tangent   12 : -1, 0, 0
+BiTangnet 12 : 0, 0.664234, 0.747525
+Position  13 : 682.113, 674.124, -179.262
+Normal    13 : 0, -0.5224, 0.8527
+Texcoord  13 : 0.0188, 0.3593
+Tangent   13 : 0, 0, 0
+BiTangnet 13 : 0, 0.8527, 0.5224
+Position  14 : 672.888, 674.124, -179.262
+Normal    14 : 0, -0.5224, 0.8527
+Texcoord  14 : 0.3593, 0.1661
+Tangent   14 : 0, 0, 0
+BiTangnet 14 : -1, 0.8527, 0.5224
+Position  15 : 672.888, 674.124, -179.262
+Normal    15 : -1, 0, 0
+Texcoord  15 : 0.1661, 0.4143
+Tangent   15 : -1, 0, -1
+BiTangnet 15 : 0, 0.999987, 0.00506848
+Position  16 : 672.888, 674.124, -190.85
+Normal    16 : -1, 0, 0
+Texcoord  16 : 0.5037, 0.1055
+Tangent   16 : 0, 0, -1
+BiTangnet 16 : 0, 0.999994, 0.00337899
+Position  17 : 672.888, 676.028, -178.095
+Normal    17 : -1, 0, 0
+Texcoord  17 : 0.1055, 0.5118
+Tangent   17 : 0, -0.00120848, -0.999999
+BiTangnet 17 : -1, 0.999997, 0.00245571
+Position  18 : 682.113, 687.219, -190.85
+Normal    18 : 1, 0, 0
+Texcoord  18 : 0.4143, 0.1661
+Tangent   18 : -1, 0, 1
+BiTangnet 18 : 0, 1, 0
+Position  19 : 682.113, 687.219, -175.849
+Normal    19 : 1, 0, 0
+Texcoord  19 : 0.1661, 0.4143
+Tangent   19 : 0, 0.00182351, 0.999998
+BiTangnet 19 : 0, 1, 0
+Position  20 : 682.113, 687.219, -175.849
+Normal    20 : 0, 0, 1
+Texcoord  20 : 0, -1
+Tangent   20 : 0, 0, 0
+BiTangnet 20 : -1, 1, 0
+Position  21 : 682.113, 677.063, -175.849
+Normal    21 : 0, 0, 1
+Texcoord  21 : 0, -1
+Tangent   21 : -1, 0, 0
+BiTangnet 21 : 0, 1, 0
+Position  22 : 672.888, 677.063, -175.849
+Normal    22 : 0, 0, 1
+Texcoord  22 : 0, -1
+Tangent   22 : 0, 0, 0
+BiTangnet 22 : 0, 1, 0
+Position  23 : 672.888, 687.219, -175.849
+Normal    23 : 0, 0, 1
+Texcoord  23 : 0, -1
+Tangent   23 : 0, 0, 0
+BiTangnet 23 : -1, 1, 0
+Position  24 : 672.888, 687.219, -190.85
+Normal    24 : -1, 0, 0
+Texcoord  24 : 0, 1
+Tangent   24 : 0, 0, -1
+BiTangnet 24 : 0, 1, 0
+Position  25 : 672.888, 687.219, -175.849
+Normal    25 : -1, 0, 0
+Texcoord  25 : 0, 1
+Tangent   25 : 0, -0.00182365, -0.999998
+BiTangnet 25 : 0.999987, 1, 0
+Position  26 : 682.113, 677.063, -175.849
+Normal    26 : 1, 0, 0
+Texcoord  26 : 0, 1
+Tangent   26 : 1, 0.0054705, 0.999985
+BiTangnet 26 : 0.00506599, 1, 0
+Position  27 : 672.888, 677.063, -175.849
+Normal    27 : 0, -0.9082, 0.4185
+Texcoord  27 : 0, 1
+Tangent   27 : 0, 0, 0
+BiTangnet 27 : 0, 0.418506, 0.908214
+Position  28 : 682.113, 677.063, -175.849
+Normal    28 : 0, -0.9082, 0.4185
+Texcoord  28 : 1, 0
+Tangent   28 : 0.00120833, 0, 0
+BiTangnet 28 : 0.999997, 0.418506, 0.908214
+Position  29 : 672.888, 677.063, -175.849
+Normal    29 : -1, 0, 0
+Texcoord  29 : 1, 0
+Tangent   29 : 0.999999, -0.00547093, -0.999985
+BiTangnet 29 : 0.00245457, 1, 0

@@ -1,7 +1,6 @@
 #pragma once
 #include "stdafx.h"
 #include "CommandContext.h"
-#include "UAVBuffer.h"
 
 namespace custom
 {

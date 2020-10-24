@@ -1,0 +1,17 @@
+xcopy $(SolutionDir)\packages\Assimp_native_4.1.4.1.0\build\native\lib\x64-Release $(TargetDir) /K /D /H /Y
+xcopy $(SolutionDir)Assets $(TargetDir)\Assets /K /D /H /Y /s /i
+xcopy $(SolutionDir)Scene $(TargetDir) /K /D /H /Y /s /i
+
+
+/K - Use this option when copying read-only files to retain that file attribute in destination.
+/D - Use the xcopy command with /d option and a specific date, in MM-DD-YYYY format, to copy files changed on or after that date. 
+      You can also use this option without specifying a specific date to copy only those files in source that are newer than the same files that already exist in destination. 
+      This is helpful when using the xcopy command to perform regular file backups.
+/H - The xcopy command does not copy hidden files or system files by default but will when using this option.
+/Y - Use this option to force the xcopy command to prompt you about overwriting files. 
+      This might seem like a strange option to exist since this is the default behavior of xcopy but the /y option may be preset in the COPYCMD environment variable on some computers, 
+      making this option necessary.
+/S - Use this option to copy directories, subdirectories, and the files contained within them, in addition to the files in the root of source. Empty folders will not be recreated.
+/I -  Use the /i option to force xcopy to assume that destination is a directory.
+      If you don't use this option, and you're copying from source that is a directory or group of files and copying to destination that doesn't exist, 
+      the xcopy command will prompt you enter whether destination is a file or directory.

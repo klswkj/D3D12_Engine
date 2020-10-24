@@ -27,7 +27,7 @@ public:
         uint32_t BufferPrecision       // Bit depth of shadow buffer--usually 16 or 24
     );
 
-    // Used to transform world space to texture space for shadow sampling
+    // Used to m_Transform world space to texture space for shadow sampling
     const Math::Matrix4& GetShadowMatrix() const { return m_ShadowMatrix; }
 
 private:

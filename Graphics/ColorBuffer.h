@@ -1,7 +1,11 @@
 #pragma once
 #include "Color.h"
-#include "CommandContext.h"
 #include "PixelBuffer.h"
+
+namespace custom
+{
+    class CommandContext;
+}
 
 class ColorBuffer : public PixelBuffer
 {

@@ -173,6 +173,11 @@ void SSAOPass::RenderWindow()
 
 void SSAOPass::Execute(custom::CommandContext& BaseContext)
 {
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
 	Camera* pMainCamera = BaseContext.GetpMainCamera();
 
 	const Math::Matrix4& ProjectMatrix = pMainCamera->GetProjMatrix();
@@ -184,11 +189,13 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		ZCoefficient = (FarZClip - NearZClip) / NearZClip;
 	}
 
-	const size_t CurrentFrameIndex = device::GetFrameCount() % device::g_DisplayBufferCount;
+	const size_t CurrentFrameIndex = graphics::GetFrameCount() % device::g_DisplayBufferCount;
 	ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[CurrentFrameIndex];
 	ColorBuffer& SSAOTarget = bufferManager::g_SSAOFullScreen;
 	ColorBuffer& MainRenderTarget = bufferManager::g_SceneColorBuffer;
 	DepthBuffer& MainDepthBuffer = bufferManager::g_SceneDepthBuffer;
+
+	BaseContext.PIXBeginEvent(L"4_SSAOPass");
 
 	// Linearlize
 	if (!m_bEnable)
@@ -201,6 +208,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 
 		if (m_bComputeLinearZ == false)
 		{
+			graphicsContext.PIXEndEvent();
 			return;
 		}
 
@@ -230,6 +238,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 			computeContext.SetPipelineState(m_DebugSSAOCS);
 			computeContext.Dispatch2D(SSAOTarget.GetWidth(), SSAOTarget.GetHeight());
 		}
+		computeContext.PIXEndEvent();
 		return;
 	} // End Linearize
 
@@ -443,6 +452,10 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 	{
 		computeContext.Finish();
 	}
+	else
+	{
+		computeContext.PIXEndEvent();
+	}
 
 	if (m_bDebugDraw)
 	{
@@ -454,6 +467,9 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		}
 
 		custom::ComputeContext& NewComputeContext = BaseContext.GetComputeContext();
+
+		NewComputeContext.PIXBeginEvent(L"SSAO_Debug_Draw");
+
 		NewComputeContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		NewComputeContext.TransitionResource(bufferManager::g_SSAOFullScreen, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		NewComputeContext.SetRootSignature(m_MainRootSignature);
@@ -461,7 +477,14 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		NewComputeContext.SetDynamicDescriptors(2, 0, 1, &bufferManager::g_SceneColorBuffer.GetUAV());
 		NewComputeContext.SetDynamicDescriptors(3, 0, 1, &bufferManager::g_SSAOFullScreen.GetSRV());
 		NewComputeContext.Dispatch2D(bufferManager::g_SSAOFullScreen.GetWidth(), bufferManager::g_SSAOFullScreen.GetHeight());
+
+		NewComputeContext.PIXEndEvent();
 	}
+
+#ifdef _DEBUG
+	float DeltaTime2 = graphics::GetDebugFrameTime();
+	m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
 }
 
 void SSAOPass::BlurAndUpsampling
@@ -556,7 +579,7 @@ void SSAOPass::ComputeAO(custom::ComputeContext& Context, ColorBuffer& Result, C
 		ThicknessMultiplier *= 2.0f;
 	}
 
-	// This will transform a depth value from [0, thickness] to [0, 1].
+	// This will m_Transform a depth value from [0, thickness] to [0, 1].
 	float InverseRangeFactor = 1.0f / ThicknessMultiplier;
 
 	__declspec(align(16)) float SsaoCB[28];
