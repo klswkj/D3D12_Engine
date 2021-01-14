@@ -189,6 +189,55 @@ std::wstring AnsiToWString(const char* str)
     return std::wstring(buffer);
 }
 
+std::string _NormalizeString(const std::string& InputString)
+{
+    size_t FirstDotIndex = -1;       // std::string::npos
+    size_t FirstBackSlashIndex = -1; // std::string::npos 
+
+    FirstDotIndex = InputString.rfind('.');        // strrchr(InputString.c_str(), '.');
+    FirstBackSlashIndex = InputString.rfind('\\'); // strrchr(InputString.c_str(), '\\');
+
+    ASSERT(FirstDotIndex != std::string::npos && FirstBackSlashIndex != std::string::npos);
+
+    return InputString.substr(FirstBackSlashIndex + 1, FirstDotIndex - FirstBackSlashIndex - 1);
+}
+
+std::string SplitFormat(const std::string InputString)
+{
+    size_t FirstDotIndex = -1;
+
+    FirstDotIndex = InputString.rfind('.'); // // strrchr(InputString.c_str(), '.');
+
+    ASSERT(FirstDotIndex != std::string::npos);
+
+    return InputString.substr(0, FirstDotIndex);
+}
+
+std::wstring _NormalizeWString(const std::wstring& InputString)
+{
+    // size_t FirstDotIndex = -1;       // std::string::npos
+    size_t FirstBackSlashIndex = -1; // std::string::npos 
+
+    // FirstDotIndex = InputString.rfind('.');        // strrchr(InputString.c_str(), '.');
+    FirstBackSlashIndex = InputString.rfind('\\'); // strrchr(InputString.c_str(), '\\');
+
+    // ASSERT(FirstDotIndex != std::string::npos && FirstBackSlashIndex != std::wstring::npos);
+
+    // return InputString.substr(FirstBackSlashIndex + 1, FirstDotIndex - FirstBackSlashIndex - 1);
+    return InputString.substr(FirstBackSlashIndex + 1);
+}
+std::wstring SplitFormat(const std::wstring InputString)
+{
+    size_t FirstDotIndex = -1;
+
+    FirstDotIndex = InputString.rfind('.'); // // strrchr(InputString.c_str(), '.');
+
+    ASSERT(FirstDotIndex != std::wstring::npos);
+
+    return InputString.substr(0, FirstDotIndex);
+}
+
+
 void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t LineNumber)
 {
 #ifndef RELEASE

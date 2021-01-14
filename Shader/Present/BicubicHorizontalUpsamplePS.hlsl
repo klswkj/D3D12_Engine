@@ -41,8 +41,8 @@ float3 GetColor(uint s, uint t)
 #endif
 }
 
-[RootSignature(Present_RootSig)]
-float4 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
+[RootSignature(Present_RootSignature)]
+float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 {
     float2 t = uv * TextureSize + 0.5;
     float2 f = frac(t);
@@ -62,5 +62,5 @@ float4 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
         W.z * GetColor(s2, st.y) +
         W.w * GetColor(s3, st.y);
 
-    return (float4) (Color, 0);
+    return Color;
 }

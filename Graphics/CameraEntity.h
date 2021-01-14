@@ -4,20 +4,24 @@
 #include "PSO.h"
 #include "MathBasic.h"
 
+class Camera;
+
 // CameraIndicator's D3D_PRIMITIVE_TOPLOGY is LINELIST!
 class CameraEntity : public Entity
 {
 public:
-	CameraEntity();
+	CameraEntity(Camera* pCamera);
 	void SetPosition(DirectX::XMFLOAT3& Position) noexcept;
 	void SetPosition(Math::Vector3& Position) noexcept;
 	void SetRotation(DirectX::XMFLOAT3& RollPitchYaw) noexcept;
 	void SetRotation(Math::Quaternion& _Quaternion) noexcept;
-	DirectX::XMMATRIX GetTransformXM() const noexcept override;
+	Math::Matrix4 GetTransform() const noexcept override;
 
 private:
 	Math::Vector3 m_CameraPosition{ 0.0f,0.0f,0.0f };
 	Math::Vector3 m_Rotation{ 0.0f,0.0f,0.0f };
+
+	Camera* m_pParentCamera;
 
 	Math::OrthogonalTransform m_CameraToWorld; // Camera::IBaseCamera에도 똑같이 있음.
 
@@ -47,10 +51,4 @@ inline void CameraEntity::SetRotation(Math::Quaternion& _Quaternion) noexcept
 {
 	// m_Rotation = DirectX::XMRotation -> Quaternion convert to EulerAngle... Gimber lock
 	m_CameraToWorld.SetRotation(_Quaternion);
-}
-
-inline DirectX::XMMATRIX CameraEntity::GetTransformXM() const noexcept
-{
-	return DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
-		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition));
 }

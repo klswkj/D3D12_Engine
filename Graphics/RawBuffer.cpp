@@ -154,14 +154,14 @@ size_t IPolymorphData::GetSizeInBytes() const DEBUG_EXCEPT
 IPolymorphData& IPolymorphData::Add(custom::Type Type, std::string Key) DEBUG_EXCEPT
 {
 	ASSERT(type == custom::Type::Struct, "Add to non-struct in layout");
-	ASSERT(ValidateSymbolName(Key), "invalid symbol name in Struct");
+	ASSERT(ValidateSymbolName(Key), "invalid symbol m_Name in Struct");
 
 	auto& structData = static_cast<ExtraData::Struct&>(*pImplData);
 	for (auto& mem : structData.layoutElements)
 	{
 		if (mem.first == Key)
 		{
-			ASSERT(0, "Adding duplicate name to struct");
+			ASSERT(0, "Adding duplicate m_Name to struct");
 		}
 	}
 	structData.layoutElements.emplace_back(std::move(Key), IPolymorphData{ Type });

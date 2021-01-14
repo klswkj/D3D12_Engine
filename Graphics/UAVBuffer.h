@@ -80,11 +80,11 @@ namespace custom
 			return IndexBufferView(Offset, (uint32_t)(m_bufferSize - Offset), m_elementSize == 4);
 		}
 
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetUAV(void) const
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetUAV() const
 		{
 			return m_UAV;
 		}
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetSRV(void) const
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetSRV() const
 		{
 			return m_SRV;
 		}
@@ -110,8 +110,8 @@ namespace custom
 			m_SRV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
 		}
 
-		virtual void CreateUAV(void) = 0;
-		D3D12_RESOURCE_DESC resourceDescriptor(void);
+		virtual void CreateUAV(std::wstring Name) = 0;
+		D3D12_RESOURCE_DESC resourceDescriptor();
 
 	protected:
 		D3D12_CPU_DESCRIPTOR_HANDLE m_UAV;
@@ -129,29 +129,41 @@ namespace custom
 	class ByteAddressBuffer : public UAVBuffer
 	{
 	public:
-		virtual void CreateUAV() override;
+		~ByteAddressBuffer()
+		{
+			Destroy();
+		}
+		virtual void CreateUAV(std::wstring Name = L"") override;
 
 		static ByteAddressBuffer* CreateIndexBuffer
 		(
 			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
-			const void* initialData = nullptr
+			const void* initialData
 		);
-
-		static void DestroyIndexBuffer();
+		virtual void Destroy() override
+		{
+			UAVBuffer::Destroy();
+			GPUResource::Destroy();
+		}
+		static void DestroyIndexAllBuffer();
 	};
 
 	class StructuredBuffer : public UAVBuffer
 	{
 	public:
-		virtual void CreateUAV() override;
+		~StructuredBuffer()
+		{
+			Destroy();
+		}
+		virtual void CreateUAV(std::wstring Name = L"") override;
 
 		static StructuredBuffer* CreateVertexBuffer
 		(
 			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
-			const void* initialData = nullptr
+			const void* initialData
 		);
 
-		static void DestroyVertexBuffer();
+		static void DestroyAllVertexBuffer();
 
 		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterSRV(CommandContext& Context);
 		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterUAV(CommandContext& Context);
@@ -165,6 +177,7 @@ namespace custom
 		{
 			m_CounterBuffer.Destroy();
 			UAVBuffer::Destroy();
+			GPUResource::Destroy();
 		}
 	private:
 		ByteAddressBuffer m_CounterBuffer;
@@ -186,7 +199,7 @@ namespace custom
 			: m_DataFormat(Format) 
 		{
 		}
-		virtual void CreateUAV() override;
+		virtual void CreateUAV(std::wstring Name = L"") override;
 
 	protected:
 		DXGI_FORMAT m_DataFormat;

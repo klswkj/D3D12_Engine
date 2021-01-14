@@ -25,6 +25,8 @@ namespace custom
 			: m_finalized(FALSE), m_numRootParameters(NumRootParams)
 		{
 			Reset(NumRootParams, NumStaticSamplers);
+			m_firstCompiled = false;
+			m_rootSignature = nullptr;
 		}
 
 		void operator=(const RootSignature& Other)
@@ -59,24 +61,26 @@ namespace custom
 				}
 			}
 
-
 			for (size_t i = 0; i < DESCRIPTOR_TABLE_SIZE; ++i)
 			{
 				m_descriptorTableSize[i] = Other.m_descriptorTableSize[i];
 			}
 
-			if (m_finalized = Other.m_finalized)
+			m_finalized = Other.m_finalized;
+
+			if (m_finalized)
 			{
 				m_rootSignature = Other.m_rootSignature;
 			}
-			m_firstCompiled = Other.m_firstCompiled;
-			m_descriptorTableBitMap = Other.m_descriptorTableBitMap;
+
+			m_firstCompiled            = Other.m_firstCompiled;
+			m_descriptorTableBitMap    = Other.m_descriptorTableBitMap;
 			m_staticSamplerTableBitMap = Other.m_staticSamplerTableBitMap;
 		}
 
+#ifdef _RAW_PTR
 		~RootSignature()
 		{
-#ifdef _RAW_PTR
 			if (m_firstCompiled)
 			{
 				if (m_rootParamArray != nullptr)
@@ -91,8 +95,8 @@ namespace custom
 					m_staticSamplerArray = nullptr;
 				}
 			}
-#endif
 		}
+#endif
 
 		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
 		{
@@ -172,6 +176,7 @@ namespace custom
 
 		ID3D12RootSignature* GetSignature() const 
 		{ 
+			ASSERT(m_rootSignature != nullptr);
 			return m_rootSignature; 
 		}
 
@@ -189,12 +194,12 @@ namespace custom
 		RootParameter* m_rootParamArray = nullptr;
 		D3D12_STATIC_SAMPLER_DESC* m_staticSamplerArray = nullptr;
 #else
-		std::shared_ptr<RootParameter[]> m_rootParamArray;
+		std::shared_ptr<RootParameter[]>             m_rootParamArray;
 		std::shared_ptr<D3D12_STATIC_SAMPLER_DESC[]> m_staticSamplerArray;
 #endif
-		ID3D12RootSignature* m_rootSignature = nullptr;
+		ID3D12RootSignature* m_rootSignature;
 
-		BOOL     m_firstCompiled = false;
+		BOOL     m_firstCompiled;
 		uint32_t m_descriptorTableBitMap;                      // One bit is set for root parameters that are non-sampler descriptor tables
 		uint32_t m_staticSamplerTableBitMap;                   // One bit is set for root parameters that are sampler descriptor tables
 		uint32_t m_descriptorTableSize[DESCRIPTOR_TABLE_SIZE]; // Non-sampler descriptor tables need to know their descriptor count

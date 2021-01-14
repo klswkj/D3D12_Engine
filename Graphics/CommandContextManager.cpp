@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "CommandContextManager.h"
 
-custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE Type)
+custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIST_TYPE Type, const std::wstring& ID)
 {
 	std::lock_guard<std::mutex> LockGuard(sm_ContextAllocationMutex);
 
@@ -13,18 +13,20 @@ custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIS
 	{
 		ret = new custom::CommandContext(Type);
 		sm_ContextPool[Type].emplace_back(ret);
-		ret->Initialize();
+		ret->Initialize(ID);
 	}
 	else
 	{
 		ret = AvailableContexts.front();
 		AvailableContexts.pop();
-		ret->Reset();
+		ret->Reset(ID);
 	}
 	ASSERT(ret != nullptr);
 
 	ASSERT(ret->m_type == Type);
 
+	ret->m_Viewport    = m_Viewport;
+	ret->m_Rect        = m_Scissor;
 	ret->m_VSConstants = m_VSConstants;
 	ret->m_PSConstants = m_PSConstants;
 	ret->m_pMainCamera = m_pCamera;

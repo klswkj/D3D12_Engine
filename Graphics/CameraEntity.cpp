@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "CameraEntity.h"
+#include "Camera.h"
 #include "PreMadePSO.h"
 #include "BufferManager.h"
 #include "RootSignature.h"
@@ -31,18 +32,18 @@
 #define THALF 0.5f
 #define TSPACE 0.15f
 
-CameraEntity::CameraEntity()
+CameraEntity::CameraEntity(Camera* pCamera)
 {
 	// x = 1.0f; y = 0.75f; z  -2.0f;
 	// tHalf = 0.5f; tSpace = 0.15f
 
-	DirectX::XMFLOAT3 vertices[8] = { {-X, Y, 0.0f},
-			                          {X, Y, 0.0f},
-			                          {X, Y, 0.0f,},
+	DirectX::XMFLOAT3 vertices[8] = { {-X,  Y, 0.0f},
+			                          { X,  Y, 0.0f},
+			                          { X,  Y, 0.0f},
 			                          {-X, -Y, 0.0f},
 			                          {0.0f, 0.0f, -Z},
 	                                  {-THALF, Y + THALF, 0.0f},
-	                                  {THALF, Y + THALF, 0.0f},
+	                                  { THALF, Y + THALF, 0.0f},
 	                                  {0.0f, THALF + TSPACE, 0.0f} };
 #pragma pop_macro("X")
 #pragma pop_macro("Y")
@@ -65,8 +66,25 @@ CameraEntity::CameraEntity()
 		7, 5
 	};
 
-	m_VerticesBuffer.Create(L"Camera Entity VertexBuffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
-	m_IndicesBuffer.Create(L"Camera Entity IndexBuffer", _countof(indices), sizeof(uint8_t), indices);
+	// m_VerticesBuffer.Create(L"Camera Entity VertexBuffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
+	// m_IndicesBuffer.Create(L"Camera Entity IndexBuffer", _countof(indices), sizeof(uint8_t), indices);
+
+	custom::StructuredBuffer* pVertexBuffer = 
+		custom::StructuredBuffer::CreateVertexBuffer(L"Camera_Entity_VB", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
+
+	custom::ByteAddressBuffer* pIndexBuffer =
+		custom::ByteAddressBuffer::CreateIndexBuffer(L"Camera_Entity_IB", _countof(indices), sizeof(uint8_t), indices);
+
+	D3D12_VERTEX_BUFFER_VIEW ModelVBV = pVertexBuffer->VertexBufferView();
+	D3D12_INDEX_BUFFER_VIEW ModelIBV = pIndexBuffer->IndexBufferView();
+
+	m_IndexCount = _countof(indices);
+	m_StartIndexLocation = 0;
+	m_BaseVertexLocation = 0;
+	m_VertexBufferView = pVertexBuffer->VertexBufferView();
+	m_IndexBufferView = pIndexBuffer->IndexBufferView();
+
+	ComputeBoundingBox((const float*)vertices, _countof(vertices), 3);
 
 	Technique DrawLine{ "Draw Camera", eObjectFilterFlag::kOpaque };
 	Step DrawLineInMainPass("MainRenderPass");
@@ -74,7 +92,7 @@ CameraEntity::CameraEntity()
 	m_RootSignature.Reset(2, 0);
 	m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
 	m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
-	m_RootSignature.Finalize(L"Camera Entity RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	m_RootSignature.Finalize(L"CameraEntity_RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// DrawLineInMainPas.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 
@@ -96,7 +114,7 @@ CameraEntity::CameraEntity()
 	m_PSO.SetRenderTargetFormats(1, &ColorFormat, DepthFormat);
 	m_PSO.SetVertexShader(g_pFlat_VS, sizeof(g_pFlat_VS));
 	m_PSO.SetPixelShader(g_pFlat_PS, sizeof(g_pFlat_PS));
-	m_PSO.Finalize();
+	m_PSO.Finalize(L"CameraEntity_PSO");
 
 	DrawLineInMainPass.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 
@@ -113,4 +131,18 @@ CameraEntity::CameraEntity()
 	// 
 
 	// AddTechnique(std::move(DrawLine));
+
+	m_pParentCamera = pCamera;
+}
+
+/*
+Math::Matrix4 CameraEntity::GetTransform() const noexcept
+{
+	return Math::Matrix4(DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
+		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition)));
+}
+*/
+Math::Matrix4 CameraEntity::GetTransform() const noexcept
+{
+	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
 }

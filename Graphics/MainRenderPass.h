@@ -14,12 +14,16 @@ namespace custom
 class MainRenderPass : public RenderQueuePass
 {
 public:
-	MainRenderPass(std::string Name);
+	MainRenderPass(std::string Name, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pPSO = nullptr);
 	~MainRenderPass();
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
-	void Reset() DEBUG_EXCEPT override;
 
 private:
+	static MainRenderPass* s_pMainRenderPass;
+
+	custom::RootSignature* m_pRootSignature;
+	GraphicsPSO* m_pPSO;
+
 	D3D12_CPU_DESCRIPTOR_HANDLE m_SSAOShadowSRVs[6];
 
 	bool m_bAllocateRootSignature = false;

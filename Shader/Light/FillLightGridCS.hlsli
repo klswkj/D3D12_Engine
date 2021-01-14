@@ -4,20 +4,21 @@
 // outdated warning about for-loop variable scope
 #pragma warning (disable: 3078)
 
-#define FLT_MIN         1.175494351e-38F        // min positive value
-#define FLT_MAX         3.402823466e+38F        // max value
-#define PI                3.1415926535f
-#define TWOPI            6.283185307f
+#define FLT_MIN         1.175494351e-38F // min positive value
+#define FLT_MAX         3.402823466e+38F // max value
+#define PI              3.1415926535f
+#define TWOPI           6.283185307f
 
 #define WORK_GROUP_THREADS (WORK_GROUP_SIZE_X * WORK_GROUP_SIZE_Y * WORK_GROUP_SIZE_Z)
 
-
 cbuffer CSConstants : register(b0)
 {
-    uint ViewportWidth, ViewportHeight;
+    uint ViewportWidth;
+    uint ViewportHeight;
     float InvTileDim;
     float RcpZMagic;
     uint TileCountX;
+    // float3 CustomPadding;
     float4x4 ViewProjMatrix;
 };
 
@@ -41,15 +42,17 @@ groupshared uint4 tileLightBitMask;
 
 [RootSignature(FillLightGridRootSignature)]
 [numthreads(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y, WORK_GROUP_SIZE_Z)]
-void main(
+void main
+(
     uint3 globalID : SV_DispatchThreadID,
     uint3 groupID : SV_GroupID,
     uint3 threadID : SV_GroupThreadID,
-    uint threadIndex : SV_GroupIndex)
+    uint threadIndex : SV_GroupIndex
+)
 {
     // go ahead and fetch depth here
     float depth = -1.0;
-    if (globalID.x >= ViewportWidth || globalID.y >= ViewportHeight)
+    if (ViewportWidth <= globalID.x || ViewportHeight <= globalID.y)
     {
         // out of bounds
     }

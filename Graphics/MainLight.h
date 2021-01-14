@@ -9,8 +9,8 @@ class MainLight
 public:
 	MainLight
 	(
-		float LightOrientation = -0.5f,
-		float LightInclination = 0.75f,
+		float LightOrientation = 0.0f,
+		float LightInclination = 0.70f,
 		Math::Vector3 LightColor = { 1.0f, 1.0f, 1.0f },
 		Math::Vector3 AmbientColor = { 1.0f, 1.0f, 1.0f },
 		Math::Vector3 ShadowCenter = { -500.0f, -1000.0f, -1000.0f },
@@ -18,16 +18,19 @@ public:
 	);
 
 	const Math::Vector3 GetMainLightDirection();
-	// const Math::Matrix4& GetShadowMatrix();
+	const Math::Vector3 GetMainLightColor();
+	const Math::Vector3 GetAmbientColor();
+	const Math::Vector3 GetShadowCenter();
+	const Math::Vector3 GetShadowBounds();
+	const Math::Matrix4& GetShadowMatrix();
 
+	void Up();
+	void Down();
+	void Rotate1();
+	void Rotate2();
 private:
 	// FilledPrimitiveSphere m_Mesh; // Entity
 
-	//float costheta = cosf(m_SunOrientation);
-	//float sintheta = sinf(m_SunOrientation);
-	//float cosphi = cosf(m_SunInclination * 3.14159f * 0.5f);
-	//float sinphi = sinf(m_SunInclination * 3.14159f * 0.5f);
-	//m_SunDirection = Normalize(Vector3(costheta * cosphi, sinphi, sintheta * cosphi));
 	float m_LightOrientation;
 	float m_LightInclination;
 	Math::Vector3 m_LightColor;
@@ -37,5 +40,8 @@ private:
 
 	Math::Vector3 m_ShadowCenter;
 	Math::Vector3 m_ShadowBounds;
+
+	bool bDirty;
+	Math::Vector3 m_LightDirectionVector;
 };
 

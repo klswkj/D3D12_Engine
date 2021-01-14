@@ -25,15 +25,15 @@ namespace device
     extern CommandContextManager g_commandContextManager; // // Not Init Yet
     extern DescriptorHeapManager g_descriptorHeapManager;
 
-    extern ColorBuffer g_DisplayBuffer[];
+    extern ColorBuffer g_DisplayColorBuffer[];
 
     extern uint32_t g_DescriptorSize[];
-
+    extern DXGI_FORMAT SwapChainFormat;
+    extern DXGI_QUERY_VIDEO_MEMORY_INFO g_LocalVideoMemoryInfo;
+    extern DXGI_QUERY_VIDEO_MEMORY_INFO g_NonLocalVideoMemoryInfo;
     extern D3D_FEATURE_LEVEL g_D3DFeatureLevel;
     extern D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
     extern D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT g_GpuVaSupport;
-    extern DXGI_QUERY_VIDEO_MEMORY_INFO g_LocalVideoMemoryInfo;
-    extern DXGI_QUERY_VIDEO_MEMORY_INFO g_NonLocalVideoMemoryInfo;
 
     extern bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT;
     extern bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT;

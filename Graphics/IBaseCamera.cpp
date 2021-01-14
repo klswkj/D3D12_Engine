@@ -14,9 +14,7 @@ void IBaseCamera::Update()
 	// m_ViewProjMatrix = Frustum * ViewMatrix
 	m_ViewProjMatrix = m_ProjMatrix * ViewMatrix;
 	// m_ViewProjMatrix = DirectX::XMMatrixLookToLH
-	// (
-	//     DirectX::XMVECTOR(position), DirectX::XMVECTOR(orientation.GetZ()), DirectX::XMVECTOR(orientation.GetY())
-	// );
+	// (DirectX::XMVECTOR(position), DirectX::XMVECTOR(orientation.GetZ()), DirectX::XMVECTOR(orientation.GetY()));
 	
 	m_ReprojectMatrix = m_PreviousViewProjMatrix * Invert(GetViewProjMatrix());
 	m_FrustumVS = Math::Frustum(m_ProjMatrix);

@@ -8,7 +8,6 @@
 #include "RootSignature.h"
 #include "CommandContext.h"
 #include "ComputeContext.h"
-#include "IBaseCamera.h"
 #include "Camera.h"
 #include "ShaderConstantsTypeDefinitions.h"
 
@@ -54,13 +53,11 @@ LightPrePass::LightPrePass(std::string pName)
     bufferManager::g_LightShadowMatrixes.reserve(sm_MaxLight * 2 + 1);
 
     CreateSphereLight();
+    CreateConeLight();
+    CreateConeShadowedLight();
 
     bufferManager::g_LightGridBitMask.Create(L"g_LightGridBitMask", sm_lightGridBitMaskSizeBytes, 1, nullptr);
     bufferManager::g_CumulativeShadowBuffer.Create(L"g_CumulativeShadowBuffer", sm_kShadowBufferSize, sm_kShadowBufferSize);
-}
-
-LightPrePass::~LightPrePass()
-{
 }
 
 void LightPrePass::Execute(custom::CommandContext& BaseContext)
@@ -70,6 +67,7 @@ void LightPrePass::Execute(custom::CommandContext& BaseContext)
     float DeltaTime1 = graphics::GetDebugFrameTime();
 #endif
 
+    // TODO : If has a new light
     sortContainer();
 
 #ifdef _DEBUG
@@ -93,7 +91,7 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
     ASSERT(m_Lights.size() == m_LightShadowMatrixes.size());
 
     const uint32_t bHasLight = (m_Lights.size() && m_LightShadowMatrixes.size());
-
+    
     ImGui::Columns(2 + bHasLight, nullptr, true);
     {
         ImGui::BeginChild("", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
@@ -202,7 +200,7 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
             ImGui::EndChild();
         }
 
-        Camera tempCamera("To modify light");
+        Camera tempCamera(nullptr, "To modify light");
         // tempCamera.SetEyeAtUp(lightData.pos, DirectX::operator+(lightData.pos, lightData.coneDir), Math::Vector3(0, 1, 0));
         tempCamera.SetEyeAtUp(lightData.pos, 
             Math::Vector3(lightData.pos.x + lightData.coneDir.x, lightData.pos.y + lightData.coneDir.y, lightData.pos.z + lightData.coneDir.z), 
@@ -225,84 +223,59 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
     ImGui::End(); // ImGui::EndChild() 만들어야할 수도
 }
 
-// ImGui::BeginPopupContextItem
-void LightPrePass::CreateSphereLight()
+void LightPrePass::CreateLight(UINT LightType)
 {
     std::vector<LightData>& m_Lights = bufferManager::g_Lights;
     std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;
 
     {
-        static Camera shadowCamera("To Create Sphere Light");
+        static Camera _shadowCamera(nullptr, "Create Light");
 
-        shadowCamera.SetEyeAtUp(Math::Vector3(0, 0, 0), Math::Vector3(0, 1, 0), Math::Vector3(0, 1, 0));
-        shadowCamera.SetPerspectiveMatrix(0.8f, 1.0f, 20.0f, 1000.0f);
-        shadowCamera.Update();
+        _shadowCamera.SetEyeAtUp(Math::Vector3(-661.167603f, 1413.05164f, -584.823120f), Math::Vector3(-661.741699f, 1412.91907f, -585.631104f), Math::Vector3(0, 1, 0));
+        _shadowCamera.SetPerspectiveMatrix(0.8f, 1.0f, 20.0f, 1000.0f);
+        _shadowCamera.Update();
 
-        m_LightShadowMatrixes.push_back(shadowCamera.GetViewProjMatrix());
-    }
-	{
-		m_Lights.push_back(LightData());
-
-		LightData& NewLight = m_Lights.back();
-
-		NewLight.pos.x = 0.0f;
-		NewLight.pos.y = 0.0f;
-		NewLight.pos.z = 0.0f;
-		NewLight.radiusSq = 250000.0f;
-		NewLight.color.x = 0.5f;
-		NewLight.color.y = 0.5f;
-		NewLight.color.z = 0.5f;
-		NewLight.type = 0u;
-		NewLight.coneDir.x = -0.60f;
-		NewLight.coneDir.y = -0.15f;
-		NewLight.coneDir.z = -0.80f;
-		NewLight.coneAngles.x = 50.0f;
-		NewLight.coneAngles.y = 0.90f;
-        memcpy_s(&NewLight.shadowTextureMatrix[0], sizeof(Math::Matrix4), &m_LightShadowMatrixes.back(), sizeof(Math::Matrix4));
-        // *(Math::Matrix4*)(NewLight.shadowTextureMatrix) = m_LightShadowMatrixes.back();
-	}
-
-    // In HLSL code, to use BIT_MASKING Tehcnique, we need sort containers. 
-    recreateBuffers();
-}
-
-void LightPrePass::CreateConeLight()
-{
-    std::vector<LightData>& m_Lights = bufferManager::g_Lights;
-    std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;
-
-    {
-        static Camera shadowCamera("To Create Cone Light");
-
-        shadowCamera.SetEyeAtUp(Math::Vector3(0, 0, 0), Math::Vector3(0, 1, 0), Math::Vector3(0, 1, 0));
-        shadowCamera.SetPerspectiveMatrix(0.8f, 1.0f, 20.0f, 1000.0f);
-        shadowCamera.Update();
-
-        m_LightShadowMatrixes.push_back(shadowCamera.GetViewProjMatrix());
+        m_LightShadowMatrixes.push_back(_shadowCamera.GetViewProjMatrix());
     }
     {
         m_Lights.push_back(LightData());
 
         LightData& NewLight = m_Lights.back();
 
-        NewLight.pos.x = 0.0f;
-        NewLight.pos.y = 0.0f;
-        NewLight.pos.z = 0.0f;
-        NewLight.radiusSq = 250000.0f;
-        NewLight.color.x = 0.5f;
-        NewLight.color.y = 0.5f;
-        NewLight.color.z = 0.5f;
-        NewLight.type = 1u;
-        NewLight.coneDir.x = -0.60f;
-        NewLight.coneDir.y = -0.15f;
-        NewLight.coneDir.z = -0.80f;
+        NewLight.pos.x        = -661.167603f;
+        NewLight.pos.y        = 1413.05164f;
+        NewLight.pos.z        = -584.823120f;
+        NewLight.radiusSq     = 250000.0f;
+        NewLight.color.x      = 0.5f;
+        NewLight.color.y      = 0.5f;
+        NewLight.color.z      = 0.5f;
+        NewLight.type         = LightType;
+        NewLight.coneDir.x    = -0.60f;
+        NewLight.coneDir.y    = -0.15f;
+        NewLight.coneDir.z    = -0.80f;
         NewLight.coneAngles.x = 50.0f;
         NewLight.coneAngles.y = 0.90f;
         memcpy_s(&NewLight.shadowTextureMatrix[0], sizeof(Math::Matrix4), &m_LightShadowMatrixes.back(), sizeof(Math::Matrix4));
         // *(Math::Matrix4*)(NewLight.shadowTextureMatrix) = m_LightShadowMatrixes.back();
     }
- 
+
     recreateBuffers();
+}
+
+// ImGui::BeginPopupContextItem
+void LightPrePass::CreateSphereLight()
+{
+    CreateLight(0u);
+}
+
+void LightPrePass::CreateConeLight()
+{
+    CreateLight(1u);
+}
+
+void LightPrePass::CreateConeShadowedLight()
+{
+    CreateLight(2u);
 }
 
 void LightPrePass::recreateBuffers()
@@ -317,17 +290,17 @@ void LightPrePass::recreateBuffers()
     sortContainer();
 
 	{
-		uint32_t lightGridSizeBytes = sm_kLightGridCells * (4 + LightDataSize * 4);
+		uint32_t lightGridSizeBytes = sm_kLightGridCells * (4 + (uint32_t)LightDataSize * 4);
 
-		bufferManager::g_LightBuffer.Create(L"g_LightBuffer", LightDataSize, sizeof(LightData), m_Lights.data());
+		bufferManager::g_LightBuffer.Create(L"g_LightBuffer", (uint32_t)LightDataSize, sizeof(LightData), m_Lights.data());
 		bufferManager::g_LightGrid.Create(L"g_LightGrid", lightGridSizeBytes, 1, nullptr);
-		bufferManager::g_LightShadowArray.CreateArray(L"g_LightShadowArray", sm_kShadowBufferSize, sm_kShadowBufferSize, LightDataSize, DXGI_FORMAT_R16_UNORM);
+		bufferManager::g_LightShadowArray.CreateArray(L"g_LightShadowArray", sm_kShadowBufferSize, sm_kShadowBufferSize, (uint32_t)LightDataSize, DXGI_FORMAT_R16_UNORM);
 	}
 }
 
 // sort lights by type(Sphere, Cone, Cone w/ shadow Map)
 // In HLSL code, to use BIT_MASKING Tehcnique, we need sorted container.
-void LightPrePass::sortContainer()
+void LightPrePass::sortContainer() // LIGHT_GRID_PRELOADING - Testing HLSL 6.0 
 {
     std::vector<LightData>& m_Lights = bufferManager::g_Lights;
     std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;

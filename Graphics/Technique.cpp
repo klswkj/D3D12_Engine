@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Technique.h"
 #include "Entity.h"
-#include "TechniqueWindow.h"
+#include "ModelComponentWindow.h"
 #include "ObjectFilterFlag.h"
 
 std::mutex Technique::sm_mutex;
@@ -41,13 +41,13 @@ void Technique::SetActiveState(bool Active) noexcept
 	m_bActive = Active;
 }
 
-void Technique::Accept(ITechniqueWindow& Window)
+void Technique::Accept(IWindow& _IWindow)
 {
-	Window.SetTechnique(this);
+	_IWindow.SetTechnique(this);
 
 	for (auto& Step : m_Steps)
 	{
-		Step.Accept(Window);
+		Step.Accept(_IWindow);
 	}
 }
 

@@ -20,8 +20,7 @@ public:
 	void SetPosition(Math::Vector3& Position) noexcept;
 	void SetRotation(const DirectX::XMFLOAT3& Position) noexcept;
 	void SetRotation(Math::Vector3& Position) noexcept;
-	DirectX::XMMATRIX GetTransformXM() const noexcept override;
-	Math::Matrix4 GetTransform() const noexcept;
+	Math::Matrix4 GetTransform() const noexcept override;
 
 private:
 	Math::Vector3 m_CameraPosition = { 0.0f,0.0f,0.0f };          // Convert to Orthogonal Transform

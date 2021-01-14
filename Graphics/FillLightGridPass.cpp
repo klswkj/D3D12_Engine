@@ -18,9 +18,15 @@
 #include "../x64/RELEASE/Graphics(.lib)/CompiledShaders/FillLightGridCS_32.h"
 #endif
 
+FillLightGridPass* FillLightGridPass::s_pFillLightGridPass = nullptr;
+
 FillLightGridPass::FillLightGridPass(std::string pName)
     : Pass(pName)
 {
+    ASSERT(s_pFillLightGridPass == nullptr);
+
+    s_pFillLightGridPass = this;
+
     m_FillLightRootSignature.Reset(3, 0);
     m_FillLightRootSignature[0].InitAsConstantBuffer(0);
     m_FillLightRootSignature[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
@@ -29,19 +35,19 @@ FillLightGridPass::FillLightGridPass(std::string pName)
 
     m_FillLightGridPSO_WORK_GROUP_8.SetRootSignature(m_FillLightRootSignature);
     m_FillLightGridPSO_WORK_GROUP_8.SetComputeShader(g_pFillLightGridCS_8, sizeof(g_pFillLightGridCS_8));
-    m_FillLightGridPSO_WORK_GROUP_8.Finalize();
+    m_FillLightGridPSO_WORK_GROUP_8.Finalize(L"FillLightGrid8_PSO");
 
     m_FillLightGridPSO_WORK_GROUP_16.SetRootSignature(m_FillLightRootSignature);
     m_FillLightGridPSO_WORK_GROUP_16.SetComputeShader(g_pFillLightGridCS_16, sizeof(g_pFillLightGridCS_16));
-    m_FillLightGridPSO_WORK_GROUP_16.Finalize();
+    m_FillLightGridPSO_WORK_GROUP_16.Finalize(L"FillLightGrid16_PSO");
 
     m_FillLightGridPSO_WORK_GROUP_24.SetRootSignature(m_FillLightRootSignature);
     m_FillLightGridPSO_WORK_GROUP_24.SetComputeShader(g_pFillLightGridCS_24, sizeof(g_pFillLightGridCS_24));
-    m_FillLightGridPSO_WORK_GROUP_24.Finalize();
+    m_FillLightGridPSO_WORK_GROUP_24.Finalize(L"FillLightGrid24_PSO");
 
     m_FillLightGridPSO_WORK_GROUP_32.SetRootSignature(m_FillLightRootSignature);
     m_FillLightGridPSO_WORK_GROUP_32.SetComputeShader(g_pFillLightGridCS_32, sizeof(g_pFillLightGridCS_32));
-    m_FillLightGridPSO_WORK_GROUP_32.Finalize();
+    m_FillLightGridPSO_WORK_GROUP_32.Finalize(L"FillLightGrid32_PSO");
 }
 
 // 모든 RenderWindow 흐름 확인
@@ -55,7 +61,7 @@ void FillLightGridPass::RenderWindow()
     if (ImGui::BeginCombo("Working Group Size", WorkingGroups[CurrentIndex]))
     {
         // must keep in sync with HLSL ( 8, 16, 24, 32 )
-        for (size_t i = 0; i < WorkingGroupSize; ++i)
+        for (uint32_t i = 0; i < WorkingGroupSize; ++i)
         {
             const bool bSelected = (CurrentIndex == i);
             if (ImGui::Selectable(WorkingGroups[i], bSelected))
@@ -75,23 +81,24 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
     graphics::InitDebugStartTick();
     float DeltaTime1 = graphics::GetDebugFrameTime();
 #endif
-    custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
-
-    // Move to MasterRenderGraph::Update();
-    // computeContext.SetTileDimension(bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight(), m_WorkGroupSize);
-
-    computeContext.PIXBeginEvent(L"5_FillLightPass");
 
     if (!bufferManager::g_LightBuffer.GetResource())
     {
+#ifdef _DEBUG
+        float DeltaTime2 = graphics::GetDebugFrameTime();
+        m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
         return;
     }
 
+    custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
+
+    computeContext.PIXBeginEvent(L"5_FillLightPass");
     computeContext.SetRootSignature(m_FillLightRootSignature);
 
-    switch ((int)m_WorkGroupSize)
+    switch (m_WorkGroupSize)
     {
-    case  8: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8); break;
+    case  8: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8);  break;
     case 16: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_16); break;
     case 24: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_24); break;
     case 32: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_32); break;
@@ -99,12 +106,13 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
         break;
     }
 
-    ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[graphics::GetFrameCount() % 2];
+    // g_LinearDepth is Written by SSAOPass.
+    ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[graphics::GetFrameCount() % device::g_DisplayBufferCount];
 
-    computeContext.TransitionResource(bufferManager::g_LightBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    computeContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    computeContext.TransitionResource(LinearDepth,                       D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     computeContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(bufferManager::g_LightGrid, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    computeContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     computeContext.SetDynamicDescriptor(1, 0, bufferManager::g_LightBuffer.GetSRV());
@@ -118,9 +126,12 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
 
     Camera* pMainCamera = BaseContext.GetpMainCamera();
 
-    float FarClipDist = pMainCamera->GetFarZClip();
-    float NearClipDist = pMainCamera->GetNearZClip();
-    const float RcpZMagic = NearClipDist / (FarClipDist - NearClipDist);
+    float RcpZMagic;
+	{
+		float FarClipDist = pMainCamera->GetFarZClip();
+		float NearClipDist = pMainCamera->GetNearZClip();
+		RcpZMagic = NearClipDist / (FarClipDist - NearClipDist);
+	}
 
     CSConstants csConstants;
     // todo: assumes 1920x1080 resolution
@@ -135,9 +146,8 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
 
     computeContext.Dispatch(tileCountX, tileCountY, 1);
 
-    computeContext.TransitionResource(bufferManager::g_LightGrid, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    computeContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
     computeContext.PIXEndEvent();
 #ifdef _DEBUG
     float DeltaTime2 = graphics::GetDebugFrameTime();

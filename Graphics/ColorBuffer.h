@@ -35,15 +35,15 @@ public:
     );
 
     // Get pre-created CPU-visible descriptor handles
-    const D3D12_CPU_DESCRIPTOR_HANDLE& GetSRV(void) const 
+    const D3D12_CPU_DESCRIPTOR_HANDLE& GetSRV() const 
     {
         return m_SRVHandle; 
     }
-    const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV(void) const 
+    const D3D12_CPU_DESCRIPTOR_HANDLE& GetRTV() const 
     {
         return m_RTVHandle; 
     }
-    const D3D12_CPU_DESCRIPTOR_HANDLE& GetUAV(void) const 
+    const D3D12_CPU_DESCRIPTOR_HANDLE& GetUAV() const 
     { 
         return m_UAVHandle[0]; 
     }
@@ -60,7 +60,7 @@ public:
         m_sampleCount = NumCoverageSamples;
     }
 
-    custom::Color GetClearColor(void) const 
+    custom::Color GetClearColor() const 
     { 
         return m_clearColor; 
     }
@@ -68,7 +68,7 @@ public:
     void GenerateMipMaps(custom::CommandContext& Context);
 
 protected:
-    D3D12_RESOURCE_FLAGS CombineResourceFlags(void) const
+    D3D12_RESOURCE_FLAGS CombineResourceFlags() const
     {
         D3D12_RESOURCE_FLAGS Flags = D3D12_RESOURCE_FLAG_NONE;
 
@@ -93,11 +93,12 @@ protected:
     void createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips = 1);
 
 protected:
-    custom::Color m_clearColor;
-    D3D12_CPU_DESCRIPTOR_HANDLE m_SRVHandle;
-    D3D12_CPU_DESCRIPTOR_HANDLE m_RTVHandle;
-    D3D12_CPU_DESCRIPTOR_HANDLE m_UAVHandle[12];
+    custom::Color m_clearColor; 
     uint32_t m_numMipMaps; // number of texture sublevels
     uint32_t m_fragmentCount;
     uint32_t m_sampleCount;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_SRVHandle;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_RTVHandle;
+    D3D12_CPU_DESCRIPTOR_HANDLE m_UAVHandle[12];
+    
 };

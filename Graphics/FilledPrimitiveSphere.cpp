@@ -30,8 +30,8 @@ void FilledPrimitiveSphere::SetPos(DirectX::XMFLOAT3 Position) noexcept
 
 }
 
-DirectX::XMMATRIX FilledPrimitiveSphere::GetTransformXM() const noexcept
+Math::Matrix4 FilledPrimitiveSphere::GetTransform() const noexcept
 {
 	ASSERT(false, "This is not Completed.");
-	return DirectX::XMMATRIX{};
+	return Math::Matrix4{};
 }

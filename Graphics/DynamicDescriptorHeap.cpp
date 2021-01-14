@@ -114,7 +114,6 @@ namespace custom
     //                                                                    16fed   cba9   8765   4321  
     //                                                         StaleParams ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û
     // m_rootDescriptorTable[kMaxNumDescriptorTables] DescriptorTableCache ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û | ¡Û¡Û¡Û¡Û
-
     uint32_t DynamicDescriptorHeap::DescriptorHandleCache::ComputeStagedSize()
     {
         // Sum the maximum assigned offsets of stale descriptor tables to determine total needed space.
@@ -233,7 +232,7 @@ namespace custom
                 }
 
                 // Move the destination pointer forward by the number of descriptors we will copy
-                SrcHandles += DescriptorCount;
+                SrcHandles  += DescriptorCount;
                 CurDest.ptr += DescriptorCount * DescriptorSize;
             }
         }
@@ -289,6 +288,8 @@ namespace custom
         return DestHandle.GetGpuHandle();
     }
 
+
+
     void DynamicDescriptorHeap::DescriptorHandleCache::UnbindAllValid()
     {
         m_staleRootParamsBitMap = 0;
@@ -322,13 +323,11 @@ namespace custom
 		}
 
         TableCache.assignedHandlesBitMap |= ((1 << NumHandles) - 1) << Offset;
-        m_staleRootParamsBitMap |= (1 << RootIndex);
+        m_staleRootParamsBitMap          |= (1 << RootIndex);
     }
 
     void DynamicDescriptorHeap::DescriptorHandleCache::ParseRootSignature(D3D12_DESCRIPTOR_HEAP_TYPE Type, const RootSignature& RootSig)
     {
-        UINT CurrentOffset = 0;
-
         ASSERT(RootSig.m_numRootParameters <= 16, "Maybe we need to support something greater");
 
         m_staleRootParamsBitMap = 0;
@@ -338,19 +337,22 @@ namespace custom
 			RootSig.m_staticSamplerTableBitMap : RootSig.m_descriptorTableBitMap
 		);
 
-        unsigned long TableParams = m_rootDescriptorTablesBitMap;
+        UINT CurrentOffset = 0;
+
+        unsigned long TableBitMap = m_rootDescriptorTablesBitMap;
         unsigned long RootIndex;
-        while (_BitScanForward(&RootIndex, TableParams))
+
+        while (_BitScanForward(&RootIndex, TableBitMap))
         {
-            TableParams ^= (1 << RootIndex);
+            TableBitMap ^= (1 << RootIndex);
 
             UINT tableSize = RootSig.m_descriptorTableSize[RootIndex];
             ASSERT(tableSize > 0);
 
             DescriptorTableCache& RootDescriptorTable = m_rootDescriptorTable[RootIndex];
             RootDescriptorTable.assignedHandlesBitMap = 0;
-            RootDescriptorTable.pTableStart = m_handleCache + CurrentOffset;
-            RootDescriptorTable.tableSize = tableSize;
+            RootDescriptorTable.pTableStart           = m_handleCache + CurrentOffset;
+            RootDescriptorTable.tableSize             = tableSize;
 
             CurrentOffset += tableSize;
         }

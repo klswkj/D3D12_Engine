@@ -2,6 +2,7 @@
 #include "RenderingResource.h"
 
 class Entity;
+class IWindow;
 
 #define DEFAULT_DIFFUSE_COLOR  Math::Vector3(0.18f, 0.18f, 0.18f)
 #define DEFAULT_SPECULAR_COLOR Math::Vector3(0.45f, 0.45f, 0.45f)
@@ -10,33 +11,80 @@ class Entity;
 
 // Keep Sync in HLSL.
 
-class ControllerConstants0 : public RenderingResource
+/*
+D3D12Engine::EndFrame()
+ModelComponentWindow::RenderWindow()
+Node::Accept(Window);
+Entity::Accept(Window);
+Technique::Accept(Window);
+Step::Accept(Window);
+RenderingResource::Accept(Window);
+TechniqueProbe::VisitBufer();
+TP::OnVisitBuffer();
+
+					 <-> TechniqueProbe
+ModelComponentWIndow <-> MP
+IWindow       <-> TP
+*/
+
+class IControllerConstant : public RenderingResource
+{
+public:
+	virtual ~IControllerConstant() {}
+
+	virtual void SetDiffuseColor(Math::Vector3 DiffuseColor) {}
+	virtual void SetDiffuseColorByElement(float R, float G, float B) {}
+
+	virtual void SetSpecularColor(Math::Vector3 SpecularColor) {}
+	virtual void SetSpecularColorByElement(float R, float G, float B) {}
+	virtual void SetSpecularWeight(float SpecularWeight) {}
+
+	virtual void SetUseSpecularMap(bool bUseSpecularMap) {}
+	virtual void SetSpecularGloss(float SpecularGloss) {}
+	virtual void SetUseGlossAlpha(bool bUseGlossAlpha) {}
+
+	virtual void SetUseNormalMap(bool bUseNormalMap) {}
+	virtual void SetNormalMapWeight(float NormalMapWeight) {}
+
+protected:
+	bool m_bDiffuse  = false;;
+	bool m_bSpecular = false;
+	bool m_Normal    = false;
+};
+
+// Has none Texture
+class ControllerConstants0 : public IControllerConstant
 {
 public:
 	ControllerConstants0
 	(
-		Math::Vector3 DiffuseColor = DEFAULT_DIFFUSE_COLOR,
+		Math::Vector3 DiffuseColor  = DEFAULT_DIFFUSE_COLOR,
 		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR,
-		float SpecularGloss = DEFAULT_SPECULAR_GLOSS,
-		float SpecularWeight = 1.0f
+		float SpecularGloss         = DEFAULT_SPECULAR_GLOSS,
+		float SpecularWeight        = 1.0f
 	);
-	ControllerConstants0(ControllerConstants0&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetDiffuseColor(Math::Vector3 DiffuseColor);
-	void SetDiffuseColorByElement(float R, float G, float B);
-	void SetSpecularGloss(float SpecularGloss);
+	void SetDiffuseColor(Math::Vector3 DiffuseColor) override;
+	void SetDiffuseColorByElement(float R, float G, float B) override;
+	void SetSpecularGloss(float SpecularGloss) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
-	void SetSpecularWeight(float SpecularWeight);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
+	void SetSpecularWeight(float SpecularWeight) override;
 
-	Math::Vector4 DiffuseColorAndSpecularGloss;
-	Math::Vector4 SpecularColorAndWeight;
+	struct Data
+	{
+		Math::Vector4 DiffuseColorAndSpecularGloss;
+		Math::Vector4 SpecularColorAndWeight;
+	};
+	Data m_Data;
 };
 
-class ControllerConstants1 : public RenderingResource
+// Diffuse
+class ControllerConstants1 : public IControllerConstant
 {
 public:
 	ControllerConstants1
@@ -45,22 +93,25 @@ public:
 		float SpecularGloss = DEFAULT_SPECULAR_GLOSS, 
 		float SpecularWeight = 1.0f
 	);
-	ControllerConstants1(ControllerConstants1&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
-	void SetSpecularWeight(float SpecularWeight);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
+	void SetSpecularWeight(float SpecularWeight) override;
 
-	void SetSpecularGloss(float SpecularGloss);
-
-	Math::Vector4 SpecularColorAndWeight;
-	float SpecularGloss;
+	void SetSpecularGloss(float SpecularGloss) override;
+	struct Data
+	{
+		Math::Vector4 SpecularColorAndWeight;
+		float SpecularGloss;
+	};
+	Data m_Data;
 };
 
 // Specular
-class ControllerConstants2 : public RenderingResource
+class ControllerConstants2 : public IControllerConstant
 {
 public:
 	ControllerConstants2
@@ -72,91 +123,103 @@ public:
 		bool bUseSpecularMap = true, 
 		bool bUseGlossAlpha = true
 	);
-	ControllerConstants2(ControllerConstants2&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
 	// Data Handle Method
-	void SetDiffuseColor(Math::Vector3 DiffuseColor);
-	void SetDiffuseColorByElement(float R, float G, float B);
-	void SetUseGlossAlpha(bool bUseGlossAlpha);
+	void SetDiffuseColor(Math::Vector3 DiffuseColor) override;
+	void SetDiffuseColorByElement(float R, float G, float B) override;
+	void SetUseGlossAlpha(bool bUseGlossAlpha) override;
 
-	void SetUseSpecularMap(bool bUseSpecularMap);
-	void SetSpecularWeight(float SpecularWeight);
-	void SetSpecularGloss(float SpecularGloss);
+	void SetUseSpecularMap(bool bUseSpecularMap) override;
+	void SetSpecularWeight(float SpecularWeight) override;
+	void SetSpecularGloss(float SpecularGloss) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
 
-	Math::Vector4 DiffuseColorAndUseGlossAlpha;
-	Math::Vector3 UseSpecularMapSpecularWeightGloss;
-	DirectX::XMFLOAT3 SpecularColor;
+	struct Data
+	{
+		Math::Vector4 DiffuseColorAndUseGlossAlpha;
+		Math::Vector3 UseSpecularMapSpecularWeightGloss;
+		DirectX::XMFLOAT3 SpecularColor;
+	};
+
+	Data m_Data;
 };
 
 // Diffuse Specular
-class ControllerConstants3 : public RenderingResource
+class ControllerConstants3 : public IControllerConstant
 {
 public:
 	ControllerConstants3
 	(
-		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR, 
-		float SpecularGloss = DEFAULT_SPECULAR_GLOSS, 
-		float SpecularWeight = 1.0f,  
-		bool bUseSpecularMap = true, 
+		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR,
+		float SpecularGloss = DEFAULT_SPECULAR_GLOSS,
+		float SpecularWeight = 1.0f,
+		bool bUseSpecularMap = true,
 		bool bUseGlossAlpha = true
 	);
-	ControllerConstants3(ControllerConstants3&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetUseGlossAlpha(bool bUseGlossAlpha);
-	void SetUseSpecularMap(bool bUseSpecularMap);
-	void SetSpecularWeight(float SpecularWeight);
-	void SetSpecularGloss(float SpecularGloss);
+	void SetUseGlossAlpha(bool bUseGlossAlpha) override;
+	void SetUseSpecularMap(bool bUseSpecularMap) override;
+	void SetSpecularWeight(float SpecularWeight) override;
+	void SetSpecularGloss(float SpecularGloss) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
 
-	Math::Vector4 UseGlossAlphaUseSpecularMapAndSpecularWeightGloss;
-	DirectX::XMFLOAT3 SpecularColor;
+	struct Data
+	{
+		Math::Vector4 UseGlossAlphaUseSpecularMapAndSpecularWeightGloss;
+		Math::Vector3 SpecularColor;
+	};
+	Data m_Data;
 };
 
 // Normal
-class ControllerConstants4 : public RenderingResource
+class ControllerConstants4 : public IControllerConstant
 {
 public:
 	ControllerConstants4
 	(
-		Math::Vector3 DiffuseColor = DEFAULT_DIFFUSE_COLOR, 
-		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR,  
-		float SpecularGloss = DEFAULT_SPECULAR_GLOSS, 
-		float SpecularWeight = 1.0f, 
-		float NormalMapWeight = 1.0f, 
+		Math::Vector3 DiffuseColor = DEFAULT_DIFFUSE_COLOR,
+		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR,
+		float SpecularGloss = DEFAULT_SPECULAR_GLOSS,
+		float SpecularWeight = 1.0f,
+		float NormalMapWeight = 1.0f,
 		bool bUseNormalMap = true
 	);
-	ControllerConstants4(ControllerConstants4&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
 	// Data Handle Method
-	void SetDiffuseColor(Math::Vector3 DiffuseColor);
-	void SetDiffuseColorByElement(float R, float G, float B);
-	void SetSpecularWeight(float SpecularWeight);
+	void SetDiffuseColor(Math::Vector3 DiffuseColor) override;
+	void SetDiffuseColorByElement(float R, float G, float B) override;
+	void SetSpecularWeight(float SpecularWeight) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
-	void SetSpecularGloss(float SpecularGloss);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
+	void SetSpecularGloss(float SpecularGloss) override;
 
-	void SetUseNormalMap(bool bUseNormalMap);
-	void SetNormalMapWeight(float NormalMapWeight);
-
-	Math::Vector4 DiffuseColorAndSpecularWeight;
-	Math::Vector4 SpecularColorGloss;
-	DirectX::XMFLOAT2 UseNormalMapWeight;
+	void SetUseNormalMap(bool bUseNormalMap) override;
+	void SetNormalMapWeight(float NormalMapWeight) override;
+	struct Data
+	{
+		Math::Vector4 DiffuseColorAndSpecularWeight;
+		Math::Vector4 SpecularColorGloss;
+		Math::Vector2 UseNormalMapWeight;
+	};
+	Data m_Data;
 };
 
 // Diffuse Normal
-class ControllerConstants5 : public RenderingResource
+class ControllerConstants5 : public IControllerConstant
 {
 public:
 	ControllerConstants5
@@ -167,63 +230,78 @@ public:
 		float NormalMapWeight = 1.0f, 
 		bool bUseNormalMap = true
 	);
-	ControllerConstants5(ControllerConstants5&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetSpecularWeight(float SpecularWeight);
-	void SetSpecularGloss(float SpecularGloss);
-	void SetUseNormalMap(bool bUseNormalMap);
-	void SetNormalMapWeight(float NormalMapWeight);
+	void SetSpecularWeight(float SpecularWeight) override;
+	void SetSpecularGloss(float SpecularGloss) override;
+	void SetUseNormalMap(bool bUseNormalMap) override;
+	void SetNormalMapWeight(float NormalMapWeight) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
 
-	Math::Vector4 SpecularWeightGlossUseNormalMapNormalWeight;
-	DirectX::XMFLOAT3 SpecularColor;
+	struct Data
+	{
+		Math::Vector4 SpecularWeightGlossUseNormalMapNormalWeight;
+		Math::Vector3 SpecularColor;
+	};
+	Data m_Data;
 };
 
 // Specular Normal
-class ControllerConstants6 : public RenderingResource
+class ControllerConstants6 : public IControllerConstant
 {
 public:
 	ControllerConstants6
 	(
-		Math::Vector3 DiffuseColor = DEFAULT_DIFFUSE_COLOR, 
-		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR, 
-		float SpecularGloss = DEFAULT_SPECULAR_GLOSS, 
-		float SpecularWeight = 1.0f, 
-		float NormalMapWeight = 1.0f, 
-		bool bUseGlossAlpha = true, 
-		bool bUseSpecularMap = true, 
+		Math::Vector3 DiffuseColor = DEFAULT_DIFFUSE_COLOR,
+		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR,
+		float SpecularGloss = DEFAULT_SPECULAR_GLOSS,
+		float SpecularWeight = 1.0f,
+		float NormalMapWeight = 1.0f,
+		bool bUseGlossAlpha = true,
+		bool bUseSpecularMap = true,
 		bool bUseNormalMap = true
 	);
-	ControllerConstants6(ControllerConstants6&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetDiffuseColor(Math::Vector3 DiffuseColor);
-	void SetDiffuseColorByElement(float R, float G, float B);
-	void SetUseGlossAlpha(bool bUseGlossAlpha);
+	void SetDiffuseColor(Math::Vector3 DiffuseColor) override;
+	void SetDiffuseColorByElement(float R, float G, float B) override;
+	void SetUseGlossAlpha(bool bUseGlossAlpha) override;
 
-	void SetUseSpecularMap(bool bUseSpecularMap);
-	void SetSpecularWeight(float SpecularWeight);
-	void SetSpecularGloss(float SpecularGloss);
-	void SetUseNormalMap(bool bUseNormalMap);
+	void SetUseSpecularMap(bool bUseSpecularMap) override;
+	void SetSpecularWeight(float SpecularWeight) override;
+	void SetSpecularGloss(float SpecularGloss) override;
+	void SetUseNormalMap(bool bUseNormalMap) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
-	void SetNormalMapWeight(float NormalMapWeight);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
+	void SetNormalMapWeight(float NormalMapWeight) override;
 
-	Math::Vector4 DiffuseColorUseGlossAlpha;
-	Math::Vector4 UseSpecularMapWeightGlossAndNormalMap;
-	Math::Vector4 SpecularColorAndNormalMapWeight;
+	struct Data
+	{
+		Math::Vector4 DiffuseColorUseGlossAlpha;
+		Math::Vector4 UseSpecularMapWeightGlossAndNormalMap;
+		Math::Vector4 SpecularColorAndNormalMapWeight;
+	};
+	Data m_Data;
 };
 
-// Diffuse Specular Normal
-class ControllerConstants7 : public RenderingResource
+class ControllerConstants7 : public IControllerConstant
 {
 public:
+	// UseGlossAlpha : 1065353216 => 1.0f 
+	// UseSpecularMap : ""
+	// SpecularWeight : 1
+	// SpecularGloss : 3
+	// SplecularColor : 0.0f, 0.0f, 0.0f
+	// UseNormalMap : 106535216
+	// NormalMapWeight : 1
+	// Padding : -
 	ControllerConstants7
 	(
 		Math::Vector3 SpecularColor = DEFAULT_SPECULAR_COLOR, 
@@ -234,24 +312,28 @@ public:
 		bool bUseSpecularMap = true,
 		bool bUseNormalMap = true
 	);
-	ControllerConstants7(ControllerConstants7&& Other);
 
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
+	void RenderingWindow(IWindow& _IWindow) override;
 
-	void SetUseGlossAlpha(bool bUseGlossAlpha);
-	void SetUseSpecularMap(bool bUseSpecularMap);
-	void SetSpecularWeight(float SpecularWeight);
-	void SetSpecularGloss(float SpecularGloss);
+	void SetUseGlossAlpha(bool bUseGlossAlpha) override;
+	void SetUseSpecularMap(bool bUseSpecularMap) override;
+	void SetSpecularWeight(float SpecularWeight) override;
+	void SetSpecularGloss(float SpecularGloss) override;
 
-	void SetSpecularColor(Math::Vector3 SpecularColor);
-	void SetSpecularColorByElement(float R, float G, float B);
-	void SetUseNormalMap(bool bUseNormalMap);
+	void SetSpecularColor(Math::Vector3 SpecularColor) override;
+	void SetSpecularColorByElement(float R, float G, float B) override;
+	void SetUseNormalMap(bool bUseNormalMap) override;
 
-	void SetNormalMapWeight(float NormalMapWeight);
+	void SetNormalMapWeight(float NormalMapWeight) override;
 
-	Math::Vector4 UseGlossAlphaUseSpecularMapAndSpecularWeightGloss;
-	Math::Vector4 SpecularColorAndUseNormalMap;
-	float NormalMapWeight;
+	struct Data
+	{
+		Math::Vector4 UseGlossAlphaUseSpecularMapAndSpecularWeightGloss;
+		Math::Vector4 SpecularColorAndUseNormalMap;
+		Math::Vector4 NormalMapWeight;
+	};
+	Data m_Data;
 };
 
 class Color3Buffer : public RenderingResource

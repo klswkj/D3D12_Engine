@@ -5,9 +5,10 @@ cbuffer ControllerConstants : register(b1) // Diffuse, Normal
 {
     float SpecularWeight;
     float SpecularGloss;
-    uint useNormalMap;
-    float normalMapWeight;
+    uint UseNormalMap;
+    float NormalMapWeight;
     float3 SpecularColor; // Starts a new vector
+    // float CustomPadding;
 }
 
 #include "ModelTest_PS.hlsli"

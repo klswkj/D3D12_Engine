@@ -14,6 +14,8 @@ public:
 	void RenderWindow();
 
 private:
+	static FillLightGridPass* s_pFillLightGridPass;
+
 	custom::RootSignature m_FillLightRootSignature;
 	ComputePSO m_FillLightGridPSO_WORK_GROUP_8;
 	ComputePSO m_FillLightGridPSO_WORK_GROUP_16;

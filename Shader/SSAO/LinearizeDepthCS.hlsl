@@ -14,7 +14,7 @@
 #include "SSAORS.hlsli"
 
 RWTexture2D<float> LinearZ : register(u0);
-Texture2D<float> Depth : register(t0);
+Texture2D<float>   Depth   : register(t0);
 
 cbuffer CB0 : register(b0)
 {

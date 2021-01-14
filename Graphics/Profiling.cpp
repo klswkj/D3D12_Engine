@@ -214,7 +214,7 @@ public:
 
 	NestedTimingTree* NextScope(void)
 	{
-		if (0 < m_IsExpanded && m_Children.size())
+		if (m_IsExpanded && m_Children.size())
 		{
 			return m_Children[0];
 		}

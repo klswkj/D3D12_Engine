@@ -342,15 +342,25 @@ void PixelBuffer::CreateTextureResource
     Destroy();
 
     CD3DX12_HEAP_PROPERTIES HeapProps(D3D12_HEAP_TYPE_DEFAULT);
+    HRESULT hardwareResult;
+
     ASSERT_HR
     (
-        Device->CreateCommittedResource
+        hardwareResult = Device->CreateCommittedResource
         (
             &HeapProps, D3D12_HEAP_FLAG_NONE,
             &ResourceDesc, D3D12_RESOURCE_STATE_COMMON, 
             &ClearValue, IID_PPV_ARGS(&m_pResource)
         )
     );
+
+    if (FAILED(hardwareResult))
+    {
+        ASSERT_HR
+        (
+            hardwareResult = Device->GetDeviceRemovedReason()
+        );
+    }
 
     m_currentState = D3D12_RESOURCE_STATE_COMMON;
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;

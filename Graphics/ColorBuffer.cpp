@@ -77,12 +77,14 @@ void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, 
     // Create the UAVs for each mip level (RWTexture2D)
     for (uint32_t i = 0; i < NumMips; ++i)
     {
-        if (m_UAVHandle[i].ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
-            m_UAVHandle[i] = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		if (m_UAVHandle[i].ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+		{
+			m_UAVHandle[i] = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
 
         Device->CreateUnorderedAccessView(Resource, nullptr, &UAVDesc, m_UAVHandle[i]);
 
-        UAVDesc.Texture2D.MipSlice++;
+        ++UAVDesc.Texture2D.MipSlice;
     }
 }
 
@@ -155,7 +157,7 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
     Context.TransitionResource(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     Context.SetDynamicDescriptor(1, 0, m_SRVHandle);
 
-    for (uint32_t TopMip = 0; TopMip < m_numMipMaps; )
+    for (uint32_t TopMip = 0; TopMip < m_numMipMaps;)
     {
         uint32_t SrcWidth = m_width >> TopMip;
         uint32_t SrcHeight = m_height >> TopMip;
@@ -179,7 +181,7 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
         // each successive downsample.  We use _BitScanForward to count number of zeros
         // in the low bits.  Zeros indicate we can divide by two without truncating.
         uint32_t AdditionalMips;
-        size_t BitTarget = (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight);
+        unsigned long BitTarget = (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight);
 
         _BitScanForward
         (

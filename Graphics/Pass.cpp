@@ -18,7 +18,6 @@ void Pass::Reset() DEBUG_EXCEPT
 
 void Pass::RenderWindow() DEBUG_EXCEPT
 {
-
 }
 
 std::string Pass::GetRegisteredName() const noexcept

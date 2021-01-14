@@ -13,11 +13,10 @@
 
 #include "SSAORS.hlsli"
 
-Texture2D<float> DS4x : register(t0);              // g_DepthDownSize2 BufferSize / 4
-
-RWTexture2D<float> DS8x : register(u0);            // g_DepthDownSize3 BufferSize / 8
-RWTexture2D<float> DS16x : register(u1);           // g_DepthDownSize4 BufferSize / 16
-RWTexture2DArray<float> DS8xAtlas : register(u2);  // g_DepthTiled3    BufferSize / 32
+Texture2D<float> DS4x              : register(t0); // g_DepthDownSize2 BufferSize / 4
+RWTexture2D<float> DS8x            : register(u0); // g_DepthDownSize3 BufferSize / 8
+RWTexture2D<float> DS16x           : register(u1); // g_DepthDownSize4 BufferSize / 16
+RWTexture2DArray<float> DS8xAtlas  : register(u2); // g_DepthTiled3    BufferSize / 32
 RWTexture2DArray<float> DS16xAtlas : register(u3); // g_DepthTiled4    BufferSize / 64
 
 cbuffer CB0 : register(b0)
@@ -38,7 +37,7 @@ void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV
     DS8xAtlas[uint3(stAtlas, stSlice)] = m1;
 
     // if ((GI & 011) == 0)
-    if ((GI & 0x1011) == 0)
+    if ((GI & 0xb) == 0)
     {
         uint2 st = DTid.xy >> 1;
         uint2 stAtlas = st >> 2;

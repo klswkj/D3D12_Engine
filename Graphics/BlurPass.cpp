@@ -47,7 +47,7 @@ BlurPass::BlurPass(std::string Name, std::vector<std::shared_ptr<RenderingResour
 #define CreatePSO( ObjName, ShaderByteCode ) \
     ObjName.SetRootSignature(m_RootSignature2); \
     ObjName.SetComputeShader(ShaderByteCode, sizeof(ShaderByteCode) ); \
-    ObjName.Finalize();
+    ObjName.Finalize(L#ObjName);
 
 	CreatePSO(m_HorizontalComputePSO, g_pHoriontalBlurCS);
 	CreatePSO(m_VerticalComputePSO, g_pVerticalBlurCS);
@@ -161,17 +161,17 @@ void BlurPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 		computeContext.TransitionResource(m_PingPongBuffer2, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	}
 
-	computeContext.TransitionResource(bufferManager::g_StencilBuffer, D3D12_RESOURCE_STATE_COPY_DEST);
-	computeContext.TransitionResource(m_PingPongBuffer2, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	computeContext.TransitionResource(bufferManager::g_StencilBuffer, D3D12_RESOURCE_STATE_COPY_DEST, false);
+	computeContext.TransitionResource(m_PingPongBuffer2, D3D12_RESOURCE_STATE_COPY_SOURCE, false);
 	computeContext.CopySubresource(bufferManager::g_StencilBuffer, 0, m_PingPongBuffer2, 0);
 
-	computeContext.TransitionResource(bufferManager::g_StencilBuffer, OriginResourceState);
+	computeContext.TransitionResource(bufferManager::g_StencilBuffer, OriginResourceState, false);
 }
 
 float gauss(float x, float Sigma)
 {
 	const float SS = Sigma * Sigma;
-	const float ReturnValue = (float)(1.0 / sqrt(2.0 * DirectX::XM_PI * SS)) * exp(-(x * x) / (2.0 * SS));
+	const float ReturnValue = (float)(1.0 / (float)sqrt(2.0 * DirectX::XM_PI * SS)) * (float)exp(-(x * x) / (2.0 * SS));
 	return ReturnValue;
 }
 

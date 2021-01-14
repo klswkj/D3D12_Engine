@@ -16,7 +16,7 @@ namespace custom
     ComputeContext& ComputeContext::Begin(const std::wstring& ID, bool Async)
     {
         ComputeContext& NewContext = device::g_commandContextManager.AllocateContext
-        (Async ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT)->GetComputeContext();
+        (Async ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT, ID)->GetComputeContext();
 
         NewContext.setName(ID);
 

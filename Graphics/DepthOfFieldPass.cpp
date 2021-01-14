@@ -12,7 +12,7 @@
 // TODO : Set Branch and Shader Code.
 
 DOFPass::DOFPass(std::string name)
-	: Pass(name)
+	: Pass(name), cBuffer{}
 {
 	m_RootSignature.Reset(4, 3);
 	m_RootSignature.InitStaticSampler(0, premade::g_SamplerPointBorderDesc);
@@ -22,13 +22,13 @@ DOFPass::DOFPass(std::string name)
 	m_RootSignature[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6);
 	m_RootSignature[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 3);
 	m_RootSignature[3].InitAsConstants(1, 1);
-	m_RootSignature.Finalize(L"Depth of Field");
+	m_RootSignature.Finalize(L"Depth of Field_RS");
 
 	// -> CreatPSO Part
 #define CREATE_PSO( PSOName, ShaderByteCode) \
 	PSOName.SetRootSignature(s_RootSignature); \
 	PSOName.SetComputeShader(ShaderByteCode, sizeof(ShaderByteCode));\
-	PSOName.Finalize();
+	PSOName.Finalize(L#PSOName);
 
 	// If compiled Shader Code was added later, Fill this part. 
 

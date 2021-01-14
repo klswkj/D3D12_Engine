@@ -141,7 +141,9 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
 void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
 {
     if (m_currentPage == nullptr)
+    {
         return;
+    }
 
     m_retiredPages.push_back(m_currentPage);
     m_currentPage = nullptr;

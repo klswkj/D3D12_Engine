@@ -22,3 +22,8 @@ void RenderQueuePass::Reset() DEBUG_EXCEPT
 {
 	m_Jobs.clear();
 }
+
+size_t RenderQueuePass::GetJobCount() const
+{
+	return m_Jobs.size();
+}

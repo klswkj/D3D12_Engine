@@ -19,7 +19,7 @@ cbuffer CB0 : register(b0)
     uint DebugMode;
 }
 
-[RootSignature(Present_RootSig)]
+[RootSignature(Present_RootSignature)]
 PS_OUT main( float4 position : SV_Position )
 {
     PS_OUT Out;

@@ -19,20 +19,24 @@ class LightPrePass : public Pass
 	friend class MasterRenderGraph;
 public:
 	LightPrePass(std::string pName);
-	~LightPrePass();
+	~LightPrePass() {};
 	void Execute(custom::CommandContext& BaseCommand) DEBUG_EXCEPT override;
 	void RenderWindow() DEBUG_EXCEPT override;
+	void CreateLight(UINT LightType);
 	void CreateSphereLight();
 	void CreateConeLight();
+	void CreateConeShadowedLight();
 	uint32_t GetFirstConeLightIndex();
 	uint32_t GetFirstConeShadowedLightIndex();
+
 private:
-	void sortContainer();
+	void sortContainer(); // For LIGHT_GRID_PRELOADING
 	void recreateBuffers();
+
 private:
 	size_t m_DirtyLightIndex = -1; 
 
-	static uint32_t sm_MaxLight;
+	static uint32_t    sm_MaxLight;
 	static const char* sm_LightLabel[3];
 
 	uint32_t m_FirstConeLightIndex = -1;
@@ -41,7 +45,7 @@ private:
 	static const uint32_t sm_kShadowBufferSize;
 	static const uint32_t sm_kMinWorkGroupSize;
 
-	// todo: assumes max resolution of 1920x1080
+	// todo: assumes natvie resolution of 1920x1080
 	static const uint32_t sm_kLightGridCells;
 	static const uint32_t sm_lightGridBitMaskSizeBytes;
 };

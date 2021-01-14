@@ -53,6 +53,6 @@ protected:
 protected:
     uint32_t    m_width;
     uint32_t    m_height;
-    uint32_t    m_arraySize;
     DXGI_FORMAT m_format;
+    uint32_t    m_arraySize;
 };

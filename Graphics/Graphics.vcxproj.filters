@@ -183,6 +183,48 @@
     <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various">
       <UniqueIdentifier>{1d376fbb-419a-4428-adf6-fa7b71f511cb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SceneGraph\Renderer\Pass\Candidate">
+      <UniqueIdentifier>{c053fbc4-1839-4824-a2a4-e836157fd8da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\1">
+      <UniqueIdentifier>{e34841df-9442-4e4c-9c9a-287201a6066e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\2">
+      <UniqueIdentifier>{6dd2b733-1dcf-40b1-a08c-2bb24910c937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\3">
+      <UniqueIdentifier>{f4aa2549-a5d2-42c3-a246-9f9337f827b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\4">
+      <UniqueIdentifier>{c83d9256-a651-48c4-926a-0c5946816abe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\5">
+      <UniqueIdentifier>{85b446a5-e783-4bef-af00-107f90185386}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\6">
+      <UniqueIdentifier>{42a0ae6b-80ef-438b-8c96-db970d0d2944}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\7">
+      <UniqueIdentifier>{16c55ba2-83a5-4940-81bb-d4da77b803a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Original">
+      <UniqueIdentifier>{35375ac7-4f2b-4526-8f16-5f233d7528df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\WireFrame">
+      <UniqueIdentifier>{9f089aa1-efbd-4135-b4b0-c6509f1dfccb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\DebugPasses">
+      <UniqueIdentifier>{76d63472-ba1a-46b8-9590-baf8bd2a25c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug">
+      <UniqueIdentifier>{5da9601a-89c5-4f38-9a65-e9efbe21242e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug\DebugShadowMap">
+      <UniqueIdentifier>{d8ef0787-0722-4759-b0bc-49f698ca8ee5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External Dependencies\Custom Imgui">
+      <UniqueIdentifier>{a96ed636-b699-46c5-8dbd-a99eb72d65f0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -209,17 +251,8 @@
     <ClCompile Include="MyMouse.cpp">
       <Filter>Graphics\Global Range\Input Device</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics.cpp">
-      <Filter>Graphics\Global Range</Filter>
-    </ClCompile>
-    <ClCompile Include="Window.cpp">
-      <Filter>Graphics\Global Range</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Main</Filter>
-    </ClCompile>
-    <ClCompile Include="Device.cpp">
-      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="ColorBuffer.cpp">
       <Filter>Graphics\D3D12Resource</Filter>
@@ -368,11 +401,6 @@
     <ClCompile Include="CommandSignature.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="D3D12Engine.cpp" />
-    <ClCompile Include="ObjModelManager.cpp" />
-    <ClCompile Include="OBJFileManager.cpp">
-      <Filter>Graphics\Global Range</Filter>
-    </ClCompile>
     <ClCompile Include="CommandContextManager.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
@@ -385,35 +413,11 @@
     <ClCompile Include="Pass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClCompile>
-    <ClCompile Include="BlurPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
-    <ClCompile Include="LightPrePass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
-    <ClCompile Include="OutlineDrawingPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
-    <ClCompile Include="SSAOPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
-    </ClCompile>
     <ClCompile Include="DepthOfFieldPass.cpp">
       <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClCompile>
-    <ClCompile Include="ShadowPrePass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
     <ClCompile Include="MasterRenderGraph.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="Z_PrePass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClCompile>
-    <ClCompile Include="FillLightGridPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
-    </ClCompile>
-    <ClCompile Include="ShadowMappingPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
     <ClCompile Include="MainLight.cpp">
       <Filter>SceneGraph\Camera\MainLight</Filter>
@@ -423,9 +427,6 @@
     </ClCompile>
     <ClCompile Include="FilledPrimitiveSphere.cpp">
       <Filter>SceneGraph\Camera\MainLight</Filter>
-    </ClCompile>
-    <ClCompile Include="MainRenderPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClCompile>
     <ClCompile Include="ModelComponentWindow.cpp">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
@@ -463,8 +464,68 @@
     <ClCompile Include="FundamentlaTexture.cpp">
       <Filter>Graphics\D3D12Resource\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="FundamentalVertexBuffer.cpp">
+    <ClCompile Include="FundamentalVertexIndex.cpp">
       <Filter>Graphics\D3D12Resource\UAV</Filter>
+    </ClCompile>
+    <ClCompile Include="BlurPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlineDrawingPass.cpp">
+      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
+    </ClCompile>
+    <ClCompile Include="LightPrePass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\1</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowPrePass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\2</Filter>
+    </ClCompile>
+    <ClCompile Include="Z_PrePass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\3</Filter>
+    </ClCompile>
+    <ClCompile Include="SSAOPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\4</Filter>
+    </ClCompile>
+    <ClCompile Include="FillLightGridPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\5</Filter>
+    </ClCompile>
+    <ClCompile Include="ShadowMappingPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\6</Filter>
+    </ClCompile>
+    <ClCompile Include="MainRenderPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\7</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugWireFramePass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\DebugPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugShadowMapPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\DebugPasses</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Engine.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjModelManager.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="OBJFileManager.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Device.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiManager.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomImgui.cpp">
+      <Filter>External Dependencies\Custom Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformConstants.cpp">
+      <Filter>SceneGraph\Model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -504,12 +565,6 @@
     <ClInclude Include="MyMouse.h">
       <Filter>Graphics\Global Range\Input Device</Filter>
     </ClInclude>
-    <ClInclude Include="Window.h">
-      <Filter>Graphics\Global Range</Filter>
-    </ClInclude>
-    <ClInclude Include="ImGuiManager.h">
-      <Filter>Header Files Only</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Resource Files%28Icon, Shader%29\Icon</Filter>
     </ClInclude>
@@ -521,9 +576,6 @@
     </ClInclude>
     <ClInclude Include="CustomAssert.h">
       <Filter>Header Files Only\Defines</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics.h">
-      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="Hash.h">
       <Filter>Header Files Only</Filter>
@@ -548,9 +600,6 @@
     </ClInclude>
     <ClInclude Include="DDS.h">
       <Filter>External Dependencies\D3DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="Device.h">
-      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="ColorBuffer.h">
       <Filter>Graphics\D3D12Resource</Filter>
@@ -720,9 +769,6 @@
     <ClInclude Include="Step.h">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClInclude>
-    <ClInclude Include="TechniqueWindow.h">
-      <Filter>SceneGraph\Renderer\imgui Window</Filter>
-    </ClInclude>
     <ClInclude Include="ObjectFilterFlag.h">
       <Filter>SceneGraph\Renderer</Filter>
     </ClInclude>
@@ -753,11 +799,6 @@
     <ClInclude Include="RenderQueuePass.h">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClInclude>
-    <ClInclude Include="D3D12Engine.h" />
-    <ClInclude Include="ObjModelManager.h" />
-    <ClInclude Include="OBJFileManager.h">
-      <Filter>Graphics\Global Range</Filter>
-    </ClInclude>
     <ClInclude Include="ShaderConstantsTypeDefinitions.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
@@ -766,24 +807,6 @@
     </ClInclude>
     <ClInclude Include="Pass.h">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
-    </ClInclude>
-    <ClInclude Include="BlurPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="LightPrePass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="OutlineDrawingPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="ShadowMappingPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="ShadowPrePass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="SSAOPass.h">
-      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
     </ClInclude>
     <ClInclude Include="DepthOfFieldPass.h">
       <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
@@ -797,12 +820,6 @@
     <ClInclude Include="RenderingResource.h">
       <Filter>SceneGraph</Filter>
     </ClInclude>
-    <ClInclude Include="Z_PrePass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
-    </ClInclude>
-    <ClInclude Include="FillLightGridPass.h">
-      <Filter>SceneGraph\Renderer\Pass\ComputePass</Filter>
-    </ClInclude>
     <ClInclude Include="MainLight.h">
       <Filter>SceneGraph\Camera\MainLight</Filter>
     </ClInclude>
@@ -811,9 +828,6 @@
     </ClInclude>
     <ClInclude Include="FilledPrimitiveSphere.h">
       <Filter>SceneGraph\Camera\MainLight</Filter>
-    </ClInclude>
-    <ClInclude Include="MainRenderPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Leaf</Filter>
     </ClInclude>
     <ClInclude Include="ModelComponentWindow.h">
       <Filter>SceneGraph\Renderer\imgui Window</Filter>
@@ -851,8 +865,68 @@
     <ClInclude Include="FundamentalTexture.h">
       <Filter>Graphics\D3D12Resource\Texture</Filter>
     </ClInclude>
-    <ClInclude Include="FundamentalVertexBuffer.h">
+    <ClInclude Include="FundamentalVertexIndex.h">
       <Filter>Graphics\D3D12Resource\UAV</Filter>
+    </ClInclude>
+    <ClInclude Include="BlurPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlineDrawingPass.h">
+      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
+    </ClInclude>
+    <ClInclude Include="LightPrePass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\1</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowPrePass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\2</Filter>
+    </ClInclude>
+    <ClInclude Include="Z_PrePass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\3</Filter>
+    </ClInclude>
+    <ClInclude Include="SSAOPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\4</Filter>
+    </ClInclude>
+    <ClInclude Include="FillLightGridPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\5</Filter>
+    </ClInclude>
+    <ClInclude Include="ShadowMappingPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\6</Filter>
+    </ClInclude>
+    <ClInclude Include="MainRenderPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\7</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugWireFramePass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\DebugPasses</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugShadowMapPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\DebugPasses</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Engine.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjModelManager.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Window.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="OBJFileManager.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Device.h">
+      <Filter>Main</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomImgui.h">
+      <Filter>External Dependencies\Custom Imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformConstants.h">
+      <Filter>SceneGraph\Model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -956,6 +1030,21 @@
     </None>
     <None Include="..\Shader\ModelTest\ShadowFunctions.hlsli">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\External Dependency</Filter>
+    </None>
+    <None Include="..\Shader\ModelTest\ModelTest_PS_Origin.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Debug\DebugRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Original\ModelViewerRS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Original</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\WireFrame\WireFrame_RS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\WireFrame</Filter>
+    </None>
+    <None Include="..\Shader\Viewer\Debug\DebugShadowMap\DebugShadowMap_RS.hlsli">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug\DebugShadowMap</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1147,6 +1236,24 @@
     </FxCompile>
     <FxCompile Include="..\Shader\ModelTest\ModelTest_None_PS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Test Shader\Various</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Debug\DebugCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Original\ModelViewerPS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Original</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\WireFrame\WireFrame_VS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\WireFrame</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\WireFrame\WireFrame_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\WireFrame</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Debug\DebugShadowMap\DebugShadowMap_VS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug\DebugShadowMap</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\Viewer\Debug\DebugShadowMap\DebugShadowMap_PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug\DebugShadowMap</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

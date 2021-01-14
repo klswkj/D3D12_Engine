@@ -45,6 +45,7 @@ namespace premade
     D3D12_RASTERIZER_DESC g_RasterizerShadow;
     D3D12_RASTERIZER_DESC g_RasterizerShadowCW;
     D3D12_RASTERIZER_DESC g_RasterizerShadowTwoSided;
+    D3D12_RASTERIZER_DESC g_WireFrameDefault;
 
     D3D12_BLEND_DESC g_BlendNoColorWrite;
     D3D12_BLEND_DESC g_BlendDisable;
@@ -137,76 +138,80 @@ namespace premade
         g_RasterizerShadow.SlopeScaledDepthBias = -1.5f;
         g_RasterizerShadow.DepthBias = -100;
 
-        g_RasterizerShadowTwoSided = g_RasterizerShadow;
-        g_RasterizerShadowTwoSided.CullMode = D3D12_CULL_MODE_NONE;
-
         g_RasterizerShadowCW = g_RasterizerShadow;
         g_RasterizerShadowCW.FrontCounterClockwise = FALSE;
 
-        g_DepthStateDisabled.DepthEnable = FALSE;
-        g_DepthStateDisabled.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-        g_DepthStateDisabled.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        g_DepthStateDisabled.StencilEnable = FALSE;
-        g_DepthStateDisabled.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
-        g_DepthStateDisabled.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-        g_DepthStateDisabled.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-        g_DepthStateDisabled.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
-        g_DepthStateDisabled.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        g_RasterizerShadowTwoSided = g_RasterizerShadow;
+        g_RasterizerShadowTwoSided.CullMode = D3D12_CULL_MODE_NONE;
+
+        g_WireFrameDefault          = g_RasterizerDefault;
+        g_WireFrameDefault.CullMode = D3D12_CULL_MODE_NONE;
+        g_WireFrameDefault.FillMode = D3D12_FILL_MODE_WIREFRAME;
+
+        g_DepthStateDisabled.DepthEnable                  = FALSE;
+        g_DepthStateDisabled.DepthWriteMask               = D3D12_DEPTH_WRITE_MASK_ZERO;
+        g_DepthStateDisabled.DepthFunc                    = D3D12_COMPARISON_FUNC_ALWAYS;
+        g_DepthStateDisabled.StencilEnable                = FALSE;
+        g_DepthStateDisabled.StencilReadMask              = D3D12_DEFAULT_STENCIL_READ_MASK;
+        g_DepthStateDisabled.StencilWriteMask             = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+        g_DepthStateDisabled.FrontFace.StencilFunc        = D3D12_COMPARISON_FUNC_ALWAYS;
+        g_DepthStateDisabled.FrontFace.StencilPassOp      = D3D12_STENCIL_OP_KEEP;
+        g_DepthStateDisabled.FrontFace.StencilFailOp      = D3D12_STENCIL_OP_KEEP;
         g_DepthStateDisabled.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-        g_DepthStateDisabled.BackFace = g_DepthStateDisabled.FrontFace;
+        g_DepthStateDisabled.BackFace                     = g_DepthStateDisabled.FrontFace;
 
-        g_DepthStateReadWrite = g_DepthStateDisabled;
-        g_DepthStateReadWrite.DepthEnable = TRUE;
+        g_DepthStateReadWrite                = g_DepthStateDisabled;
+        g_DepthStateReadWrite.DepthEnable    = TRUE;
         g_DepthStateReadWrite.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-        g_DepthStateReadWrite.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+        g_DepthStateReadWrite.DepthFunc      = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 
-        g_DepthStateReadOnly = g_DepthStateReadWrite;
+        g_DepthStateReadOnly                = g_DepthStateReadWrite;
         g_DepthStateReadOnly.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-        g_DepthStateReadOnlyReversed = g_DepthStateReadOnly;
+        g_DepthStateReadOnlyReversed           = g_DepthStateReadOnly;
         g_DepthStateReadOnlyReversed.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 
-        g_DepthStateTestEqual = g_DepthStateReadOnly;
+        g_DepthStateTestEqual           = g_DepthStateReadOnly;
         g_DepthStateTestEqual.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 
         // Here
-        g_StencilStateWriteOnly.DepthEnable = FALSE;
-        g_StencilStateWriteOnly.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-        g_StencilStateWriteOnly.StencilEnable = TRUE;
-        g_StencilStateWriteOnly.StencilReadMask = 0xFF;
-        g_StencilStateWriteOnly.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+        g_StencilStateWriteOnly.DepthEnable             = FALSE;
+        g_StencilStateWriteOnly.DepthWriteMask          = D3D12_DEPTH_WRITE_MASK_ZERO;
+        g_StencilStateWriteOnly.StencilEnable           = TRUE;
+        g_StencilStateWriteOnly.StencilReadMask         = 0xFF;
+        g_StencilStateWriteOnly.FrontFace.StencilFunc   = D3D12_COMPARISON_FUNC_NOT_EQUAL;
         g_StencilStateWriteOnly.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
 
         D3D12_BLEND_DESC alphaBlend = {};
         alphaBlend.IndependentBlendEnable = FALSE;
         alphaBlend.RenderTarget[0].BlendEnable = FALSE;
-        alphaBlend.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-        alphaBlend.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
-        alphaBlend.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-        alphaBlend.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-        alphaBlend.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
-        alphaBlend.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+        alphaBlend.RenderTarget[0].SrcBlend              = D3D12_BLEND_SRC_ALPHA;
+        alphaBlend.RenderTarget[0].DestBlend             = D3D12_BLEND_INV_SRC_ALPHA;
+        alphaBlend.RenderTarget[0].BlendOp               = D3D12_BLEND_OP_ADD;
+        alphaBlend.RenderTarget[0].SrcBlendAlpha         = D3D12_BLEND_ONE;
+        alphaBlend.RenderTarget[0].DestBlendAlpha        = D3D12_BLEND_INV_SRC_ALPHA;
+        alphaBlend.RenderTarget[0].BlendOpAlpha          = D3D12_BLEND_OP_ADD;
         alphaBlend.RenderTarget[0].RenderTargetWriteMask = 0;
-        g_BlendNoColorWrite = alphaBlend;
+        g_BlendNoColorWrite                              = alphaBlend;
 
         alphaBlend.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-        g_BlendDisable = alphaBlend;
+        g_BlendDisable                                   = alphaBlend;
 
         alphaBlend.RenderTarget[0].BlendEnable = TRUE;
-        g_BlendTraditional = alphaBlend;
+        g_BlendTraditional                     = alphaBlend;
 
         alphaBlend.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
-        g_BlendPreMultiplied = alphaBlend;
+        g_BlendPreMultiplied                = alphaBlend;
 
         alphaBlend.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
-        g_BlendAdditive = alphaBlend;
+        g_BlendAdditive                      = alphaBlend;
 
         alphaBlend.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-        g_BlendTraditionalAdditive = alphaBlend;
+        g_BlendTraditionalAdditive          = alphaBlend;
 
         g_InputElements[0] = g_InputElementPosition  = { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-        g_InputElements[1] = g_InputElementTexcoord  = { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
-        g_InputElements[2] = g_InputElementNormal    = { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+        g_InputElements[1] = g_InputElementTexcoord  = { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
+        g_InputElements[2] = g_InputElementNormal    = { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
         g_InputElements[3] = g_InputElementTangent   = { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
         g_InputElements[4] = g_InputElementBitangent = { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 };
     }

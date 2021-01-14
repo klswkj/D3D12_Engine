@@ -6,20 +6,42 @@
 
 namespace custom
 {
-	std::map<std::wstring, std::shared_ptr<UAVBuffer>> s_VertexBufferCache2;
-	std::map<std::wstring, std::shared_ptr<UAVBuffer>> s_IndexBufferCache2;
+	std::map<std::wstring, StructuredBuffer*> s_VertexBufferCache;
+	std::map<std::wstring, ByteAddressBuffer*> s_IndexBufferCache;
 
-	std::map<std::wstring, std::shared_ptr<StructuredBuffer>> s_VertexBufferCache;
-	std::map<std::wstring, std::shared_ptr<ByteAddressBuffer>> s_IndexBufferCache;
+	std::map<std::wstring, UAVBuffer*> s_VertexBufferCache2;
+	std::map<std::wstring, UAVBuffer*> s_IndexBufferCache2;
 
-	void StructuredBuffer::DestroyVertexBuffer()
+	void StructuredBuffer::DestroyAllVertexBuffer() // static
 	{
+		for (auto& e : s_VertexBufferCache)
+		{
+			e.second->Destroy();
+			delete e.second;
+		}
+		for (auto& e : s_VertexBufferCache2)
+		{
+			e.second->Destroy();
+			delete e.second;
+		}
+
 		s_VertexBufferCache.clear();
 		s_VertexBufferCache2.clear();
 	}
 
-	void ByteAddressBuffer::DestroyIndexBuffer()
+	void ByteAddressBuffer::DestroyIndexAllBuffer() // static
 	{
+		for (auto& e : s_IndexBufferCache)
+		{
+			e.second->Destroy();
+			delete e.second;
+		}
+		for (auto& e : s_IndexBufferCache2)
+		{
+			e.second->Destroy();
+			delete e.second;
+		}
+
 		s_IndexBufferCache.clear();
 		s_IndexBufferCache2.clear();
 	}
@@ -34,8 +56,8 @@ namespace custom
 		Destroy();
 
 		m_elementCount = NumElements;
-		m_elementSize = ElementSize;
-		m_bufferSize = NumElements * ElementSize;
+		m_elementSize  = ElementSize;
+		m_bufferSize   = NumElements * ElementSize;
 
 		D3D12_RESOURCE_DESC ResourceDesc = resourceDescriptor();
 
@@ -66,8 +88,9 @@ namespace custom
 
 #if defined(_DEBUG)
 		m_pResource->SetName(name.c_str());
+		
 #endif
-		CreateUAV();
+		CreateUAV(name);
 	}
 
 	// Sub-Allocate a buffer out of a pre-allocated heap.  If initial data is provided, it will be copied into the buffer using the default command context.
@@ -79,8 +102,8 @@ namespace custom
 	)
 	{
 		m_elementCount = NumElements;
-		m_elementSize = ElementSize;
-		m_bufferSize = NumElements * ElementSize;
+		m_elementSize  = ElementSize;
+		m_bufferSize   = NumElements * ElementSize;
 
 		D3D12_RESOURCE_DESC ResourceDesc = resourceDescriptor();
 
@@ -102,11 +125,12 @@ namespace custom
 		}
 
 #ifdef RELEASE
-		(name);
+		(m_Name);
 #else
 		m_pResource->SetName(name.c_str());
+		// pBackingHeap->SetName(name.c_str());
 #endif
-		CreateUAV();
+		CreateUAV(name);
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE UAVBuffer::CreateConstantBufferView(uint32_t Offset, uint32_t Size) const
@@ -143,7 +167,7 @@ namespace custom
 		return Desc;
 	}
 	
-	void ByteAddressBuffer::CreateUAV()
+	void ByteAddressBuffer::CreateUAV(std::wstring Name)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -171,7 +195,7 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, nullptr, &UAVDesc, m_UAV);
 	}
 
-	void StructuredBuffer::CreateUAV()
+	void StructuredBuffer::CreateUAV(std::wstring Name)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -195,7 +219,7 @@ namespace custom
 		UAVDesc.Buffer.StructureByteStride = m_elementSize;
 		UAVDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
 
-		m_CounterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
+		m_CounterBuffer.Create(Name + L"_StructuredBuffer::Counter", 1, 4);
 
 		if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
@@ -204,7 +228,7 @@ namespace custom
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, m_CounterBuffer.GetResource(), &UAVDesc, m_UAV);
 	}
 
-	void TypedBuffer::CreateUAV()
+	void TypedBuffer::CreateUAV(std::wstring Name)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
 		SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -245,7 +269,8 @@ namespace custom
 			auto iter = s_VertexBufferCache.find(name);
 			if (iter != s_VertexBufferCache.end())
 			{
-				return iter->second.get();
+				// return iter->second.get();
+				return iter->second;
 			}
 		}
 
@@ -256,7 +281,8 @@ namespace custom
 		static std::mutex s_Mutex;
 		std::lock_guard<std::mutex> Guard(s_Mutex);
 
-		s_VertexBufferCache[name].reset(NewVertexBuffer);
+		// s_VertexBufferCache[name].reset(NewVertexBuffer);
+		s_VertexBufferCache[name] = NewVertexBuffer;
 		return NewVertexBuffer;
 	}
 
@@ -273,7 +299,8 @@ namespace custom
 			auto iter = s_IndexBufferCache.find(name);
 			if (iter != s_IndexBufferCache.end())
 			{
-				return iter->second.get();
+				// return iter->second.get();
+				return iter->second;
 			}
 		}
 
@@ -283,7 +310,8 @@ namespace custom
 		static std::mutex s_Mutex;
 		std::lock_guard<std::mutex> Guard(s_Mutex);
 
-		s_IndexBufferCache[name].reset(NewIndexBuffer);
+		// s_IndexBufferCache[name].reset(NewIndexBuffer);
+		s_IndexBufferCache[name] = NewIndexBuffer;
 		return NewIndexBuffer;
 	}
 
@@ -299,63 +327,3 @@ namespace custom
 		return m_CounterBuffer.GetUAV();
 	}
 }
-
-
-/*
-// static function
-StructuredBuffer* StructuredBuffer::CreateVertexBuffer
-	(
-		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
-		const void* initialData
-	)
-	{
-		{
-			static std::mutex s_Mutex;
-			std::lock_guard<std::mutex> Guard(s_Mutex);
-
-			auto iter = s_VertexBufferCache.find(name);
-			if (iter != s_VertexBufferCache.end())
-			{
-				return iter->second.get();
-			}
-		}
-
-		StructuredBuffer* NewVertexBuffer = new StructuredBuffer();
-
-		NewVertexBuffer->Create(name, NumElements, ElementSize, initialData);
-
-		static std::mutex s_Mutex;
-		std::lock_guard<std::mutex> Guard(s_Mutex);
-
-		s_VertexBufferCache[name].reset(NewVertexBuffer);
-		return NewVertexBuffer;
-	}
-
-	// static function
-	ByteAddressBuffer* ByteAddressBuffer::CreateIndexBuffer
-	(
-		const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
-		const void* initialData
-	)
-	{
-		{
-			static std::mutex s_Mutex;
-			std::lock_guard<std::mutex> Guard(s_Mutex);
-
-			auto iter = s_IndexBufferCache.find(name);
-			if (iter != s_IndexBufferCache.end())
-			{
-				return iter->second.get();
-			}
-		}
-
-		ByteAddressBuffer* NewIndexBuffer = new ByteAddressBuffer();
-		NewIndexBuffer->Create(name, NumElements, ElementSize, initialData);
-
-		static std::mutex s_Mutex;
-		std::lock_guard<std::mutex> Guard(s_Mutex);
-
-		s_IndexBufferCache[name].reset(NewIndexBuffer);
-		return NewIndexBuffer;
-	}
-*/

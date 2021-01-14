@@ -44,6 +44,7 @@ namespace premade
     extern D3D12_RASTERIZER_DESC g_RasterizerShadow;
     extern D3D12_RASTERIZER_DESC g_RasterizerShadowCW;
     extern D3D12_RASTERIZER_DESC g_RasterizerShadowTwoSided;
+    extern D3D12_RASTERIZER_DESC g_WireFrameDefault;
 
     extern D3D12_BLEND_DESC g_BlendNoColorWrite;
     extern D3D12_BLEND_DESC g_BlendDisable;

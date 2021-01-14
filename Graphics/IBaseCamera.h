@@ -58,21 +58,26 @@ public:
     void SetTransform(const Math::AffineTransform& xform);
     void SetTransform(const Math::OrthogonalTransform& xform);
 
-    const Math::Quaternion GetRotation() const { return m_CameraToWorld.GetRotation(); }
-    const Math::Matrix3 GetRightUpForwardMatrix() const { return m_Basis; }
-    const Math::Vector3 GetRightVec() const { return m_Basis.GetX(); }
-    const Math::Vector3 GetUpVec() const { return m_Basis.GetY(); }
-    const Math::Vector3 GetForwardVec() const { return -m_Basis.GetZ(); }
-    const Math::Vector3 GetPosition() const { return m_CameraToWorld.GetTranslation(); }
+    const Math::Quaternion GetRotation()             const { return m_CameraToWorld.GetRotation(); }
+    const Math::Matrix3    GetRightUpForwardMatrix() const { return m_Basis; }
+    const Math::Vector3    GetRightVec()             const { return m_Basis.GetX(); }
+    const Math::Vector3    GetUpVec()                const { return m_Basis.GetY(); }
+    const Math::Vector3    GetForwardVec()           const { return -m_Basis.GetZ(); }
+    const Math::Vector3    GetPosition()             const { return m_CameraToWorld.GetTranslation(); }
 
-    const Math::Matrix4& GetProjMatrix() const { return m_ProjMatrix; }
-    const Math::Matrix4& GetViewProjMatrix() const { return m_ViewProjMatrix; }
+    const Math::Matrix4  GetViewMatrix()         const { return Math::Matrix4(~m_CameraToWorld); }
+    const Math::Matrix4& GetProjMatrix()         const { return m_ProjMatrix; }
+    const Math::Matrix4& GetViewProjMatrix()     const { return m_ViewProjMatrix; }
     const Math::Matrix4& GetReprojectionMatrix() const { return m_ReprojectMatrix; }
-    const Math::Frustum& GetViewSpaceFrustum() const { return m_FrustumVS; }
-    const Math::Frustum& GetWorldSpaceFrustum() const { return m_FrustumWS; }
+    const Math::Frustum& GetViewSpaceFrustum()   const { return m_FrustumVS; }
+    const Math::Frustum& GetWorldSpaceFrustum()  const { return m_FrustumWS; }
 
 protected:
-    IBaseCamera() : m_CameraToWorld(Math::EIdentityTag::kIdentity), m_Basis(Math::EIdentityTag::kIdentity) {}
+    IBaseCamera()
+    {
+        m_CameraToWorld = Math::OrthogonalTransform(Math::EIdentityTag::kIdentity);
+        m_Basis         = Math::Matrix3(Math::EIdentityTag::kIdentity);
+    }
 
     void SetProjMatrix(const Math::Matrix4& ProjMat) { m_ProjMatrix = ProjMat; }
 

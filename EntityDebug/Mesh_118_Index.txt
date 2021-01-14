@@ -1,5 +1,0 @@
-Faces #0 : 0, 3, 2
-Faces #1 : 0, 2, 1
-Faces #2 : 5, 2, 3
-Faces #3 : 5, 3, 4
-Faces #4 : 5, 4, 6

@@ -40,7 +40,18 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		3, 7
 	};
 
-	m_IndicesBuffer.Create(L"Camera Frustum Index Buffer", _countof(Indices), sizeof(uint8_t), &Indices[0]);
+	// m_IndicesBuffer.Create(L"Camera Frustum Index Buffer", _countof(Indices), sizeof(uint8_t), &Indices[0]);
+
+	custom::ByteAddressBuffer* pIndexBuffer =
+		custom::ByteAddressBuffer::CreateIndexBuffer(L"Camera_Frustum_IB", _countof(Indices), sizeof(uint8_t), Indices);
+
+	D3D12_INDEX_BUFFER_VIEW ModelIBV = pIndexBuffer->IndexBufferView();
+
+	m_IndexCount = _countof(Indices);
+	m_StartIndexLocation = 0;
+	m_BaseVertexLocation = 0;
+	// m_VertexBufferView = pVertexBuffer->VertexBufferView();
+	m_IndexBufferView = pIndexBuffer->IndexBufferView();
 
 	Technique DrawFrustumTechnique{ "Draw Frustum", eObjectFilterFlag::kOpaque };
 
@@ -48,7 +59,7 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		m_RootSignature.Reset(2, 0);
 		m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
 		m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
-		m_RootSignature.Finalize(L"Camera Frustum RootSig", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		m_RootSignature.Finalize(L"CameraFrustum_RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		D3D12_INPUT_ELEMENT_DESC vertexElements[] =
 		{
@@ -68,7 +79,7 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		m_PSO.SetRenderTargetFormats(1, &ColorFormat, bufferManager::g_SceneDepthBuffer.GetFormat());
 		m_PSO.SetVertexShader(g_pFlat_VS, sizeof(g_pFlat_VS));
 		m_PSO.SetPixelShader(g_pFlat_PS, sizeof(g_pFlat_PS));
-		m_PSO.Finalize();
+		m_PSO.Finalize(L"CameraFrustum_PSO");
 	}
 	{
 		Step DrawLineInMainPass("MainRenderPass");
@@ -127,7 +138,11 @@ void CameraFrustum::SetVertices(float Width, float Height, float NearZClip, floa
 		{ -FarZClipWidth,  -FarZClipHeight,  FarZClip }
 	};
 
-	m_VerticesBuffer.Create(L"Camera Frustum Vertex Buffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), &vertices[0]);
+	custom::StructuredBuffer* pVertexBuffer =
+		custom::StructuredBuffer::CreateVertexBuffer(L"Camera_Frustum_VB1", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
+
+	m_VertexBufferView = pVertexBuffer->VertexBufferView();
+	ComputeBoundingBox((const float*)vertices, _countof(vertices), 3);
 }
 
 void CameraFrustum::SetVertices(float AspectHeightOverWidth, float NearZClip, float FarZClip)
@@ -150,7 +165,11 @@ void CameraFrustum::SetVertices(float AspectHeightOverWidth, float NearZClip, fl
 		{ -FarZClipWidth,  -FarZClipHeight,  FarZClip }
 	};
 
-	m_VerticesBuffer.Create(L"Camera Frustum Vertex Buffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), &vertices[0]);
+	custom::StructuredBuffer* pVertexBuffer =
+		custom::StructuredBuffer::CreateVertexBuffer(L"Camera_Frustum_VB2", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
+
+	m_VertexBufferView = pVertexBuffer->VertexBufferView();
+	ComputeBoundingBox((const float*)vertices, _countof(vertices), 3);
 }
 
 void CameraFrustum::SetPosition(DirectX::XMFLOAT3& Position) noexcept
@@ -175,11 +194,11 @@ void CameraFrustum::SetRotation(Math::Vector3& Rotation) noexcept
 {
 	m_Rotation = Rotation;
 }
-
-DirectX::XMMATRIX CameraFrustum::GetTransformXM() const noexcept
+/*
+Math::Matrix4 CameraFrustum::GetTransform() const noexcept
 {
-	return DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
-		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition));
+	return Math::Matrix4(DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
+		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition)));
 
 	// return DirectX::XMMatrixRotationRollPitchYawFromVector(m_CameraToWorld.GetRotation()) *
 	// 	 DirectX::XMMatrixTranslationFromVector(m_CameraToWorld.GetTranslation());
@@ -189,7 +208,7 @@ DirectX::XMMATRIX CameraFrustum::GetTransformXM() const noexcept
 	//	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
 	//}
 }
-
+*/
 Math::Matrix4 CameraFrustum::GetTransform() const noexcept
 {
 	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());

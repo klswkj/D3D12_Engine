@@ -7,7 +7,9 @@ cbuffer ControllerConstants : register(b1) // Only Specular
     uint UseSpecularMap;
     float SpecularWeight;
     float SpecularGloss;
+    float CustomPadding0;
     float3 SpecularColor; // Starts a new vector
+    // float CustomPadding1;
 }
 
 #include "ModelTest_PS.hlsli"

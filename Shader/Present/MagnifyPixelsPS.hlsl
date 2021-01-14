@@ -9,7 +9,7 @@ cbuffer Constants : register(b0)
     float ScaleFactor;
 }
 
-[RootSignature(Present_RootSig)]
+[RootSignature(Present_RootSignature)]
 float4 main( float4 position : SV_Position, float2 uv : TexCoord0 ) : SV_Target0
 {
     float2 ScaledUV = ScaleFactor * (uv - 0.5) + 0.5;

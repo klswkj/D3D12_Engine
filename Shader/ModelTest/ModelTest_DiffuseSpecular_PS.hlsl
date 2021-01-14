@@ -8,6 +8,7 @@ cbuffer ControllerConstants : register(b1) // Diffuse, Specular
     float SpecularWeight;
     float SpecularGloss;
     float3 SpecularColor; // Starts a new vector
+    // float CustomPadding;
 }
 
 #include "ModelTest_PS.hlsli"

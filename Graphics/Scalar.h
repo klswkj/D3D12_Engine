@@ -8,7 +8,7 @@ namespace Math
     class Scalar
     {
     public:
-        __forceinline Scalar() {}
+        __forceinline Scalar() { m_vec = SplatZero(); }
         __forceinline Scalar(const Scalar& s) { m_vec = s; }
         __forceinline Scalar(float f) { m_vec = DirectX::XMVectorReplicate(f); }
         __forceinline explicit Scalar(DirectX::FXMVECTOR vec) { m_vec = vec; }

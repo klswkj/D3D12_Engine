@@ -550,7 +550,7 @@ static void ShowDemoWindowWidgets()
             static int current_element = Element_Fire;
             const char* current_element_name = (current_element >= 0 && current_element < Element_COUNT) ? element_names[current_element] : "Unknown";
             ImGui::SliderInt("slider enum", &current_element, 0, Element_COUNT - 1, current_element_name);
-            ImGui::SameLine(); HelpMarker("Using the format string parameter to display a name instead of the underlying integer.");
+            ImGui::SameLine(); HelpMarker("Using the format string parameter to display a m_Name instead of the underlying integer.");
         }
 
         {
@@ -2448,7 +2448,7 @@ static void ShowDemoWindowPopups()
         ImGui::Button(buf);
         if (ImGui::BeginPopupContextItem())
         {
-            ImGui::Text("Edit name:");
+            ImGui::Text("Edit m_Name:");
             ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
             if (ImGui::Button("Close"))
                 ImGui::CloseCurrentPopup();

@@ -5,22 +5,18 @@
 
 enum class eObjectFilterFlag;
 class MasterRenderGraph;
-
-#ifndef BOOL
-#define BOOL int
-#endif
+class CameraManager;
 
 // Camera ─┬─ CameraProjector ── CameraFrustum 
 //         └  CameraEntity (the thing that made of line list.)
 
-// TODO : Submit(), GetName() 구현
 class Camera : public IBaseCamera
 {
 public:
 	using IBaseCamera::IBaseCamera;
 
-	Camera(char* Name = nullptr, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
-	Camera(const char* Name = nullptr, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
+	Camera(CameraManager* OwningManager = nullptr, char* Name = nullptr, bool Visible = false, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
+	Camera(CameraManager* OwningManager = nullptr, const char* Name = nullptr, bool Visible = false, Math::Vector3 InitPosition = Math::Vector3{ 0.0f, 0.0f, 0.0f }, float InitPitch = 0.0f, float InitYaw = 0.0f);
 
 	// Controls the view-to-projection matrix
 	void SetPerspectiveMatrix(float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip);
@@ -45,7 +41,6 @@ public:
 	void Submit(eObjectFilterFlag Filter);
 	void LinkTechniques(MasterRenderGraph& _RenderGraph);
 
-	// D3D11 void BindToCommandContext(); -> Camera가 빛으로 쓰일 수 있으니까 지금은 패스.
 	void RenderWindow() noexcept;
 	std::string& GetName() noexcept;
 
@@ -53,8 +48,10 @@ protected:
 	void UpdateProjMatrix();
 
 protected:
+	std::string m_Name;
 	CameraEntity m_Entity;
 	CameraProjector m_Projector;
+	CameraManager* m_pCameraManager;
 
 	float m_VerticalFOV; // Field of view angle in radians
 	float m_AspectRatio;
@@ -62,19 +59,17 @@ protected:
 	float m_FarZClip;
 
 	Math::Vector3 m_Position;
-	float m_Pitch; // -> m_up      ???
-	float m_Yaw;   // -> m_right   ???
-	               // -> m_forward ??? 
+	float m_Pitch;
+	float m_Yaw;
 
 	Math::Vector3 m_InitPosition; // Reset Coordinate
-	//float InitRoll; // Fan  ( +되면 시계방향)
-	float m_InitPitch;  // 상하 ( +되면 아래로 숙임)
-	float m_InitYaw;   // 좌우  ( +되면 오른쪽으로)
+	//float InitRoll;  // Fan  ( +되면 시계방향)
+	float m_InitPitch; // 상하 ( +되면 아래로 숙임)
+	float m_InitYaw;   // 좌우 ( +되면 오른쪽으로)
 
-	bool m_bTethered{ false };
-    bool m_bDrawCamera{ true };
-    bool m_bDrawProjector{ true };
-	std::string m_Name;
+	bool m_bTethered;
+	bool m_bDrawCamera;
+	bool m_bDrawProjector;
 };
 
 inline void Camera::SetPerspectiveMatrix(float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip)

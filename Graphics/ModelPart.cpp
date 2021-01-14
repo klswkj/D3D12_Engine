@@ -1,58 +1,44 @@
 #include "stdafx.h"
 #include "ModelPart.h"
 #include "ModelComponentWindow.h"
-#include "TechniqueWindow.h"
 
-ModelPart::ModelPart(uint32_t ID, std::string Name, std::vector<Mesh*> pMeshes, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT
-	: m_ID(ID), meshPtrs(std::move(pMeshes)), m_Name(Name)
+ModelPart::ModelPart(uint32_t ID, std::string Name, std::vector<Mesh*> pMeshes, const Math::Matrix4& InputMatrix) DEBUG_EXCEPT
+	: m_ID(ID), m_pMeshes(std::move(pMeshes)), m_Name(Name)
 {
-	DirectX::XMStoreFloat4x4(&m_Transform, InputMatrix);
-	DirectX::XMStoreFloat4x4(&m_AppliedTransform, DirectX::XMMatrixIdentity());
+	m_Transform = InputMatrix;
+	m_AppliedTransform = Math::Matrix4(Math::EIdentityTag::kIdentity);
 }
 
-void ModelPart::Submit(eObjectFilterFlag Filter, DirectX::XMMATRIX AccumulatedTransformMatrix) const DEBUG_EXCEPT
+void ModelPart::Submit(eObjectFilterFlag Filter, Math::Matrix4 AccumulatedTransformMatrix) const DEBUG_EXCEPT
 {
-	const DirectX::XMMATRIX built =
-		( DirectX::XMLoadFloat4x4(&m_AppliedTransform) *
-			DirectX::XMLoadFloat4x4(&m_Transform) *
-			AccumulatedTransformMatrix );
+	const Math::Matrix4 built = m_AppliedTransform * m_Transform * AccumulatedTransformMatrix;
 
-	for (const auto pm : meshPtrs)
+	for (const auto pm : m_pMeshes)
 	{
 		pm->Submit(Filter, built);
 	}
-	for (const auto& pc : childPtrs)
+	for (const auto& pc : m_ModelParts)
 	{
 		pc->Submit(Filter, built);
 	}
 }
 
-void ModelPart::AddChild(std::unique_ptr<ModelPart> pChild) DEBUG_EXCEPT
+void ModelPart::AddModelPart(std::unique_ptr<ModelPart> pChild) DEBUG_EXCEPT
 {
 	ASSERT(pChild);
-	childPtrs.push_back(std::move(pChild));
+	m_ModelParts.push_back(std::move(pChild));
 }
 
-void ModelPart::SetAppliedTransform(const DirectX::XMMATRIX _Transform) noexcept
+void ModelPart::SetAppliedTransform(const Math::Matrix4 _Transform) noexcept
 {
-	DirectX::XMStoreFloat4x4(&m_AppliedTransform, _Transform);
-}
-
-const DirectX::XMFLOAT4X4& ModelPart::GetAppliedTransform() const noexcept
-{
-	return m_AppliedTransform;
-}
-
-uint32_t ModelPart::GetId() const noexcept
-{
-	return m_ID;
+	m_AppliedTransform = _Transform;
 }
 
 void ModelPart::RecursivePushComponent(ModelComponentWindow& _ModelWindow)
 {
 	if (_ModelWindow.PushNode(*this)) // If childNode is exist.
 	{
-		for (auto& cp : childPtrs)
+		for (auto& cp : m_ModelParts)
 		{
 			cp->RecursivePushComponent(_ModelWindow);
 		}
@@ -60,9 +46,9 @@ void ModelPart::RecursivePushComponent(ModelComponentWindow& _ModelWindow)
 	}
 }
 
-void ModelPart::PushAddon(ITechniqueWindow& _TechniqueWindow)
+void ModelPart::PushAddon(IWindow& _TechniqueWindow)
 {
-	for (auto& mp : meshPtrs)
+	for (auto& mp : m_pMeshes)
 	{
 		mp->Accept(_TechniqueWindow);
 	}

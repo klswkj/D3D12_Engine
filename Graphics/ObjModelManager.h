@@ -8,12 +8,23 @@ enum class eObjectFilterFlag;
 class ObjModelManager
 {
 public:
-	ObjModelManager();
-	
-	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph); // 원하는 Entity내의 Techiniques안의 Step이 Pass 찾아가게함.
-	void Submit(eObjectFilterFlag Filter); // Pass에 맡게 pDrawable을 분배함.
-	void ShowComponentWindows();
+	ObjModelManager(float ModelSize = 1.0f);
+	~ObjModelManager();
+	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
+	void Submit(eObjectFilterFlag Filter);
+	void RenderComponentWindows();
+	void ComputeBoundingBox();
+
+	struct BoundingBox
+	{
+		Math::Vector3 MinPoint = Math::Scalar(FLT_MAX);
+		Math::Vector3 MaxPoint = Math::Scalar(FLT_MIN);
+	};
+	BoundingBox& GetBoundingBox();
+
 private:
-	std::vector<Model> m_Models;
-	std::vector<ModelComponentWindow> m_ComponentWindows;
+	size_t                            m_ActiveModelIndex;
+	BoundingBox                       m_BoundingBox;
+	std::vector<Model>                m_Models;
+	std::vector<ModelComponentWindow> m_ModelComponentWindows;
 };

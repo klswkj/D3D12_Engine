@@ -42,6 +42,10 @@ namespace custom
 		m_CurPipelineState = nullptr;
 		m_pCurrentComputeRootSignature = nullptr;
 		m_numStandByBarriers = 0;
+		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+		m_pMainCamera = nullptr;
+		m_pMainLightShadowCamera = nullptr;
 	}
 
 	CommandContext::~CommandContext(void)
@@ -52,17 +56,18 @@ namespace custom
 		}
 	}
 
-	void CommandContext::Initialize(void)
+	void CommandContext::Initialize(const std::wstring& ID)
 	{
-		device::g_commandQueueManager.CreateNewCommandList(&m_commandList, &m_currentCommandAllocator, m_type);
+		device::g_commandQueueManager.CreateNewCommandList(&m_commandList, &m_currentCommandAllocator, m_type, ID);
 	}
 
-	CommandContext& CommandContext::Begin(const std::wstring ID)
+	CommandContext& CommandContext::Begin(const std::wstring& ID)
 	{
-		CommandContext* NewContext = device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		CommandContext* NewContext = device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT, ID);
 		NewContext->setName(ID);
 		//        if (ID.length() > 0)
 		//             Profiling::BeginBlock(ID, NewContext);
+
 		return *NewContext;
 	}
 
@@ -99,7 +104,7 @@ namespace custom
 		return FenceValue;
 	}
 
-	void CommandContext::Reset()
+	void CommandContext::Reset(std::wstring ID)
 	{
 		// We only call Reset() on previously freed contexts.  The command list persists, but we must
 		// request a new allocator.
@@ -107,10 +112,24 @@ namespace custom
 		m_currentCommandAllocator = device::g_commandQueueManager.GetQueue(m_type).requestAllocator();
 		m_commandList->Reset(m_currentCommandAllocator, nullptr);
 
+#ifdef _DEBUG
+		if (0 < ID.length())
+		{
+			ID += L"'s commandList";
+
+			m_commandList->SetName(ID.c_str());
+		}
+		else
+		{
+			m_commandList->SetName(L"CommandList");
+		}
+#endif
+
 		m_pCurrentGraphicsRootSignature = nullptr;
 		m_CurPipelineState = nullptr;
 		m_pCurrentComputeRootSignature = nullptr;
 		m_numStandByBarriers = 0;
+		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
 		bindDescriptorHeaps();
 	}
@@ -147,6 +166,7 @@ namespace custom
 		// Reset the command list and restore previous state
 
 		m_commandList->Reset(m_currentCommandAllocator, nullptr);
+		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
 		if (m_pCurrentGraphicsRootSignature)
 		{
@@ -198,14 +218,9 @@ namespace custom
 		}
 	}
 
+	// TODO : To change to find unused ResourceBarrier, then changed it. 
 	void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
 	{
-		/*
-		if (!Resource.GetResource())
-		{
-			return;
-		}
-		*/
 		ASSERT(Resource.GetResource());
 
 		D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
@@ -224,10 +239,10 @@ namespace custom
 			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
 			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			BarrierDesc.Transition.pResource = Resource.GetResource();
+			BarrierDesc.Transition.pResource   = Resource.GetResource();
 			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 			BarrierDesc.Transition.StateBefore = OldState;
-			BarrierDesc.Transition.StateAfter = NewState;
+			BarrierDesc.Transition.StateAfter  = NewState;
 
 			// Check to see if we already started the transition
 			if (NewState == Resource.m_transitionState)
@@ -334,15 +349,17 @@ namespace custom
 			DestDesc.MipLevels <= SrcDesc.MipLevels
 		);
 
-		UINT SubResourceIndex = SliceIndex * DestDesc.MipLevels;
+		size_t SubResourceIndex = SliceIndex * DestDesc.MipLevels;
 
 		for (UINT MipLevel = 0; MipLevel < DestDesc.MipLevels; ++MipLevel)
 		{
+			size_t InputSubresourceIndex = SubResourceIndex + (size_t)MipLevel;
+
 			D3D12_TEXTURE_COPY_LOCATION destCopyLocation =
 			{
 				Dest.GetResource(),
 				D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-				SubResourceIndex + MipLevel
+				(UINT)InputSubresourceIndex
 			};
 
 			D3D12_TEXTURE_COPY_LOCATION srcCopyLocation =
@@ -408,9 +425,9 @@ namespace custom
 		m_commandList->CopyBufferRegion(Dest.GetResource(), DestOffset, Src.GetCounterBuffer().GetResource(), 0, 4);
 	}
 
-	void CommandContext::ResetCounter(StructuredBuffer& Buf, uint32_t Value)
+	void CommandContext::ResetCounter(StructuredBuffer& Buf, float Value)
 	{
-		FillBuffer(Buf.GetCounterBuffer(), 0, Value, sizeof(uint32_t));
+		FillBuffer(Buf.GetCounterBuffer(), 0, Value, sizeof(float));
 		TransitionResource(Buf.GetCounterBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	}
 
@@ -441,7 +458,7 @@ namespace custom
 
 		LinearBuffer mem = InitContext.ReserveUploadMemory(NumBytes);
 
-		// TODO : This part can be Optimization.
+		// TODO : This part can be Optimized.
 		if (HashInternal::IsAligned(NumBytes, 16) && HashInternal::IsAligned(BufferData, 16))
 		{
 			SIMDMemCopy(mem.pData, BufferData, HashInternal::DivideByMultiple(NumBytes, 16));
@@ -470,7 +487,7 @@ namespace custom
 		m_commandList->SetPipelineState(pPSO);
 		m_CurPipelineState = pPSO;
 	}
-
+	
 	void CommandContext::SetPipelineState(const PSO& PSO)
 	{
 		ID3D12PipelineState* PipelineState = PSO.GetPipelineStateObject();
@@ -581,8 +598,9 @@ namespace custom
 	
 	void CommandContext::SetModelToProjectionByCamera(IBaseCamera& _IBaseCamera)
 	{
-		m_VSConstants.modelToProjection = _IBaseCamera.GetProjMatrix();
-		DirectX::XMStoreFloat3(&m_VSConstants.viewerPos, _IBaseCamera.GetPosition());
+		m_VSConstants.modelToProjection = _IBaseCamera.GetViewProjMatrix();
+		m_VSConstants.ViewMatrix        = _IBaseCamera.GetViewMatrix();
+ 		DirectX::XMStoreFloat3(&m_VSConstants.viewerPos, _IBaseCamera.GetPosition());
 	}
 
 	void CommandContext::SetModelToShadow(const Math::Matrix4& _ShadowMatrix)
@@ -607,20 +625,29 @@ namespace custom
 		ASSERT(m_pMainCamera != nullptr);
 		return m_pMainCamera;
 	}
+
+	VSConstants CommandContext::GetVSConstants()
+	{
+		return m_VSConstants;
+	}
+	PSConstants CommandContext::GetPSConstants()
+	{
+		return m_PSConstants;
+	}
 	
 	void CommandContext::SetMainLightDirection(Math::Vector3 MainLightDirection)
 	{
-		m_PSConstants.sunDirection = MainLightDirection; // Not hit.
+		m_PSConstants.sunDirection = MainLightDirection;
 	}
 
 	void CommandContext::SetMainLightColor(Math::Vector3 Color, float Intensity)
 	{
-		m_PSConstants.sunLightColor = Color * Intensity; // Not hit.
+		m_PSConstants.sunLightColor = Color * Intensity;
 	}
 
 	void CommandContext::SetAmbientLightColor(Math::Vector3 Color, float Intensity)
 	{
-		m_PSConstants.ambientColor = Color * Intensity; // Not hit.
+		m_PSConstants.ambientColor = Color * Intensity;
 	}
 
 	void CommandContext::SetShadowTexelSize(float TexelSize)
@@ -630,7 +657,7 @@ namespace custom
 		m_PSConstants.ShadowTexelSize[1] = TexelSize;
 	}
 
-	void CommandContext::SetTileDimension(float MainColorBufferWidth, float MainColorBufferHeight, uint32_t LightWorkGroupSize)
+	void CommandContext::SetTileDimension(uint32_t MainColorBufferWidth, uint32_t MainColorBufferHeight, uint32_t LightWorkGroupSize)
 	{
 		ASSERT(1u < LightWorkGroupSize);
 
@@ -656,9 +683,9 @@ namespace custom
 
 	void CommandContext::SetSync()
 	{
-		device::g_commandContextManager.m_VSConstants = m_VSConstants;
-		device::g_commandContextManager.m_PSConstants = m_PSConstants;
-		device::g_commandContextManager.m_pCamera = m_pMainCamera;
+		device::g_commandContextManager.m_VSConstants   = m_VSConstants;
+		device::g_commandContextManager.m_PSConstants   = m_PSConstants;
+		device::g_commandContextManager.m_pCamera       = m_pMainCamera;
 		device::g_commandContextManager.m_pShadowCamera = m_pMainLightShadowCamera;
 	}
 
@@ -673,6 +700,8 @@ namespace custom
 		}
 
 		m_commandList->SetGraphicsRootSignature(m_pCurrentGraphicsRootSignature = RootSig.GetSignature());
+
+		// When Called Reset()?
 
 		m_DynamicViewDescriptorHeap.ParseGraphicsRootSignature(RootSig);
 		m_DynamicSamplerDescriptorHeap.ParseGraphicsRootSignature(RootSig);
@@ -791,6 +820,15 @@ namespace custom
 	{
 		SetViewport((float)x, (float)y, (float)w, (float)h);
 		SetScissor(x, y, x + w, y + h);
+	}
+
+	void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology)
+	{
+		if (m_PrimitiveTopology != Topology)
+		{
+			m_commandList->IASetPrimitiveTopology(Topology);
+			m_PrimitiveTopology = Topology;
+		}
 	}
 
 	void GraphicsContext::SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1)
@@ -959,9 +997,12 @@ namespace custom
 		FlushResourceBarriers();
 		m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
 		m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_commandList->ExecuteIndirect(CommandSig.GetSignature(), MaxCommands,
+		m_commandList->ExecuteIndirect
+		(
+			CommandSig.GetSignature(), MaxCommands,
 			ArgumentBuffer.GetResource(), ArgumentStartOffset,
-			CommandCounterBuffer == nullptr ? nullptr : CommandCounterBuffer->GetResource(), CounterOffset);
+			CommandCounterBuffer == nullptr ? nullptr : CommandCounterBuffer->GetResource(), CounterOffset
+		);
 	}
 
 	void GraphicsContext::DrawIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)

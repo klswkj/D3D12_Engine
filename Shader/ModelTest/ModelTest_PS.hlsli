@@ -9,37 +9,34 @@
 
 struct VSOutput
 {
-    float4 position : SV_Position;
-    float3 worldPos : WorldPos;
-    float3 normal : Normal;
-    float3 viewDir : TexCoord1;
+    float4 position    : SV_Position;
+    float3 worldPos    : WorldPos;
+    float3 normal      : Normal;
+    float2 texCoord    : TexCoord0;
+    float3 viewDir     : TexCoord1;
     float3 shadowCoord : TexCoord2;
-    float2 texCoord : TexCoord0;
-    float3 tangent : Tangent;
-    float3 bitangent : Bitangent;
+    float3 tangent     : Tangent;
+    float3 bitangent   : Bitangent;
 };
-
-#if EXIST_DIFFUSE_TEXTURE
-Texture2D<float3> texDiffuse : register(t0);
+#if defined(EXIST_DIFFUSE_TEXTURE)
+Texture2D<float4> texDiffuse              : register(t0);
 #endif
-#if EXIST_SPECULAR_TEXTURE
-Texture2D<float3> texSpecular : register(t1);
+#if defined(EXIST_SPECULAR_TEXTURE)
+Texture2D<float4> texSpecular             : register(t1);
 #endif
 //Texture2D<float4> texEmissive           : register(t2);
-#if EXIST_NORMAL_TEXTURE
-Texture2D<float3> texNormal : register(t3);
+#if defined(EXIST_NORMAL_TEXTURE)
+Texture2D<float4> texNormal               : register(t3);
 #endif
 //Texture2D<float4> texLightmap           : register(t4);
 //Texture2D<float4> texReflection         : register(t5);
 
-// m_RootSig[3].InitAsDescriptorRange (D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL);
-Texture2D<float> texSSAO : register(t64);   // bufferManager::g_SSAOFullScreen
-Texture2D<float> texShadow : register(t65); // bufferManager::g_ShadowBuffer
-
-StructuredBuffer<LightData> lightBuffer : register(t66);   // PreLightPass::custom::StructuredBuffer  m_LightBuffer
+Texture2D<float> texSSAO                  : register(t64); // bufferManager::g_SSAOFullScreen
+Texture2D<float> texShadow                : register(t65); // bufferManager::g_ShadowBuffer
+StructuredBuffer<LightData> lightBuffer   : register(t66); // PreLightPass::custom::StructuredBuffer  m_LightBuffer
 Texture2DArray<float> lightShadowArrayTex : register(t67); // PreLightPass::custom::ColorBuffer       m_LightShadowArray
-ByteAddressBuffer lightGrid : register(t68);               // PreLightPass::custom::ByteAddressBuffer m_LightGrid;
-ByteAddressBuffer lightGridBitMask : register(t69);        // PreLightPass::custom::ByteAddressBuffer m_LightGridBitMask;
+ByteAddressBuffer lightGrid               : register(t68); // PreLightPass::custom::ByteAddressBuffer m_LightGrid;
+ByteAddressBuffer lightGridBitMask        : register(t69); // PreLightPass::custom::ByteAddressBuffer m_LightGridBitMask;
 
 cbuffer PSConstants : register(b0)
 {
@@ -47,14 +44,14 @@ cbuffer PSConstants : register(b0)
     float3 SunColor;
     float3 AmbientColor;
     float4 ShadowTexelSize;
-
-    float4 InvTileDim;
-    uint4 TileCount;
-    uint4 FirstLightIndex;
+    
+    float2 InvTileDim;
+    uint2 TileCount;
+    uint2 FirstLightIndex;
 }
 
-SamplerState sampler0 : register(s0);
-SamplerComparisonState shadowSampler : register(s1);
+SamplerState           DefaultSampler : register(s0);
+SamplerComparisonState ShadowSampler  : register(s1);
 
 uint PullNextBit(inout uint bits)
 {
@@ -108,12 +105,12 @@ uint PullNextBit(inout uint bits)
 float3 main(VSOutput vsOutput) : SV_Target0
 {
     uint2 pixelPos = vsOutput.position.xy;
-    #if EXIST_DIFFUSE_TEXTURE
-    float3 diffuseAlbedo = texDiffuse.Sample(sampler0, vsOutput.texCoord);
-    #else
+#if defined(EXIST_DIFFUSE_TEXTURE)
+    float3 diffuseAlbedo = texDiffuse.Sample(DefaultSampler, vsOutput.texCoord).rgb;
+#else
     float3 diffuseAlbedo = DiffuseColor;
-    #endif
-    float3 colorSum = 0;
+#endif
+    float3 colorSum = 0.0f;
     {
         float ao = texSSAO[pixelPos];
         colorSum += ApplyAmbientLight(diffuseAlbedo, ao, AmbientColor);
@@ -121,38 +118,53 @@ float3 main(VSOutput vsOutput) : SV_Target0
 
     float gloss = SpecularGloss;
 
-    float3 normal;
-    #if EXIST_NORMAL_TEXTURE
+    float3 normal = normalize(vsOutput.normal);
+#if defined(EXIST_NORMAL_TEXTURE)
+    if(UseNormalMap)
     {
-        normal = texNormal.Sample(sampler0, vsOutput.texCoord) * 2.0 - 1.0;
+        normal = texNormal.Sample(DefaultSampler, vsOutput.texCoord).rgb * 2.0f - 1.0f;
         AntiAliasSpecular(normal, gloss);
         float3x3 tbn = float3x3(normalize(vsOutput.tangent), normalize(vsOutput.bitangent), normalize(vsOutput.normal));
         normal = normalize(mul(normal, tbn));
+        normal = lerp(normal, normalize(vsOutput.normal), NormalMapWeight);
     }
-    #else
-    normal = normalize(vsOutput.normal);
-    #endif
+#endif
     
-    #if EXIST_SPECULAR_TEXTURE
-    float specularMask = texSpecular.Sample(sampler0, vsOutput.texCoord).g;
-    #else
-    float specularMask = SpecularColor.g;
-    #endif
-    
-    // float3 specularAlbedo = float3(0.56, 0.56, 0.56);
+    float specularMask    = SpecularWeight;
+    float specularPower   = SpecularGloss;
     float3 specularAlbedo = SpecularColor;
+    
+#if defined(EXIST_SPECULAR_TEXTURE)
+    {
+        const float4 specularSample = texSpecular.Sample(DefaultSampler, vsOutput.texCoord);
+    
+        if (UseGlossAlpha)
+        {
+            specularPower = pow(2.0f, specularSample.a * 13.0f);
+        }
+    
+        specularMask = texSpecular.Sample(DefaultSampler, vsOutput.texCoord).g;
+    
+        if(UseSpecularMap)
+        {
+            specularAlbedo = specularSample.rgb;
+        }
+    }
+#endif
+    
     float3 viewDir = normalize(vsOutput.viewDir);
     
     colorSum += ApplyDirectionalLight
     (
         DIRECTIONAL_LIGHT_ARGS,
         ShadowTexelSize,
+        specularPower,
         texShadow,
-        shadowSampler
+        ShadowSampler
     );
 
-    uint2 tilePos = GetTilePos(pixelPos, InvTileDim.xy);
-    uint tileIndex = GetTileIndex(tilePos, TileCount.x);
+    uint2 tilePos   = GetTilePos(pixelPos, InvTileDim.xy);
+    uint tileIndex  = GetTileIndex(tilePos, TileCount.x);
     uint tileOffset = GetTileOffset(tileIndex);
 
     // Light Grid Preloading setup
@@ -379,13 +391,13 @@ float3 main(VSOutput vsOutput) : SV_Target0
 
 #else // SM 5.0 (no wave intrinsics)
 
-    uint tileLightCount = lightGrid.Load(tileOffset + 0);
-    uint tileLightCountSphere = (tileLightCount >> 0) & 0xff;
-    uint tileLightCountCone = (tileLightCount >> 8) & 0xff;
+    uint tileLightCount             = lightGrid.Load(tileOffset + 0);
+    uint tileLightCountSphere       = (tileLightCount >> 0) & 0xff;
+    uint tileLightCountCone         = (tileLightCount >> 8) & 0xff;
     uint tileLightCountConeShadowed = (tileLightCount >> 16) & 0xff;
 
     uint tileLightLoadOffset = tileOffset + 4;
-
+    
     // sphere
     for (uint n = 0; n < tileLightCountSphere; n++, tileLightLoadOffset += 4)
     {
@@ -407,7 +419,7 @@ float3 main(VSOutput vsOutput) : SV_Target0
     {
         uint lightIndex = lightGrid.Load(tileLightLoadOffset);
         LightData lightData = lightBuffer[lightIndex];
-        colorSum += ApplyConeShadowedLight(SHADOWED_LIGHT_ARGS, lightShadowArrayTex, shadowSampler);
+        colorSum += ApplyConeShadowedLight(SHADOWED_LIGHT_ARGS, lightShadowArrayTex, ShadowSampler);
     }
 #endif
 

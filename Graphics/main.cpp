@@ -22,21 +22,23 @@ int CALLBACK main
 
 	CRTDEBUG1;
 
-	imguiManager::Initialize();
+	// _CrtSetBreakAlloc();
+
 	window::Initialize();
 	windowInput::Initialize();
 	device::Initialize();
 	graphics::Initialize();
+	imguiManager::Initialize();
 	OBJFileManager::Initialize("OBJ");
 
-	D3D12Engine d3dEngine{ lpCmdLine };
-
-	d3dEngine.Run();
+	D3D12Engine* pD3DEngine = new D3D12Engine(lpCmdLine);
+	pD3DEngine->Run();
+	delete pD3DEngine;
 
 	window::Destroy();
 	imguiManager::Destroy();
-	device::Destroy();
 	graphics::ShutDown();
+	device::Destroy();
 
 	CRTDEBUG2;
 

@@ -32,5 +32,5 @@ private:
 
     std::vector<ID3D12CommandAllocator*> m_allocatorPool;
     std::queue<std::pair<uint64_t, ID3D12CommandAllocator*>> m_readyAllocators;
-    // std::mutex m_allocatorMutex;
+    std::mutex m_allocatorMutex;
 };

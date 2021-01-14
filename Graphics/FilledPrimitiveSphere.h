@@ -7,7 +7,7 @@ class FilledPrimitiveSphere : public Entity
 public:
 	FilledPrimitiveSphere(float Radius = 2.0f, uint32_t SliceCount = 20u, uint32_t StackCount = 20u);
 	void SetPos(DirectX::XMFLOAT3 Position) noexcept;
-	DirectX::XMMATRIX GetTransformXM() const noexcept override;
+	Math::Matrix4 GetTransform() const noexcept override;
 private:
 	//custom::StructuredBuffer  m_VerticesBuffer;
 	//custom::ByteAddressBuffer m_IndicesBuffer;

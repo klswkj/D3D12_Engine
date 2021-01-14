@@ -99,7 +99,7 @@ public:
 	void OnWheelDelta(int x, int y, int delta) noexcept;
 private:
 	static constexpr unsigned int kBufferSize = 16u;
-	POINT MousePoint;
+	POINT MousePoint = {};
 	bool leftIsPressed = false;
 	bool rightIsPressed = false;
 	bool isInWindow = false;

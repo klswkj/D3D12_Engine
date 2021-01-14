@@ -14,11 +14,6 @@
 #pragma comment(lib, "dinput8.lib")
 #pragma comment(lib, "dxguid.lib")
 
-namespace window
-{
-    extern HWND g_hWnd;
-}
-
 #else
 
 using namespace Windows::Gaming::Input;
@@ -336,8 +331,8 @@ namespace
             ASSERT(false, "Mouse CreateDevice failed.");
         if (FAILED(s_Mouse->SetDataFormat(&c_dfDIMouse2)))
             ASSERT(false, "Mouse SetDataFormat failed.");
-        if (FAILED(s_Mouse->SetCooperativeLevel(window::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
-            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+        // if (FAILED(s_Mouse->SetCooperativeLevel(window::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
+        //    ASSERT(false, "Mouse SetCooperativeLevel failed.");
 #endif
 
         RAWINPUTDEVICE RawInputDevice;

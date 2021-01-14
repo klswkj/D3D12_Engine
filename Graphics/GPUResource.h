@@ -82,9 +82,9 @@ namespace custom
             return m_currentState;
         }
     protected:
-        ID3D12Resource* m_pResource;
         D3D12_RESOURCE_STATES m_currentState;
         D3D12_RESOURCE_STATES m_transitionState;
+        ID3D12Resource* m_pResource;
         D3D12_GPU_VIRTUAL_ADDRESS m_GPUVirtualAddress;
 
         // When using VirtualAlloc() to allocate memory directly, 

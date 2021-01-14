@@ -17,6 +17,8 @@ class ColorBuffer;
 // TODO : Camera* m_pCurrentCamera 만들어서 카메라 받고 렌더링하기
 class SSAOPass : public Pass
 {
+	friend class MasterRenderGraph;
+	friend class MainRenderPass;
 public:
 	SSAOPass(std::string pName);
 	~SSAOPass() {}
@@ -30,12 +32,13 @@ public:
 		ColorBuffer* InterleavedAO, ColorBuffer* HighQualityAO, ColorBuffer* HighResolutionAO
 	);
 	void RenderWindow();
-
-private:
+public:
 	bool m_bEnable;
 	bool m_bDebugDraw;     // When DebugDraw is Enable, after all of passes' draw will be disabled.
 	bool m_bAsyncCompute;
 	bool m_bComputeLinearZ;
+private:
+	static SSAOPass* s_pSSAOPass;
 
 	float m_NoiseFilterTolerance; // or be named Threhold
 	float m_BlurTolerance;
@@ -50,12 +53,14 @@ private:
 	QualityLevel m_eQuality;
 
 	custom::RootSignature m_MainRootSignature;
+	custom::RootSignature m_LinearizeDepthSignature;
+
 	ComputePSO m_DepthPrepareCS_16;
 	ComputePSO m_DepthPrepareCS_64;
 	ComputePSO m_RenderWithWideSamplingCS;
 	ComputePSO m_RenderWithDepthArrayCS; 
 
-	ComputePSO m_BlurUpSamleBlendWithHighResolutionCS;
+	ComputePSO m_BlurUpSampleBlendWithHighResolutionCS;
 	ComputePSO m_BlurUpSampleBlendWithBothCS;
 	ComputePSO m_BlurUpSampleFinalWithNoneCS;
 	ComputePSO m_BlurUpSampleFinalWithCombineLowerResolutionCS;

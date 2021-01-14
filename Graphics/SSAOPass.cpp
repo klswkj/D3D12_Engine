@@ -45,11 +45,15 @@
 // Linearize
 // Screen-Space reconstruct
 // Random sample Generation
-// 
+
+SSAOPass* SSAOPass::s_pSSAOPass = nullptr;
 
 SSAOPass::SSAOPass(std::string pName)
 	: Pass(pName)
 {
+	ASSERT(s_pSSAOPass == nullptr);
+	s_pSSAOPass = this;
+
 	{
 		m_MainRootSignature.Reset(4, 2);
 		m_MainRootSignature.InitStaticSampler(0, premade::g_SamplerLinearClampDesc);
@@ -58,12 +62,18 @@ SSAOPass::SSAOPass(std::string pName)
 		m_MainRootSignature[1].InitAsConstantBuffer(1);
 		m_MainRootSignature[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 5);
 		m_MainRootSignature[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 5);
-		m_MainRootSignature.Finalize(L"SSAO");
+		m_MainRootSignature.Finalize(L"SSAO_RS");
+
+		m_LinearizeDepthSignature.Reset(3, 0);
+		m_LinearizeDepthSignature[0].InitAsConstants(0, 1);
+		m_LinearizeDepthSignature[1].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1);
+		m_LinearizeDepthSignature[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1);
+		m_LinearizeDepthSignature.Finalize(L"m_LinearizeDepth");
 	}
-#define CreatePSO( ObjName, ShaderByteCode ) \
-    ObjName.SetRootSignature(m_MainRootSignature); \
+#define CreatePSO( ObjName, ShaderByteCode )                           \
+    ObjName.SetRootSignature(m_MainRootSignature);                     \
     ObjName.SetComputeShader(ShaderByteCode, sizeof(ShaderByteCode) ); \
-    ObjName.Finalize()
+    ObjName.Finalize(L#ObjName)
 
 	{
 		CreatePSO(m_DepthPrepareCS_16, g_pAoPrepareDepthBuffers1CS);
@@ -72,25 +82,32 @@ SSAOPass::SSAOPass(std::string pName)
 		CreatePSO(m_RenderWithDepthArrayCS, g_pAoCompute2CS);
 	}
 	{
-		CreatePSO(m_BlurUpSamleBlendWithHighResolutionCS, g_pAoBlurUpsampleBlendOutCS);
-		CreatePSO(m_BlurUpSampleBlendWithBothCS, g_pAoBlurUpsamplePreMinBlendOutCS);
-		CreatePSO(m_BlurUpSampleFinalWithNoneCS, g_pAoBlurUpsampleCS);
+		CreatePSO(m_BlurUpSampleFinalWithNoneCS,                   g_pAoBlurUpsampleCS);
 		CreatePSO(m_BlurUpSampleFinalWithCombineLowerResolutionCS, g_pAoBlurUpsamplePreMinCS);
+		CreatePSO(m_BlurUpSampleBlendWithHighResolutionCS,         g_pAoBlurUpsampleBlendOutCS);
+		CreatePSO(m_BlurUpSampleBlendWithBothCS,                   g_pAoBlurUpsamplePreMinBlendOutCS);
 	}
 	{
-		CreatePSO(m_LinearizeDepthCS, g_pLinearizeDepthCS);
-		CreatePSO(m_DebugSSAOCS, g_pDebugSSAOCS);
-	}
+		// CreatePSO(m_LinearizeDepthCS, g_pLinearizeDepthCS);
+		m_LinearizeDepthCS.SetRootSignature(m_LinearizeDepthSignature);
+		m_LinearizeDepthCS.SetComputeShader(g_pLinearizeDepthCS, sizeof(g_pLinearizeDepthCS));
+		m_LinearizeDepthCS.Finalize(L"m_LinearizeDepthCS");
 
-	m_bEnable = true;
-	m_bDebugDraw = false;
-	m_bAsyncCompute = false;
+		// CreatePSO(m_DebugSSAOCS, g_pDebugSSAOCS);
+		m_DebugSSAOCS.SetRootSignature(m_LinearizeDepthSignature);
+		m_DebugSSAOCS.SetComputeShader(g_pDebugSSAOCS, sizeof(g_pDebugSSAOCS));
+		m_DebugSSAOCS.Finalize(L"m_LinearizeDepthCS");
+	}
+#undef CreatePSO
+	m_bEnable         = true;
+	m_bDebugDraw      = false;
+	m_bAsyncCompute   = false;
 	m_bComputeLinearZ = true;
 
 	m_NoiseFilterTolerance = -3.0f; // -8.0f ~ 0.0f, 0.25f
-	m_BlurTolerance = -5.0f;        // -0.8f ~ -0.1f 0.25f
-	m_UpsampleTolerance = -0.7f;    // -12.0f ~ -0.1f, 0.5f
-	m_RejectionFallOff = 2.5f;      // 1 ~ 10 , 0.5
+	m_BlurTolerance        = -5.0f; // -0.8f ~ -0.1f 0.25f
+	m_UpsampleTolerance    = -0.7f; // -12.0f ~ -0.1f, 0.5f
+	m_RejectionFallOff     =  2.5f;  // 1 ~ 10 , 0.5
 	
 	m_Accentuation = 0.1f; // 0.1f~1.0f
 	m_ScreenSpaceDiameter = 10.0f; // 0.0f ~ 200.0f, 10.0f
@@ -182,63 +199,100 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 
 	const Math::Matrix4& ProjectMatrix = pMainCamera->GetProjMatrix();
 
-	float ZCoefficient{ 0.0f };
+	float ZCoefficient = 0.0f;
 	{
 		const float NearZClip = pMainCamera->GetNearZClip();
 		const float FarZClip = pMainCamera->GetFarZClip();
 		ZCoefficient = (FarZClip - NearZClip) / NearZClip;
 	}
 
+	__declspec(align(16)) float CB_Empty[] =
+	{
+			m_NoiseFilterTolerance, m_BlurTolerance, m_UpsampleTolerance, m_RejectionFallOff
+	};
+
 	const size_t CurrentFrameIndex = graphics::GetFrameCount() % device::g_DisplayBufferCount;
-	ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[CurrentFrameIndex];
-	ColorBuffer& SSAOTarget = bufferManager::g_SSAOFullScreen;
-	ColorBuffer& MainRenderTarget = bufferManager::g_SceneColorBuffer;
-	DepthBuffer& MainDepthBuffer = bufferManager::g_SceneDepthBuffer;
+	ColorBuffer& LinearDepth       = bufferManager::g_LinearDepth[CurrentFrameIndex]; // // Normalized planar distance (0 at eye, 1 at far plane) computed from the SceneDepthBuffer
+	ColorBuffer& SSAOTarget        = bufferManager::g_SSAOFullScreen;
+	ColorBuffer& MainRenderTarget  = bufferManager::g_SceneColorBuffer;
+	DepthBuffer& MainDepthBuffer   = bufferManager::g_SceneDepthBuffer;
 
 	BaseContext.PIXBeginEvent(L"4_SSAOPass");
-
 	// Linearlize
 	if (!m_bEnable)
 	{
+		BaseContext.PIXBeginEvent(L"SSAO_Generating");
+
+		BaseContext.Flush(false);
+
 		custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-
-		graphicsContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-		graphicsContext.ClearColor(SSAOTarget);
-		graphicsContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
+		{
+			graphicsContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
+			graphicsContext.ClearColor(SSAOTarget);
+			graphicsContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			graphicsContext.Flush(false);
+		}
 		if (m_bComputeLinearZ == false)
 		{
-			graphicsContext.PIXEndEvent();
+			graphicsContext.PIXEndEvent(); // End SSAO_Generating
+			graphicsContext.PIXEndEvent(); // End 4_SSAOPass
 			return;
 		}
 
-		custom::ComputeContext& computeContext = graphicsContext.GetComputeContext();
-
+		custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
+		/*
 		computeContext.SetRootSignature(m_MainRootSignature);
-
-		computeContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		computeContext.SetConstant(0, ZCoefficient);
-		computeContext.SetDynamicDescriptor(3, 0, MainDepthBuffer.GetDepthSRV()); // Input : DepthBuffer
-
-		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-		// Context.SetDynamicDescriptors(2, 0, 1, &LinearDepth.GetUAV());  
-		// Output : g_LinearDepth = 1.0f / (DepthBuffer * ZCoefficient + 1) 
-		computeContext.SetDynamicDescriptor(2, 0, LinearDepth.GetUAV());
-
 		computeContext.SetPipelineState(m_LinearizeDepthCS);
+
+		computeContext.TransitionResource(LinearDepth,     D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.TransitionResource(MainDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+		// Output : g_LinearDepth = 1.0f / (MainDepthBuffer * ZCoefficient + 1) 
+		computeContext.SetConstant(0, *reinterpret_cast<UINT*>(&ZCoefficient));
+		computeContext.SetDynamicDescriptor(2, 0, LinearDepth.GetUAV());
+		computeContext.SetDynamicDescriptor(3, 0, MainDepthBuffer.GetDepthSRV()); // Input : DepthBuffer
+		computeContext.Dispatch2D(LinearDepth.GetWidth(), LinearDepth.GetHeight(), 16, 16);
+		*/
+
+		// SetDynamicDescriptor(2, 0) -> GPU Descriptor Handle (at 1 offsetInDescriptorsForDescriptorHeapStart)
+		// SetDynamicDescriptor(2, 1) -> GPU Descriptor Handle (at 2 offsetInDescriptorsForDescriptorHeapStart)
+		// SetDynamicDescriptor(2, 2) -> GPU Descriptor Handle (at 1 offsetInDescriptorsForDescriptorHeapStart)
+		// SetDynamicDescriptor(2, 3) -> GPU Descriptor Handle (at 1 offsetInDescriptorsForDescriptorHeapStart)
+		// SetDynamicDescriptor(2, 4) -> GPU Descriptor Handle (at 1 offsetInDescriptorsForDescriptorHeapStart)
+
+		/*
+		Specified GPU Descriptor Handle (ptr=0x8000018fe4624d9d at 1 offsetInDescriptorsFromDescriptorHeapStart) of type SRV, 
+		for Root Signature (0x000001906E069170:'SSAO_RS')'s Descriptor Table (at Parameter Index [2])'s Descriptor Range (at Range Index [0] UAV) 
+		have mismatching types, at Dispatch Index: [0].
+
+		// GPU Descriptor Handle => CommandContext.m_DynamicViewDescriptorHeap.m_FirstDescriptor.m_GpuHandle.ptr
+
+		*/
+		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.TransitionResource(MainDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+		computeContext.SetRootSignature(m_LinearizeDepthSignature);
+		computeContext.SetPipelineState(m_LinearizeDepthCS);
+
+		computeContext.SetConstant(0, *reinterpret_cast<UINT*>(&ZCoefficient));
+		computeContext.SetDynamicDescriptor(1, 0, LinearDepth.GetUAV());
+		computeContext.SetDynamicDescriptor(2, 0, MainDepthBuffer.GetDepthSRV()); // Input : DepthBuffer
 		computeContext.Dispatch2D(LinearDepth.GetWidth(), LinearDepth.GetHeight(), 16, 16);
 
 		if (m_bDebugDraw)
 		{
 			computeContext.TransitionResource(MainRenderTarget, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 			computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-			computeContext.SetDynamicDescriptors(2, 0, 1, &MainRenderTarget.GetUAV()); // Output(Will be RenderTarget)
-			computeContext.SetDynamicDescriptors(3, 0, 1, &LinearDepth.GetSRV());      // Input
+			computeContext.SetRootSignature(m_LinearizeDepthSignature);
 			computeContext.SetPipelineState(m_DebugSSAOCS);
+			computeContext.SetDynamicDescriptors(1, 0, 1, &MainRenderTarget.GetUAV()); // Output(Will be RenderTarget)
+			computeContext.SetDynamicDescriptors(2, 0, 1, &LinearDepth.GetSRV());      // Input
 			computeContext.Dispatch2D(SSAOTarget.GetWidth(), SSAOTarget.GetHeight());
 		}
-		computeContext.PIXEndEvent();
+
+		computeContext.Flush(false);
+		computeContext.PIXEndEvent(); // End SSAO_Generating
+		computeContext.PIXEndEvent(); // End 4_SSAOPass
 		return;
 	} // End Linearize
 
@@ -257,16 +311,19 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 	}
 
 	custom::ComputeContext& computeContext = m_bAsyncCompute ? custom::ComputeContext::Begin(L"Async SSAO") : BaseContext.GetComputeContext();
-	computeContext.SetRootSignature(m_MainRootSignature);
 
-	// For naming Memo.
-	// Cuda //  Compute Shader // 대응 H/W
-	// 연산단위        Thread        Thread              sp or CudaCore
-	// HW점유단위     Block         Group                SM
+	if (m_bAsyncCompute)
+	{
+		computeContext.PIXBeginEvent(L"Async SSAO");
+	}
+
+	computeContext.SetRootSignature(m_MainRootSignature);
 
 	// Decompressing and Downsampling Buffer
 	{
-		computeContext.SetConstant(0, ZCoefficient);
+		computeContext.PIXBeginEvent(L"Decompressing and Downsampling Buffer");
+
+		computeContext.SetConstant(0, *reinterpret_cast<UINT*>(&ZCoefficient));
 		computeContext.SetDynamicDescriptor(3, 0, MainDepthBuffer.GetDepthSRV());
 
 		computeContext.TransitionResource(LinearDepth,                     D3D12_RESOURCE_STATE_UNORDERED_ACCESS);  // LinearDepth
@@ -279,8 +336,8 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		{
 			LinearDepth.GetUAV(),
 			bufferManager::g_DepthDownsize1.GetUAV(),
-			bufferManager::g_DepthTiled1.GetUAV(),
 			bufferManager::g_DepthDownsize2.GetUAV(),
+			bufferManager::g_DepthTiled1.GetUAV(),
 			bufferManager::g_DepthTiled2.GetUAV()
 		};
 		computeContext.SetDynamicDescriptors(2, 0, 5, DownsizeUAVs);
@@ -289,16 +346,18 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		computeContext.Dispatch2D
 		(
 			bufferManager::g_DepthTiled2.GetWidth() * NUM_GROUP_THREAD_WIDTH, 
-			bufferManager::g_DepthTiled2.GetHeight() * NUM_GROUP_THREAD_HEIGHT
+			bufferManager::g_DepthTiled2.GetHeight() * NUM_GROUP_THREAD_HEIGHT,
+			8, 8
 		);
+
+		computeContext.Flush(false);
 	}
 	{
 		if (2 < m_HierarchyDepth)
 		{
-			float temp1 = 1.0f / bufferManager::g_DepthDownsize2.GetWidth();
-			float temp2 = 1.0f / bufferManager::g_DepthDownsize2.GetHeight();
+			float temp[2] = { 1.0f / bufferManager::g_DepthDownsize2.GetWidth() , 1.0f / bufferManager::g_DepthDownsize2.GetHeight() };
 
-			computeContext.SetConstants(0, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2)); // (b0)
+			computeContext.SetConstants(0, *reinterpret_cast<UINT*>(&temp[0]), *reinterpret_cast<UINT*>(&temp[1])); // (b0)
 
 			computeContext.TransitionResource(bufferManager::g_DepthDownsize2, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE); // (t0)
 
@@ -320,22 +379,25 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 			computeContext.SetPipelineState(m_DepthPrepareCS_64);
 			computeContext.Dispatch2D(bufferManager::g_DepthTiled4.GetWidth() * NUM_GROUP_THREAD_WIDTH, bufferManager::g_DepthTiled4.GetHeight() * NUM_GROUP_THREAD_HEIGHT);
 		}
+		computeContext.PIXEndEvent(); // End Decompressing and Downsampling Buffer
 	} // End Decompressing and Downsampling Buffer
 
 	// Analyzing Depth Range
 	{
-		computeContext.TransitionResource(bufferManager::g_AOMerged1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		computeContext.TransitionResource(bufferManager::g_AOMerged2, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		computeContext.TransitionResource(bufferManager::g_AOMerged3, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		computeContext.TransitionResource(bufferManager::g_AOMerged4, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.PIXBeginEvent(L"Analyzing Depth Range");
+
+		computeContext.TransitionResource(bufferManager::g_AOMerged1,      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.TransitionResource(bufferManager::g_AOMerged2,      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.TransitionResource(bufferManager::g_AOMerged3,      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		computeContext.TransitionResource(bufferManager::g_AOMerged4,      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		computeContext.TransitionResource(bufferManager::g_AOHighQuality1, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		computeContext.TransitionResource(bufferManager::g_AOHighQuality2, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		computeContext.TransitionResource(bufferManager::g_AOHighQuality3, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		computeContext.TransitionResource(bufferManager::g_AOHighQuality4, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		computeContext.TransitionResource(bufferManager::g_DepthTiled1, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		computeContext.TransitionResource(bufferManager::g_DepthTiled2, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		computeContext.TransitionResource(bufferManager::g_DepthTiled3, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		computeContext.TransitionResource(bufferManager::g_DepthTiled4, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		computeContext.TransitionResource(bufferManager::g_DepthTiled1,    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		computeContext.TransitionResource(bufferManager::g_DepthTiled2,    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		computeContext.TransitionResource(bufferManager::g_DepthTiled3,    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		computeContext.TransitionResource(bufferManager::g_DepthTiled4,    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		computeContext.TransitionResource(bufferManager::g_DepthDownsize1, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		computeContext.TransitionResource(bufferManager::g_DepthDownsize2, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		computeContext.TransitionResource(bufferManager::g_DepthDownsize3, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -385,11 +447,13 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 				ComputeAO(computeContext, bufferManager::g_AOHighQuality1, bufferManager::g_DepthDownsize1, FovTangent);
 			}
 		}
+		computeContext.PIXEndEvent(); // End Analyzing Depth Range
 	}// End Analyzing Depth Range
 
 	// Blur and Upsampling
 	// Iteratively blur and Upsamling, combining each result.
 	{
+		computeContext.PIXBeginEvent(L"Blur and Upsampling");
 		ColorBuffer* InterleavedAO = &bufferManager::g_AOMerged4;
 
 		// 1 / 16 -> 1 / 8
@@ -398,7 +462,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 			BlurAndUpsampling
 			(
 				computeContext, bufferManager::g_AOSmooth3, bufferManager::g_DepthDownsize3, bufferManager::g_DepthDownsize4,
-				InterleavedAO, (QualityLevel::kLow <= m_eQuality) ? &bufferManager::g_AOHighQuality4 : nullptr, & bufferManager::g_AOMerged3
+				InterleavedAO, (QualityLevel::kLow <= m_eQuality) ? &bufferManager::g_AOHighQuality4 : nullptr, &bufferManager::g_AOMerged3
 			);
 
 			InterleavedAO = &bufferManager::g_AOSmooth3;
@@ -446,15 +510,19 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 			computeContext, bufferManager::g_SSAOFullScreen, LinearDepth, bufferManager::g_DepthDownsize1,
 			InterleavedAO, (QualityLevel::kVeryHigh <= m_eQuality) ? &bufferManager::g_AOHighQuality1 : nullptr, nullptr
 		);
+
+		computeContext.PIXEndEvent(); // End Blur and Upsampling
 	}// End Blur and Upsampling
 
 	if (m_bAsyncCompute)
 	{
+		computeContext.PIXEndEvent(); // End Async SSAO
+		computeContext.PIXEndEvent(); // End 4_SSAOPass
 		computeContext.Finish();
 	}
 	else
 	{
-		computeContext.PIXEndEvent();
+		computeContext.PIXEndEvent(); // End 4_SSAOPass
 	}
 
 	if (m_bDebugDraw)
@@ -472,10 +540,11 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 
 		NewComputeContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		NewComputeContext.TransitionResource(bufferManager::g_SSAOFullScreen, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		NewComputeContext.SetRootSignature(m_MainRootSignature);
+		// NewComputeContext.SetRootSignature(m_MainRootSignature);
+		NewComputeContext.SetRootSignature(m_LinearizeDepthSignature);
 		NewComputeContext.SetPipelineState(m_DebugSSAOCS);
-		NewComputeContext.SetDynamicDescriptors(2, 0, 1, &bufferManager::g_SceneColorBuffer.GetUAV());
-		NewComputeContext.SetDynamicDescriptors(3, 0, 1, &bufferManager::g_SSAOFullScreen.GetSRV());
+		NewComputeContext.SetDynamicDescriptors(1, 0, 1, &bufferManager::g_SceneColorBuffer.GetUAV());
+		NewComputeContext.SetDynamicDescriptors(2, 0, 1, &bufferManager::g_SSAOFullScreen.GetSRV());
 		NewComputeContext.Dispatch2D(bufferManager::g_SSAOFullScreen.GetWidth(), bufferManager::g_SSAOFullScreen.GetHeight());
 
 		NewComputeContext.PIXEndEvent();
@@ -503,13 +572,19 @@ void SSAOPass::BlurAndUpsampling
 		}
 		else
 		{
-			computeShader = (HighQualityAO) ? &m_BlurUpSampleBlendWithBothCS : &m_BlurUpSamleBlendWithHighResolutionCS;
+			computeShader = (HighQualityAO) ? &m_BlurUpSampleBlendWithBothCS : &m_BlurUpSampleBlendWithHighResolutionCS;
 		}
 
 		computeContext.SetPipelineState(*computeShader);
 	}
 
-	size_t HighLowWidthHeight[] = { LowResolutionDepth.GetWidth(), LowResolutionDepth.GetHeight(), HighResolutionDepth.GetWidth(), HighResolutionDepth.GetHeight() };
+	size_t HighLowWidthHeight[] = 
+	{ 
+		LowResolutionDepth.GetWidth(), 
+		LowResolutionDepth.GetHeight(), 
+		HighResolutionDepth.GetWidth(), 
+		HighResolutionDepth.GetHeight() 
+	};
 
 	const float kBlurTolerance = powf(1.0f - (powf(10.0f, m_BlurTolerance) * bufferManager::g_SceneColorBuffer.GetWidth() / (float)HighLowWidthHeight[0]), 2.0f);
 	const float kUpsampleTolerance = powf(10.0f, m_UpsampleTolerance);
@@ -520,6 +595,8 @@ void SSAOPass::BlurAndUpsampling
 			1.0f / HighLowWidthHeight[0], 1.0f / HighLowWidthHeight[1], 1.0f / HighLowWidthHeight[2], 1.0f / HighLowWidthHeight[3],
 			kNoiseFilterWeight, 1920.0f / (float)HighLowWidthHeight[0], kBlurTolerance, kUpsampleTolerance
 	};
+
+	computeContext.SetDynamicConstantBufferView(1, sizeof(cbData), &cbData);
 
 	computeContext.TransitionResource(Result, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	computeContext.TransitionResource(LowResolutionDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -549,9 +626,9 @@ void SSAOPass::BlurAndUpsampling
 
 void SSAOPass::ComputeAO(custom::ComputeContext& Context, ColorBuffer& Result, ColorBuffer& _DepthBuffer, const float TangentHalfFOVHorizontal)
 {
-	size_t BufferWidth = _DepthBuffer.GetWidth();
+	size_t BufferWidth  = _DepthBuffer.GetWidth();
 	size_t BufferHeight = _DepthBuffer.GetHeight();
-	size_t ArrayCount = _DepthBuffer.GetDepth();
+	size_t ArrayCount   = _DepthBuffer.GetDepth();
 
 	// Here we compute multipliers that convert the center depth value into (the reciprocal of)
 	// sphere thicknesses at each sample location.  

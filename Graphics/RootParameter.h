@@ -82,10 +82,10 @@ namespace custom
 		void SetTableRange(uint32_t RangeIndex, D3D12_DESCRIPTOR_RANGE_TYPE Type, uint32_t Register, uint32_t Count, uint32_t Space = 0)
 		{
 			D3D12_DESCRIPTOR_RANGE* range = const_cast<D3D12_DESCRIPTOR_RANGE*>(m_D3D12RootParameter.DescriptorTable.pDescriptorRanges + RangeIndex);
-			range->RangeType = Type;
-			range->NumDescriptors = Count;
+			range->RangeType          = Type;
+			range->NumDescriptors     = Count;
 			range->BaseShaderRegister = Register;
-			range->RegisterSpace = Space;
+			range->RegisterSpace      = Space;
 			range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		}
 

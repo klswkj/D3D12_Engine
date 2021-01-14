@@ -1,28 +1,84 @@
 #include "stdafx.h"
 #include "Entity.h"
-#include "Mesh.h"
+// #include "Mesh.h"
 #include "Material.h"
 #include "CommandContext.h"
-#include "TechniqueWindow.h"
-#include <assimp/scene.h>
-#include <assimp/mesh.h>
-#include "DirectXMesh.h"
+#include "FundamentalVertexIndex.h"
+
+Entity::Entity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation)
+{
+	ASSERT(Input.BaseVertexLocation != -1);
+	ASSERT(Input.IndexCount         != -1);
+	ASSERT(Input.StartIndexLocation != -1);
+	ASSERT(Input.VertexCount        != -1);
+
+	ComputeBoundingBox(pStartVertexLocation, Input.VertexCount, 0xe);
+
+	m_IndexCount         = Input.IndexCount;
+	m_StartIndexLocation = Input.StartIndexLocation;
+	m_BaseVertexLocation = Input.BaseVertexLocation;
+	m_VertexBufferView   = Input.VertexBufferView;
+	m_IndexBufferView    = Input.IndexBufferView;
+
+	for (auto& _Technique : CMaterial.GetTechniques())
+	{
+		AddTechnique(std::move(_Technique));
+	}
+}
+
+void Entity::AddTechnique(Technique _Technique) noexcept
+{
+	_Technique.InitializeParentReferences(*this);
+	techniques.push_back(std::move(_Technique));
+}
+
+void Entity::Submit(eObjectFilterFlag Filter) const noexcept
+{
+	for (const std::vector<Technique>::iterator::value_type& Tech : techniques)
+	{
+		Tech.Submit(*this, Filter);
+	}
+}
+
+void Entity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
+{
+	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+
+	graphicsContext.SetVertexBuffer(0, m_VertexBufferView);
+	graphicsContext.SetIndexBuffer(m_IndexBufferView);
+	graphicsContext.SetPrimitiveTopology(m_Topology);
+}
+
+void Entity::Accept(IWindow& window)
+{
+	for (auto& Tech : techniques)
+	{
+		Tech.Accept(window); // For Outline Technique
+	}
+}
+
+void Entity::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
+{
+	for (auto& tech : techniques)
+	{
+		tech.Link(_MasterRenderGraph);
+	}
+}
 
 // Must keep in sync with HLSL
 void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint16_t** pIndices)
 {
 	ASSERT(_aiMesh.HasPositions());
 	ASSERT(_aiMesh.HasTextureCoords(0));
-
 	ASSERT(_aiMesh.mPrimitiveTypes == aiPrimitiveType_TRIANGLE);
-	
+
 	// TODO : make to custom::make_scopedptr
 	*pVertexLayout = new VertexLayout[_aiMesh.mNumVertices];
 	*pIndices = new uint16_t[_aiMesh.mNumFaces * 3];
 
 	for (size_t i = 0; i < _aiMesh.mNumFaces; ++i)
 	{
-		(*pIndices)[i * 3]     = _aiMesh.mFaces[i].mIndices[0];
+		(*pIndices)[i * 3] = _aiMesh.mFaces[i].mIndices[0];
 		(*pIndices)[i * 3 + 1] = _aiMesh.mFaces[i].mIndices[1];
 		(*pIndices)[i * 3 + 2] = _aiMesh.mFaces[i].mIndices[2];
 	}
@@ -35,9 +91,9 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 	float* pTempVertexBegin = new float[numVertices * VertexStride / 4];
 	float* pTempPosition = &pTempVertexBegin[0];
 	float* pTempTexcoord = pTempPosition + numVertices * 3;
-	float* pTempNormal   = pTempTexcoord + numVertices * 2;
-	float* pTempTangnet  = pTempNormal   + numVertices * 3;
-	float* pTempBitanget = pTempTangnet  + numVertices * 3;
+	float* pTempNormal = pTempTexcoord + numVertices * 2;
+	float* pTempTangnet = pTempNormal + numVertices * 3;
+	float* pTempBitanget = pTempTangnet + numVertices * 3;
 
 	// ZeroMemory(&pTempVertexBegin, numVertices * VertexStride / 4);
 
@@ -54,7 +110,7 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 	// copy Texcoord Elements from aimesh
 	for (size_t i = 0; i < numVertices; ++i)
 	{
-		pTempTexcoord[i * 2]     = _aiMesh.mTextureCoords[0][i].x;
+		pTempTexcoord[i * 2] = _aiMesh.mTextureCoords[0][i].x;
 		pTempTexcoord[i * 2 + 1] = _aiMesh.mTextureCoords[0][i].y;
 	}
 
@@ -99,20 +155,20 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 
 	for (size_t i = 0; i < numVertices; ++i)
 	{
-		(*pVertexLayout)[i].Position[0]  = pTempPosition[i * 3];
-		(*pVertexLayout)[i].Position[1]  = pTempPosition[i * 3 + 1];
-		(*pVertexLayout)[i].Position[2]  = pTempPosition[i * 3 + 2];
+		(*pVertexLayout)[i].Position[0] = pTempPosition[i * 3];
+		(*pVertexLayout)[i].Position[1] = pTempPosition[i * 3 + 1];
+		(*pVertexLayout)[i].Position[2] = pTempPosition[i * 3 + 2];
 
-		(*pVertexLayout)[i].Normal[0]    = pTempNormal  [i * 3];
-		(*pVertexLayout)[i].Normal[1]    = pTempNormal  [i * 3 + 1];
-		(*pVertexLayout)[i].Normal[2]    = pTempNormal  [i * 3 + 2];
+		(*pVertexLayout)[i].Normal[0] = pTempNormal[i * 3];
+		(*pVertexLayout)[i].Normal[1] = pTempNormal[i * 3 + 1];
+		(*pVertexLayout)[i].Normal[2] = pTempNormal[i * 3 + 2];
 
-		(*pVertexLayout)[i].TexCoord[0]  = pTempTexcoord[i * 3];
-		(*pVertexLayout)[i].TexCoord[1]  = pTempTexcoord[i * 3 + 1];
+		(*pVertexLayout)[i].TexCoord[0] = pTempTexcoord[i * 3];
+		(*pVertexLayout)[i].TexCoord[1] = pTempTexcoord[i * 3 + 1];
 
-		(*pVertexLayout)[i].Tangent[0]   = pTempTangnet [i];
-		(*pVertexLayout)[i].Tangent[1]   = pTempTangnet [i * 3 + 1];
-		(*pVertexLayout)[i].Tangent[2]   = pTempTangnet [i * 3 + 2];
+		(*pVertexLayout)[i].Tangent[0] = pTempTangnet[i];
+		(*pVertexLayout)[i].Tangent[1] = pTempTangnet[i * 3 + 1];
+		(*pVertexLayout)[i].Tangent[2] = pTempTangnet[i * 3 + 2];
 
 		(*pVertexLayout)[i].Bitangent[0] = pTempBitanget[i];
 		(*pVertexLayout)[i].Bitangent[1] = pTempBitanget[i * 3 + 1];
@@ -145,8 +201,7 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 
 	fileOutName += "../EntityDebug/Mesh_";
 	fileOutName += std::to_string(DebugNumber);
-	fileOutName += "_Index";
-	fileOutName += ".txt";
+	fileOutName += "_Index.txt";
 
 	fileOut.open(fileOutName);
 
@@ -160,40 +215,24 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 	delete[] pTempVertexBegin;
 }
 
-void Entity::ComputeBoundingBox(float* pVertices, size_t NumVertices)
+void Entity::ComputeBoundingBox(const float* pVertices, size_t NumVertices, size_t VertexStrideCount)
 {
-	const uint32_t VertexStride = sizeof(VertexLayout);
-
 	if (0 < NumVertices)
 	{
-		m_BoundingBox.Min.SetX(FLT_MAX);
-		m_BoundingBox.Min.SetY(FLT_MAX);
-		m_BoundingBox.Min.SetZ(FLT_MAX);
-		m_BoundingBox.Max.SetX(-FLT_MAX);
-		m_BoundingBox.Max.SetY(-FLT_MAX);
-		m_BoundingBox.Max.SetZ(-FLT_MAX);
-
 		Math::Vector3 TempVertex;
 
 		for (size_t i = 0; i < NumVertices; ++i)
 		{
-			TempVertex = Math::Vector3(pVertices[i * 3], pVertices[i * 3 + 1], pVertices[i * 3 + 2]);
+			TempVertex = Math::Vector3(pVertices[i * VertexStrideCount], pVertices[i * VertexStrideCount + 1], pVertices[i * VertexStrideCount + 2]);
 
-			m_BoundingBox.Min = Math::Min(TempVertex, m_BoundingBox.Min);
-			m_BoundingBox.Max = Math::Max(TempVertex, m_BoundingBox.Max);
+			m_BoundingBox.MinPoint = Math::Min(TempVertex, m_BoundingBox.MinPoint);
+			m_BoundingBox.MaxPoint = Math::Max(TempVertex, m_BoundingBox.MaxPoint);
 		}
-	}
-	else
-	{
-		m_BoundingBox.Min.SetX(0.0f);
-		m_BoundingBox.Min.SetY(0.0f);
-		m_BoundingBox.Min.SetZ(0.0f);
-		m_BoundingBox.Max.SetX(0.0f);
-		m_BoundingBox.Max.SetY(0.0f);
-		m_BoundingBox.Max.SetZ(0.0f);
 	}
 }
 
+
+/*
 // TODO : Make Bounding Box
 Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
 	: m_BoundingBox({ Math::Scalar(0.0f), Math::Scalar(0.0f) })
@@ -219,7 +258,7 @@ Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) n
 		AddTechnique(std::move(_Technique));
 	}
 }
-
+*/
 /*
 Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
 {
@@ -259,7 +298,7 @@ Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) n
 		{
 			VertexElements.push_back({ &_aiMesh.mNormals[0].x, 3 });
 			bNormal = true;
-			
+
 			vertexStrideSize += FLOAT_SIZE * 3; // += Texcoord, Normal
 			++numVertexElements;
 		}
@@ -279,7 +318,7 @@ Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) n
 			vertexStrideSize += FLOAT_SIZE * 6; // += Texcoord, Tangents, Bitangents
 			numVertexElements += 3;
 		}
-		
+
 		float* pVertices = (float*)malloc(_aiMesh.mNumVertices * vertexStrideSize);
 		memset(pVertices, 0, _aiMesh.mNumVertices * vertexStrideSize); // Zeromemory(pVertices[0], _aiMesh.mNumVertices * vertexStrideSize
 
@@ -348,45 +387,6 @@ Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) n
 	}
 }
 */
-
-void Entity::AddTechnique(Technique _Technique) noexcept
-{
-	_Technique.InitializeParentReferences(*this);
-	techniques.push_back(std::move(_Technique));
-}
-void Entity::Submit(eObjectFilterFlag Filter) const noexcept
-{
-	for (const std::vector<Technique>::iterator::value_type& Tech : techniques)
-	{
-		Tech.Submit(*this, Filter);
-	}
-}
-void Entity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
-{
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetVertexBuffer(0, m_VerticesBuffer.VertexBufferView()); // m_VerticesBuffer들을 모두 통합한 VertexBuffer 필요.
-	graphicsContext.SetIndexBuffer(m_IndicesBuffer.IndexBufferView());       // "" 마찬가지
-	graphicsContext.SetPrimitiveTopology(m_Topology);
-}
-void Entity::Accept(ITechniqueWindow& window)
-{
-	for (auto& Tech : techniques)
-	{
-		Tech.Accept(window); // For Outline Technique
-	}
-}
-uint32_t Entity::GetIndexCount() const DEBUG_EXCEPT
-{
-	return m_IndicesBuffer.GetElementCount();
-}
-void Entity::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
-{
-	for (auto& tech : techniques)
-	{
-		tech.Link(_MasterRenderGraph);
-	}
-}
-
 /*
 #include "ModelLoader.h"
 #include <unordered_map>

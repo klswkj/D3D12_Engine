@@ -1,5 +1,4 @@
 #pragma once
-#include "ModelPart.h"
 
 // Model  ┌─ ModelPart* Root 
 //        └─ vector<Mesh* : public Entity>   ┌─ XMFLOAT4X4   m_Transform
@@ -21,6 +20,7 @@ struct aiMaterial;
 struct aiNode;
 
 class Mesh;
+class ModelPart;
 class ModelComponentWindow;
 class MasterRenderGraph;
 
@@ -32,212 +32,37 @@ public:
 	Model(const std::string& pathString, float scale = 1.0f);
 
 	void Submit(eObjectFilterFlag Filter) const DEBUG_EXCEPT;
-	void SetRootTransform(const DirectX::XMMATRIX _Transfrom) noexcept;
-	void Accept(ModelComponentWindow& _ComponentWindow);
+	void SetRootTransform(const Math::Matrix4 _Transfrom) noexcept;
+	void TraverseNode(ModelComponentWindow& _ComponentWindow);
 	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
-
-private:
-	std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, float _Scale) noexcept;
-    std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, std::string NormalizedString, float _Scale);
-private:
-    std::string m_ModelName;
-	std::unique_ptr<ModelPart> m_pModelPart;
-	std::vector<std::unique_ptr<Mesh>> m_pMeshes; // <- Input is Material class.
-};
-
-
-// 이게 ModelPart로 가야할듯.
-/*
-class Model
-{
-public:
-
-    Model();
-    ~Model();
-
-    void Clear();
-
-    enum
+    void ComputeBoundingBox(); 
+    struct MeshData
     {
-        attrib_mask_0 = (1 << 0),
-        attrib_mask_1 = (1 << 1),
-        attrib_mask_2 = (1 << 2),
-        attrib_mask_3 = (1 << 3),
-        attrib_mask_4 = (1 << 4),
-        attrib_mask_5 = (1 << 5),
-        attrib_mask_6 = (1 << 6),
-        attrib_mask_7 = (1 << 7),
-        attrib_mask_8 = (1 << 8),
-        attrib_mask_9 = (1 << 9),
-        attrib_mask_10 = (1 << 10),
-        attrib_mask_11 = (1 << 11),
-        attrib_mask_12 = (1 << 12),
-        attrib_mask_13 = (1 << 13),
-        attrib_mask_14 = (1 << 14),
-        attrib_mask_15 = (1 << 15),
+        size_t VertexDataByteOffset;
+        UINT VertexCount;
+        // size_t VertexStride; // 이거 고정이잖아, Byte Size는 0x38로 그냥 Stride사이즈는 0xe로
 
-        // friendly name aliases
-        attrib_mask_position = attrib_mask_0,
-        attrib_mask_texcoord0 = attrib_mask_1,
-        attrib_mask_normal = attrib_mask_2,
-        attrib_mask_tangent = attrib_mask_3,
-        attrib_mask_bitangent = attrib_mask_4,
+        size_t IndexDataByteOffset;
+        UINT IndexCount;
+        // size_t IndexStride = sizeof(uint16_t);
     };
-
-    enum
-    {
-        attrib_0 = 0,
-        attrib_1 = 1,
-        attrib_2 = 2,
-        attrib_3 = 3,
-        attrib_4 = 4,
-        attrib_5 = 5,
-        attrib_6 = 6,
-        attrib_7 = 7,
-        attrib_8 = 8,
-        attrib_9 = 9,
-        attrib_10 = 10,
-        attrib_11 = 11,
-        attrib_12 = 12,
-        attrib_13 = 13,
-        attrib_14 = 14,
-        attrib_15 = 15,
-
-        // friendly name aliases
-        attrib_position = attrib_0,
-        attrib_texcoord0 = attrib_1,
-        attrib_normal = attrib_2,
-        attrib_tangent = attrib_3,
-        attrib_bitangent = attrib_4,
-
-        maxAttribs = 16
-    };
-
-    enum
-    {
-        attrib_format_none = 0,
-        attrib_format_ubyte,
-        attrib_format_byte,
-        attrib_format_ushort,
-        attrib_format_short,
-        attrib_format_float,
-
-        attrib_formats
-    };
-
     struct BoundingBox
     {
-        Vector3 min;
-        Vector3 max;
+        Math::Vector3 MinPoint = Math::Scalar(FLT_MAX);
+        Math::Vector3 MaxPoint = Math::Scalar(FLT_MIN);
     };
 
-    struct Header
-    {
-        uint32_t meshCount;
-        uint32_t materialCount;
-        uint32_t vertexDataByteSize;
-        uint32_t indexDataByteSize;
-        uint32_t vertexDataByteSizeDepth;
-        BoundingBox boundingBox;
-    };
-    Header m_Header;
+    void LoadMesh(const aiScene* _aiScene, float** pVertices, uint16_t** pIndices, MeshData** pMeshDataArray, size_t VertexIndexCount[], float Scale = 1.0f);
+    void OptimizeRemoveDuplicateVertices(MeshData* pMeshData, float* pVertices, uint16_t* pIndices, size_t NumVertices, size_t NumIndices, size_t& TotalVertexCount, size_t& TotalMeshCount);
+    BoundingBox& GetBoundingBox() { return m_BoundingBox; }
+    const std::string& GetName() { return m_ModelName; }
+private:
+	std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, float _Scale) noexcept;
+    // std::unique_ptr<ModelPart> ParseNode(uint32_t& NextId, const aiNode& _Node, std::string NormalizedString, float _Scale);
+private:
+    std::string m_ModelName;
+    std::vector<std::unique_ptr<Mesh>> m_pMeshes;
+	std::unique_ptr<ModelPart> m_pModelPart;
 
-    struct Attrib
-    {
-        uint16_t offset; // byte offset from the start of the vertex
-        uint16_t normalized; // if true, integer formats are interpreted as [-1, 1] or [0, 1]
-        uint16_t components; // 1-4
-        uint16_t format;
-    };
-    struct Mesh
-    {
-        BoundingBox boundingBox;
-
-        unsigned int materialIndex;
-
-        unsigned int attribsEnabled;
-        unsigned int attribsEnabledDepth;
-        unsigned int vertexStride;
-        unsigned int vertexStrideDepth;
-        Attrib attrib[maxAttribs];
-        Attrib attribDepth[maxAttribs];
-
-        unsigned int vertexDataByteOffset;
-        unsigned int vertexCount;
-        unsigned int indexDataByteOffset;
-        unsigned int indexCount;
-
-        unsigned int vertexDataByteOffsetDepth;
-        unsigned int vertexCountDepth;
-    };
-    Mesh *m_pMesh;
-
-    struct Material
-    {
-        Vector3 diffuse;
-        Vector3 specular;
-        Vector3 ambient;
-        Vector3 emissive;
-        Vector3 transparent; // light passing through a transparent surface is multiplied by this filter color
-        float opacity;
-        float shininess; // specular exponent
-        float specularStrength; // multiplier on top of specular color
-
-        enum {maxTexPath = 128};
-        enum {texCount = 6};
-        char texDiffusePath[maxTexPath];
-        char texSpecularPath[maxTexPath];
-        char texEmissivePath[maxTexPath];
-        char texNormalPath[maxTexPath];
-        char texLightmapPath[maxTexPath];
-        char texReflectionPath[maxTexPath];
-
-        enum {maxMaterialName = 128};
-        char name[maxMaterialName];
-    };
-    Material *m_pMaterial;
-
-    unsigned char *m_pVertexData;
-    unsigned char *m_pIndexData;
-    StructuredBuffer m_VertexBuffer;
-    ByteAddressBuffer m_IndexBuffer;
-    uint32_t m_VertexStride;
-
-    // optimized for depth-only rendering
-    unsigned char *m_pVertexDataDepth;
-    unsigned char *m_pIndexDataDepth;
-    StructuredBuffer m_VertexBufferDepth;
-    ByteAddressBuffer m_IndexBufferDepth;
-    uint32_t m_VertexStrideDepth;
-
-    virtual bool Load(const char* filename)
-    {
-        return LoadH3D(filename);
-    }
-
-    const BoundingBox& GetBoundingBox() const
-    {
-        return m_Header.boundingBox;
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE* GetSRVs( uint32_t materialIdx ) const
-    {
-        return m_SRVs + materialIdx * 6;
-    }
-
-protected:
-    bool LoadH3D(const char *filename);
-    bool SaveH3D(const char *filename) const;
-
-    void ComputeMeshBoundingBox(unsigned int meshIndex, BoundingBox &bbox) const;
-    void ComputeGlobalBoundingBox(BoundingBox &bbox) const;
-    void ComputeAllBoundingBoxes();
-
-    void ReleaseTextures();
-    void LoadTextures();
-    D3D12_CPU_DESCRIPTOR_HANDLE* m_SRVs;
+    BoundingBox m_BoundingBox;
 };
-
-
-
-*/

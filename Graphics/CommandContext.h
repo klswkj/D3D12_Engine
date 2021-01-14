@@ -42,14 +42,14 @@ namespace custom
     private:
         CommandContext(D3D12_COMMAND_LIST_TYPE Type);
         // CommandContext(const CommandContext&);
-        void Reset();
+        void Reset(std::wstring ID = L"");
 
     public:
         ~CommandContext();
 
         static void DestroyAllContexts();
 
-        static CommandContext& Begin(const std::wstring ID = L"");
+        static CommandContext& Begin(const std::wstring& ID = L"");
 
         // Flush existing commands to the GPU but keep the context alive
         uint64_t Flush(bool WaitForCompletion = false);
@@ -58,7 +58,7 @@ namespace custom
         uint64_t Finish(bool WaitForCompletion = false);
 
         // Prepare to render by reserving a command list and command allocator
-        void Initialize(void);
+        void Initialize(const std::wstring& ID);
 
         GraphicsContext& GetGraphicsContext() 
         {
@@ -80,7 +80,7 @@ namespace custom
         void CopyBufferRegion(GPUResource& Dest, size_t DestOffset, GPUResource& Src, size_t SrcOffset, size_t NumBytes);
         void CopySubresource(GPUResource& Dest, UINT DestSubIndex, GPUResource& Src, UINT SrcSubIndex);
         void CopyCounter(GPUResource& Dest, size_t DestOffset, StructuredBuffer& Src);
-        void ResetCounter(StructuredBuffer& Buf, uint32_t Value = 0);
+        void ResetCounter(StructuredBuffer& Buf, float Value = 0.0f);
 
         LinearBuffer ReserveUploadMemory(size_t SizeInBytes)
         {
@@ -104,7 +104,7 @@ namespace custom
         void InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, UINT QueryIdx);
         void ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, UINT NumQueries);
         void PIXBeginEvent(const wchar_t* label);
-        void PIXEndEvent(void);
+        void PIXEndEvent();
         void PIXSetMarker(const wchar_t* label);
 
         void SetPipelineState(const PSO& PSO);
@@ -124,12 +124,14 @@ namespace custom
         void SetMainCamera(Camera& _Camera);
 
         Camera* GetpMainCamera();
+        VSConstants GetVSConstants();
+        PSConstants GetPSConstants();
 
         void SetMainLightDirection(Math::Vector3 MainLightDirection);
         void SetMainLightColor(Math::Vector3 Color, float Intensity);
         void SetAmbientLightColor(Math::Vector3 Color, float Intensity);
         void SetShadowTexelSize(float TexelSize);
-        void SetTileDimension(float MainColorBufferWidth, float MainColorBufferHeight, uint32_t LightWorkGroupSize);
+        void SetTileDimension(uint32_t MainColorBufferWidth, uint32_t MainColorBufferHeight, uint32_t LightWorkGroupSize);
         void SetSpecificLightIndex(uint32_t FirstConeLightIndex, uint32_t FirstConeShadowedLightIndex);
         void SetPSConstants(MainLight& _MainLight);
         void SetSync();
@@ -138,24 +140,28 @@ namespace custom
         void bindDescriptorHeaps();
 
     protected:
-        CommandQueueManager* m_owningManager;
+        CommandQueueManager*       m_owningManager;
         ID3D12GraphicsCommandList* m_commandList;
-        ID3D12CommandAllocator* m_currentCommandAllocator;
+        ID3D12CommandAllocator*    m_currentCommandAllocator;
 
-        ID3D12RootSignature* m_pCurrentGraphicsRootSignature;
         ID3D12PipelineState* m_CurPipelineState;
+        ID3D12RootSignature* m_pCurrentGraphicsRootSignature;
         ID3D12RootSignature* m_pCurrentComputeRootSignature;
 
         DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // For HEAP_TYPE_CBV_SRV_UAV
         DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
 
         D3D12_RESOURCE_BARRIER m_resourceBarriers[16];
-        size_t m_numStandByBarriers;
+        UINT m_numStandByBarriers;
+        D3D12_PRIMITIVE_TOPOLOGY m_PrimitiveTopology;
+
+        D3D12_VIEWPORT m_Viewport;
+        D3D12_RECT     m_Rect;
 
         ID3D12DescriptorHeap* m_pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-        Camera* m_pMainCamera{ nullptr };
-        ShadowCamera* m_pMainLightShadowCamera{ nullptr };
+        Camera*       m_pMainCamera;
+        ShadowCamera* m_pMainLightShadowCamera;
 
         VSConstants m_VSConstants;
         PSConstants m_PSConstants;
@@ -206,7 +212,7 @@ namespace custom
         void SetViewportAndScissor(LONG x, LONG y, LONG w, LONG h);
         void SetStencilRef(UINT StencilRef) { m_commandList->OMSetStencilRef(StencilRef); }
         void SetBlendFactor(custom::Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
-        void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) { m_commandList->IASetPrimitiveTopology(Topology); }
+        void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology);
 
         void SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants) 
         { 

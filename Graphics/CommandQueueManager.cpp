@@ -27,7 +27,8 @@ void CommandQueueManager::CreateNewCommandList
 (
     ID3D12GraphicsCommandList** List,
     ID3D12CommandAllocator** Allocator,
-    D3D12_COMMAND_LIST_TYPE Type
+    D3D12_COMMAND_LIST_TYPE Type,
+    std::wstring ID
 )
 {
     switch (Type)
@@ -53,8 +54,21 @@ void CommandQueueManager::CreateNewCommandList
         }
     }
 
-    ASSERT_HR(device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
-    SET_NAME(*List);
+    static HRESULT createCommandListHR;
+
+    ASSERT_HR(createCommandListHR = device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
+    
+    if (0 < ID.length())
+    {
+        ID += L"'s CommandList";
+        
+        (*List)->SetName(ID.c_str());
+    }
+    else
+    {
+        (*List)->SetName(L"CommandList");
+    }
+
 }
 
 void CommandQueueManager::WaitForFence(uint64_t FenceValue)

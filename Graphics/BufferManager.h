@@ -16,10 +16,11 @@ namespace bufferManager
     extern ColorBuffer  g_VelocityBuffer;   // R10G10B10  (3D velocity)
     extern ShadowBuffer g_ShadowBuffer;
 
+    extern ColorBuffer g_SceneDebugBuffer;  // For Debug
     extern ColorBuffer g_StencilBuffer;
 
     extern ColorBuffer g_SSAOFullScreen;    // R8_UNORM
-    extern ColorBuffer g_LinearDepth[2];    // Normalized planar distance (0 at eye, 1 at far plane) 
+    extern ColorBuffer g_LinearDepth[3];    // Normalized planar distance (0 at eye, 1 at far plane) 
                                             // computed from the SceneDepthBuffer
 
     extern ColorBuffer g_MinMaxDepth8;      // Min and max depth values of 8x8 tiles
@@ -45,11 +46,11 @@ namespace bufferManager
     extern ColorBuffer g_AOHighQuality3;
     extern ColorBuffer g_AOHighQuality4;
 
-    extern ColorBuffer g_DoFTileClass[2];
+    extern ColorBuffer g_DoFTileClass[3];
     extern ColorBuffer g_DoFPresortBuffer;
     extern ColorBuffer g_DoFPrefilter;
-    extern ColorBuffer g_DoFBlurColor[2];
-    extern ColorBuffer g_DoFBlurAlpha[2];
+    extern ColorBuffer g_DoFBlurColor[3];
+    extern ColorBuffer g_DoFBlurAlpha[3];
 
     extern custom::StructuredBuffer g_DoFWorkQueue;
     extern custom::StructuredBuffer g_DoFFastQueue;
@@ -57,13 +58,13 @@ namespace bufferManager
 
     extern ColorBuffer g_MotionPrepBuffer;        // R10G10B10A2
     extern ColorBuffer g_LumaBuffer;
-    extern ColorBuffer g_TemporalColor[2];
+    extern ColorBuffer g_TemporalColor[3];
 
-    extern ColorBuffer g_aBloomUAV1[2];        // 640x384 (1/3)
-    extern ColorBuffer g_aBloomUAV2[2];        // 320x192 (1/6)  
-    extern ColorBuffer g_aBloomUAV3[2];        // 160x96  (1/12)
-    extern ColorBuffer g_aBloomUAV4[2];        // 80x48   (1/24)
-    extern ColorBuffer g_aBloomUAV5[2];        // 40x24   (1/48)
+    extern ColorBuffer g_aBloomUAV1[3];        // 640x384 (1/3)
+    extern ColorBuffer g_aBloomUAV2[3];        // 320x192 (1/6)  
+    extern ColorBuffer g_aBloomUAV3[3];        // 160x96  (1/12)
+    extern ColorBuffer g_aBloomUAV4[3];        // 80x48   (1/24)
+    extern ColorBuffer g_aBloomUAV5[3];        // 40x24   (1/48)
     extern ColorBuffer g_LumaLR;
 
     extern custom::ByteAddressBuffer g_Histogram;

@@ -1,4 +1,11 @@
 #pragma once
+#if defined(DEBUG) || defined(_DEBUG)
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
+// #include <DXProgrammableCapture.h>
+#endif
+
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -57,6 +64,11 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
+#include "DirectXMesh.h"
+#include <assimp/scene.h>
+#include <assimp/mesh.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
 #include "imgui.h"
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
@@ -67,19 +79,13 @@
 #include "TypeDefine.h"
 #include "CustomAssert.h"
 
-#if defined(DEBUG) || defined(_DEBUG)
-#define _CRTDBG_MAP_ALLOC
-#include <cstdlib>
-#include <crtdbg.h>
-#endif
-
 #include "MathCommon.h"
 #include "MathBasic.h"
 
 #define DEBUG_EXCEPT noexcept(!_DEBUG)
 
-#define D3D11
-#define D3D12
+#define D3D11_VER
+#define D3D12_VER
 #define FILEACCESS
 #define CONTAINED
 
@@ -126,6 +132,11 @@ std::wstring StringToWString(const std::string& str); // inline std::wstringAnsi
 std::wstring AnsiToWString(const char* str);
 void SetName(ID3D12Object* d3dObject, std::string FileName, std::string FunctionName, size_t LineNumber);
 
+std::string _NormalizeString(const std::string& InputString);
+std::string SplitFormat(const std::string InputString);
+std::wstring _NormalizeWString(const std::wstring& InputString);
+std::wstring SplitFormat(const std::wstring InputString);
+
 DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale);
@@ -158,7 +169,7 @@ _CrtSetReportFile(_CRT_ASSERT, hLogFile);
 #define CRTDEBUG2 _CrtMemState s2;            \
 _CrtMemCheckpoint(&s2);                       \
 _CrtMemState s3;                              \
-if (_CrtMemDifference(&s3, &s1, &s2) == true) \
+if (_CrtMemDifference(&s3, &s1, &s2))         \
 {                                             \
     _CrtMemDumpStatistics(&s3);               \
 }

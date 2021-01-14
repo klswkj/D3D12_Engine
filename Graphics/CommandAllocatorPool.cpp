@@ -12,7 +12,7 @@ CommandAllocatorPool::~CommandAllocatorPool()
 
 ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t CompletedFenceValue)
 {
-    // std::lock_guard<std::mutex> LockGuard(m_allocatorMutex);
+    std::lock_guard<std::mutex> LockGuard(m_allocatorMutex);
 
     ID3D12CommandAllocator* pAllocator = nullptr;
 
@@ -28,7 +28,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t Complete
         }
     }
 
-    // If no allocator's were ready to be reused, create a new one
+    // If no allocator's were ready to be reused, need to create a new one.
     if (pAllocator == nullptr)
     {
         ASSERT_HR(device::g_pDevice->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&pAllocator)));
@@ -42,7 +42,7 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t Complete
 }
 void CommandAllocatorPool::DiscardAllocator(uint64_t FenceValue, ID3D12CommandAllocator* Allocator)
 {
-    // std::lock_guard<std::mutex> LockGuard(m_allocatorMutex);
+    std::lock_guard<std::mutex> LockGuard(m_allocatorMutex);
     // That fence value indicates we are free to reset the allocator
     m_readyAllocators.push(std::make_pair(FenceValue, Allocator));
 }

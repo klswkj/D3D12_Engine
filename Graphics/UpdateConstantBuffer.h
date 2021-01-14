@@ -14,7 +14,7 @@ public:
 	{
 		ASSERT(&buf.GetRootLayoutElement() == &GetRootLayoutElement());
 		
-		const UINT kBufferSize = buf.GetSizeInBytes() * sizeof(char);
+		const size_t kBufferSize = buf.GetSizeInBytes() * sizeof(char);
 
 		uint8_t* pDataBegin;
 		ASSERT_HR(pConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pDataBegin)));
@@ -57,7 +57,7 @@ protected:
 				nullptr,
 				IID_PPV_ARGS(&pConstantBuffer)));
 
-			const UINT kBufferSize = pBuf->GetSizeInBytes() * sizeof(char);
+			const size_t kBufferSize = pBuf->GetSizeInBytes() * sizeof(char);
 
 			uint8_t* pDataBegin;
 			ASSERT_HR(pConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pDataBegin)));

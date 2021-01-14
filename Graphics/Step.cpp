@@ -2,8 +2,8 @@
 #include "Step.h"
 #include "CommandContext.h"
 
+#include "ModelComponentWindow.h"
 #include "Job.h"
-#include "TechniqueWindow.h"
 #include "RenderingResource.h"
 #include "RenderQueuePass.h"
 #include "MasterRenderGraph.h"
@@ -53,9 +53,14 @@ void Step::InitializeParentReferences(const Entity & parent) noexcept
 		e->InitializeParentReference(parent);
 	}
 }
-void Step::Accept(ITechniqueWindow& probe)
+void Step::Accept(IWindow& _IWindow)
 {
-	probe.SetStep(this);
+	_IWindow.SetStep(this);
+
+	for (auto& _RR : m_RenderingResources)
+	{
+		_RR->RenderingWindow(_IWindow);
+	}
 }
 
 void Step::Link(MasterRenderGraph& _MasterRenderGraph)

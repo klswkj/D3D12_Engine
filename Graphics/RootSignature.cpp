@@ -9,7 +9,12 @@ namespace custom
 {
     void RootSignature::DestroyAll()
     {
-        // s_RootSignatureContainer.clear();
+        for (auto& e : s_RootSignatureMap)
+        {
+            e.second->Release();
+            e.second = nullptr;
+        }
+
         s_RootSignatureMap.clear();
     }
 
@@ -89,12 +94,9 @@ namespace custom
 
     void RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags /*= D3D12_ROOT_SIGNATURE_FLAG_NONE*/)
     {
-        if (m_finalized)
-        {
-            return;
-        }
-
+        ASSERT(m_finalized == false);
         ASSERT(m_numInitializedStaticSamplers == m_numStaticSamplers);
+        ASSERT(2 <= name.size());
 
         D3D12_ROOT_SIGNATURE_DESC RootDesc;
         RootDesc.NumParameters = m_numRootParameters;
@@ -103,7 +105,6 @@ namespace custom
 #else
         RootDesc.pParameters = (const D3D12_ROOT_PARAMETER*)m_rootParamArray.get();
 #endif
-
 
         RootDesc.NumStaticSamplers = m_numStaticSamplers;
 #ifdef _RAW_PTR
@@ -120,7 +121,7 @@ namespace custom
         m_staticSamplerTableBitMap = 0;
 
         size_t HashCode = Hash::MakeHash(&RootDesc.Flags);
-        HashCode = Hash::MakeHash(RootDesc.pStaticSamplers, m_numStaticSamplers, HashCode);
+        HashCode        = Hash::MakeHash(RootDesc.pStaticSamplers, m_numStaticSamplers, HashCode);
 
         for (size_t IParam = 0; IParam < m_numRootParameters; ++IParam)
         {

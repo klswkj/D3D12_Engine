@@ -196,7 +196,7 @@ void TextManager::Initialize()
     s_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
     s_RootSignature[1].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);
     s_RootSignature[2].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL);
-    s_RootSignature.Finalize(L"InitInTextManager", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    s_RootSignature.Finalize(L"InitInTextManager_RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     // The glyph vertex description.  One vertex will correspond to a single character.
     D3D12_INPUT_ELEMENT_DESC VertexElements[] =
@@ -214,19 +214,19 @@ void TextManager::Initialize()
     s_TextPSO[0].SetVertexShader(g_pTextVS, sizeof(g_pTextVS));
     s_TextPSO[0].SetPixelShader(g_pTextAntialiasPS, sizeof(g_pTextAntialiasPS));
     s_TextPSO[0].SetRenderTargetFormats(1, &bufferManager::g_OverlayBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
-    s_TextPSO[0].Finalize(L"OverlayPSO");
+    s_TextPSO[0].Finalize(L"TextManager_OverlayPSO");
 
     s_TextPSO[1] = s_TextPSO[0];
     s_TextPSO[1].SetRenderTargetFormats(1, &bufferManager::g_SceneColorBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
-    s_TextPSO[1].Finalize(L"BlendPSO");
+    s_TextPSO[1].Finalize(L"TextManager_BlendPSO");
 
     s_ShadowPSO[0] = s_TextPSO[0];
     s_ShadowPSO[0].SetPixelShader(g_pTextShadowPS, sizeof(g_pTextShadowPS));
-    s_ShadowPSO[0].Finalize(L"TextShadowPSO1");
+    s_ShadowPSO[0].Finalize(L"TextManager_TextShadowPSO1");
 
     s_ShadowPSO[1] = s_ShadowPSO[0];
     s_ShadowPSO[1].SetRenderTargetFormats(1, &bufferManager::g_SceneColorBuffer.GetFormat(), DXGI_FORMAT_UNKNOWN);
-    s_ShadowPSO[1].Finalize(L"TextShadowPSO2");
+    s_ShadowPSO[1].Finalize(L"TextManager_TextShadowPSO2");
 }
 
 void TextManager::Shutdown()

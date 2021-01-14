@@ -30,15 +30,16 @@ namespace device
 	}
 
 	// Global variable declarations here.
-	ID3D12Device* g_pDevice = nullptr;
-	ColorBuffer g_DisplayBuffer[3];
-	IDXGISwapChain3* g_pDXGISwapChain = nullptr;
+	ID3D12Device*         g_pDevice = nullptr;
+	ColorBuffer           g_DisplayColorBuffer[3];
+	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
 	ID3D12DescriptorHeap* g_ImguiFontHeap;
 
 	CommandQueueManager   g_commandQueueManager;
-	CommandContextManager g_commandContextManager; // Not Init Yet
-	DescriptorHeapManager g_descriptorHeapManager; // Not Init Yet
+	CommandContextManager g_commandContextManager;
+	DescriptorHeapManager g_descriptorHeapManager;
 
+	DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 	D3D_FEATURE_LEVEL g_D3DFeatureLevel;
 	D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
 	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT g_GpuVaSupport;
@@ -60,8 +61,9 @@ namespace device
 	static constexpr UINT SWAP_CHAIN_BUFFER_COUNT = 3ul;
 	UINT g_DisplayBufferCount = SWAP_CHAIN_BUFFER_COUNT;
 
-	uint32_t g_DisplayWidth = 1920; // Dependent on Resize(float, float) function.
-	uint32_t g_DisplayHeight = 1080; // Dependent on Resize(float, float) function.
+	// Dependent on Resize(float, float) function.
+	uint32_t g_DisplayWidth = 1920; 
+	uint32_t g_DisplayHeight = 1080;
 
 	HRESULT Initialize()
 	{
@@ -81,15 +83,7 @@ namespace device
 				bDebugLayerEnabled = true;
 				dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 			}
-
-			IDXGIDebug1* pDebug = nullptr;
-			ASSERT_HR(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDebug)));
-			{
-				pDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
-				pDebug->Release();
-			}
-
-			wprintf(L"Debug layer is %senabled\n\n", bDebugLayerEnabled ? L"" : L"NOT ");
+			// wprintf(L"Debug layer is %senabled\n\n", bDebugLayerEnabled ? L"" : L"NOT ");
 		}
 #endif
 		ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&s_pDXGIFactory)));
@@ -97,8 +91,8 @@ namespace device
 		createDeviceDependentStateInternal();
 		
 		premade::Initialize();
-		bufferManager::DestroyRenderingBuffers();
-		bufferManager::InitializeAllBuffers(window::g_TargetWindowHeight, window::g_TargetWindowWidth);
+		// bufferManager::DestroyRenderingBuffers();
+		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
 		// TODO : TextRender Init
 
 		return S_OK;
@@ -124,32 +118,35 @@ namespace device
 
 		g_commandQueueManager.IdleGPU();
 
-		g_DisplayWidth = width;
-		g_DisplayWidth = height;
+		g_DisplayWidth  = width;
+		g_DisplayHeight = height;
 
-		printf("Changing display resolution to %ux%u\n", width, height);
+		// printf("Changing display resolution to %ux%u\n", width, height);
 
+		// For Zoom
 		// g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
 
 		for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
 		{
-			g_DisplayBuffer[i].Destroy();
+			g_DisplayColorBuffer[i].Destroy();
 		}
 
-		ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, DXGI_FORMAT_R10G10B10A2_UNORM, 0));
+		ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, 0));
 
-		for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
 		{
-			Microsoft::WRL::ComPtr<ID3D12Resource> DisplayPlane;
-			ASSERT_HR(g_pDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&DisplayPlane)));
-			g_DisplayBuffer[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
-		}
+			std::wstring DisplayBufferName = L"g_DisplayColorBuffer 0";
 
+			for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
+			{
+				Microsoft::WRL::ComPtr<ID3D12Resource> DisplayPlane;
+				ASSERT_HR(g_pDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&DisplayPlane)));
+				g_DisplayColorBuffer[i].CreateFromSwapChain(DisplayBufferName, DisplayPlane.Detach());
+
+				++DisplayBufferName.back();
+			}
+		}
 		// bufferManager::DestroyRenderingBuffers();
 		// bufferManager::InitializeAllBuffers(width, height);
-
-		bufferManager::g_OverlayBuffer.Create(L"UI Overlay", window::g_TargetWindowWidth, window::g_TargetWindowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
-		bufferManager::g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_TargetWindowWidth, window::g_TargetWindowHeight, 1, DXGI_FORMAT_R11G11B10_FLOAT);
 
 		return S_OK;
 	}
@@ -164,7 +161,7 @@ namespace device
 
 	void Destroy()
 	{
-		g_pDXGISwapChain->Release();
+		SafeRelease(g_pDXGISwapChain);
 
 		custom::CommandContext::DestroyAllContexts();
 		g_commandQueueManager.Shutdown();
@@ -175,19 +172,22 @@ namespace device
 
 		for (size_t i = 0; i < g_DisplayBufferCount; ++i)
 		{
-			g_DisplayBuffer[i].Destroy();
+			g_DisplayColorBuffer[i].Destroy();
 		}
 
 		premade::Shutdown(); // There is nothing yet.
 		bufferManager::DestroyRenderingBuffers();
 
-		if (g_ImguiFontHeap)
-		{
-			g_ImguiFontHeap->Release();
-			g_ImguiFontHeap = nullptr;
-		}
+		SafeRelease(g_ImguiFontHeap);
 
-		g_pDevice->Release();
+#if(_DEBUG)
+		ID3D12DebugDevice* pDebugDevice = nullptr;
+		ASSERT_HR(g_pDevice->QueryInterface(&pDebugDevice));
+		pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+		pDebugDevice->Release();
+		pDebugDevice = nullptr;
+#endif
+		SafeRelease(g_pDevice);
 	}
 
 	HRESULT queryCaps();
@@ -199,17 +199,16 @@ namespace device
 		Microsoft::WRL::ComPtr<IDXGIAdapter3> s_pDXGIAdapter;
 		{
 			// Have the user select the desired graphics adapter.
-			uint32_t AdapterOrdinal         = 0;
-
-			size_t MaxDedicatedVideoMemory  = 0;
+			uint32_t AdapterOrdinal = 0;
+			size_t MaxDedicatedVideoMemory = 0;
 			size_t MaxDedicatedSystemMemory = 0;
-			size_t MaxSharedSystemMemory    = 0;
-			size_t MaxTotalMemory           = 0;
+			size_t MaxSharedSystemMemory = 0;
+			size_t MaxTotalMemory = 0;
 			UINT   RecommendedVideoAdapterIndex = -1;
 			DXGI_ADAPTER_DESC RecommendedAdapterDescriptor;
 			size_t TempTotal;
 
-			printf("Available Adapters:\n");
+			// printf("Available Adapters:\n");
 			while (s_pDXGIFactory->EnumAdapters(AdapterOrdinal, ((IDXGIAdapter**)s_pDXGIAdapter.GetAddressOf())) != DXGI_ERROR_NOT_FOUND)
 			{
 				TempTotal = 0;
@@ -217,11 +216,11 @@ namespace device
 				DXGI_ADAPTER_DESC Desc;
 				s_pDXGIAdapter->GetDesc(&Desc);
 
-				printf("  [%d] %ls\n", AdapterOrdinal, Desc.Description);
+				// printf("  [%d] %ls\n", AdapterOrdinal, Desc.Description);
 
-				MaxDedicatedVideoMemory  = (MaxDedicatedVideoMemory  < Desc.DedicatedVideoMemory)  ? Desc.DedicatedVideoMemory  : MaxDedicatedVideoMemory;
+				MaxDedicatedVideoMemory = (MaxDedicatedVideoMemory < Desc.DedicatedVideoMemory) ? Desc.DedicatedVideoMemory : MaxDedicatedVideoMemory;
 				MaxDedicatedSystemMemory = (MaxDedicatedSystemMemory < Desc.DedicatedSystemMemory) ? Desc.DedicatedSystemMemory : MaxDedicatedSystemMemory;
-				MaxSharedSystemMemory    = (MaxSharedSystemMemory    < Desc.SharedSystemMemory)    ? Desc.SharedSystemMemory    : MaxSharedSystemMemory;
+				MaxSharedSystemMemory = (MaxSharedSystemMemory < Desc.SharedSystemMemory) ? Desc.SharedSystemMemory : MaxSharedSystemMemory;
 
 				TempTotal = Desc.DedicatedSystemMemory + Desc.DedicatedSystemMemory + Desc.SharedSystemMemory;
 
@@ -236,12 +235,15 @@ namespace device
 				++AdapterOrdinal;
 			}
 
-			printf("\nRecommended Adapter is : %ls\n", RecommendedAdapterDescriptor.Description);
+			// printf("\nRecommended Adapter is : %ls\n", RecommendedAdapterDescriptor.Description);
 
 			while (1)
 			{
 				UINT AdapterNumber = -1;
 
+				AdapterNumber = RecommendedVideoAdapterIndex;
+
+				/*
 				printf("\nSelect Adapter: ");
 
 				if (scanf_s("%d", &AdapterNumber) == 0)
@@ -254,19 +256,19 @@ namespace device
 				{
 					continue;
 				}
-
+				*/
 				ASSERT_HR(s_pDXGIFactory->EnumAdapters(AdapterNumber, ((IDXGIAdapter**)s_pDXGIAdapter.GetAddressOf())));
-
 				ASSERT_HR(s_pDXGIAdapter->QueryInterface(s_pDXGIAdapter.GetAddressOf()));
 				s_pDXGIAdapter->Release();
 				break;
 			}
 		}
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &::device::g_LocalVideoMemoryInfo));
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &::device::g_NonLocalVideoMemoryInfo));
 
-		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&::device::g_pDevice)));
+		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &device::g_LocalVideoMemoryInfo));
+		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &device::g_NonLocalVideoMemoryInfo));
 
+		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device::g_pDevice)));
+		g_pDevice->SetName(L"device::g_pDevice");
 		g_commandQueueManager.Create(g_pDevice);
 
 #ifndef RELEASE
@@ -323,14 +325,15 @@ namespace device
 			NewFilter.DenyList.pIDList = DenyIds;
 
 			pInfoQueue->PushStorageFilter(&NewFilter);
-			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+			// pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+			pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
 			pInfoQueue->Release();
 		}
 #endif
 		// Cache the descriptor sizes.
 		for (size_t i= 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
-			device::g_DescriptorSize[i] = ::device::g_pDevice->GetDescriptorHandleIncrementSize((D3D12_DESCRIPTOR_HEAP_TYPE)i);
+			device::g_DescriptorSize[i] = device::g_pDevice->GetDescriptorHandleIncrementSize((D3D12_DESCRIPTOR_HEAP_TYPE)i);
 		}
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS FeatureData = {};
@@ -364,15 +367,15 @@ namespace device
 
 		DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
 		ZeroMemory(&SwapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC1));
-		SwapChainDesc.Height = window::g_TargetWindowHeight;
-		SwapChainDesc.Width = window::g_TargetWindowWidth;
+		SwapChainDesc.Height      = window::g_TargetWindowHeight;
+		SwapChainDesc.Width       = window::g_TargetWindowWidth;
 		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		SwapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+		SwapChainDesc.Flags       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		SwapChainDesc.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		SwapChainDesc.BufferCount = device::SWAP_CHAIN_BUFFER_COUNT;
+		SwapChainDesc.Format      = SwapChainFormat;
+		SwapChainDesc.Scaling     = DXGI_SCALING_NONE;
 		SwapChainDesc.SampleDesc.Count = 1;
-		SwapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		SwapChainDesc.Scaling = DXGI_SCALING_NONE;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 		{
@@ -388,7 +391,7 @@ namespace device
 		{
 			Microsoft::WRL::ComPtr<ID3D12Resource> DisplayPlane;
 			ASSERT_HR(g_pDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&DisplayPlane)));
-			g_DisplayBuffer[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
+			g_DisplayColorBuffer[i].CreateFromSwapChain(L"Primary SwapChain Buffer", DisplayPlane.Detach());
 		}
 
 		{
@@ -400,6 +403,8 @@ namespace device
 			{
 				ASSERT(false, "Failed to Create ImGui Font DescriptorHeap.");
 			}
+
+			g_ImguiFontHeap->SetName(L"g_ImguiFontHeap");
 		}
 
 		return S_OK;
@@ -408,7 +413,6 @@ namespace device
 	HRESULT queryCaps()
 	{
 		ASSERT_HR(g_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &g_Options, sizeof(g_Options)));
-
 		ASSERT_HR(g_pDevice->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, &g_GpuVaSupport, sizeof(g_GpuVaSupport)));
 
 		D3D12_FEATURE_DATA_FEATURE_LEVELS FeatureLevels = {};
@@ -424,20 +428,21 @@ namespace device
 		FeatureLevels.pFeatureLevelsRequested = FeatureLevelsList;
 
 		ASSERT_HR(::device::g_pDevice->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &FeatureLevels, sizeof(FeatureLevels)));
-		
+		/*
 		printf("\n");
 		printf("--- Device details --------------------\n");
 		printf("  GPU Virtual Address Info:\n");
 		printf("    Max Process Size:      %I64d GB\n", (1ULL << (::device::g_GpuVaSupport.MaxGPUVirtualAddressBitsPerProcess - 0x1e)));
 		printf("    Max Resource Size:     %I64d GB\n", (1ULL << (::device::g_GpuVaSupport.MaxGPUVirtualAddressBitsPerResource - 0x1e)));
 		printf("  Feature Level Info:\n");
-		printf("    Max Feature Level:     %s\n", device::GetFeatureLevelName(FeatureLevels.MaxSupportedFeatureLevel));
-		printf("  Additional Info:\n");
+		printf("    Max Feature Level: ");
+		printf(device::GetFeatureLevelName(FeatureLevels.MaxSupportedFeatureLevel));
+		printf("\n  Additional Info:\n");
 		printf("    Resource Binding Tier: Tier %d\n", ::device::g_Options.ResourceBindingTier);
 		printf("    Resource Heap Tier:    Tier %d\n", ::device::g_Options.ResourceHeapTier);
 		printf("    Tiled Resource Tier:   Tier %d\n", ::device::g_Options.TiledResourcesTier);
 		printf("\n");
-
+		*/
 		return S_OK;
 	}
 } // end namespace GraphicsDeviceManager

@@ -38,7 +38,8 @@ namespace Math
 				Vector4(SetWToOne(m_translation)) * vec.GetW()
 			};
 		}
-		__forceinline OrthogonalTransform operator* (const OrthogonalTransform& xform) const {
+		__forceinline OrthogonalTransform operator* (const OrthogonalTransform& xform) const 
+		{
 			return OrthogonalTransform(m_rotation * xform.m_rotation, m_rotation * xform.m_translation + m_translation);
 		}
 

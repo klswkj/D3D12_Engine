@@ -3,7 +3,7 @@
 #include "ObjectFilterFlag.h"
 
 class Entity;
-class ITechniqueWindow;
+class IWindow;
 class MasterRenderGraph;
 
 class Technique
@@ -17,7 +17,7 @@ public:
 	bool IsActive() const noexcept;
 	void SetActiveState(bool active_in) noexcept;
 	void InitializeParentReferences(const Entity& parent) noexcept;
-	void Accept(ITechniqueWindow& probe);
+	void Accept(IWindow& _IWindow);
 	void Link(MasterRenderGraph& _MasterRenderGraph);
 	std::string GetName() const noexcept;
 

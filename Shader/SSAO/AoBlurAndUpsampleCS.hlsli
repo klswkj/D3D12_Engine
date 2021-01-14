@@ -11,27 +11,20 @@
 // Author:  James Stanard 
 //
 
-// s_BlurUpsampleFinal[0] => AoBlurUpsampleCS               => None.
-// s_BlurUpsampleFinal[1] => AoBlurUpSamplePreMinCs         => COMBINE_LOWER_RESOLUTIONS
-
-// s_BlurUpsampleBlend[0] => AoBlurUpsampleBlendOutCS       => BLEND_WITH_HIGHER_RESOLUTION 
-// s_BlurUpsampleBlend[1] => AoBlurUpsamplePreMinBlendOutCS => COMBINE_LOWER_RESOLUTIONS, BLEND_WITH_HIGHER_RESOLUTION
-
 #include "SSAORS.hlsli"
 
-Texture2D<float> LoResDB : register(t0);
-Texture2D<float> HiResDB : register(t1);
+Texture2D<float> LoResDB  : register(t0);
+Texture2D<float> HiResDB  : register(t1);
 Texture2D<float> LoResAO1 : register(t2);
 #ifdef COMBINE_LOWER_RESOLUTIONS
 Texture2D<float> LoResAO2 : register(t3);
 #endif
 #ifdef BLEND_WITH_HIGHER_RESOLUTION
-Texture2D<float> HiResAO : register(t4);
+Texture2D<float> HiResAO  : register(t4);
 #endif
 
 RWTexture2D<float> AoResult : register(u0);
-
-SamplerState LinearSampler : register(s0);
+SamplerState LinearSampler  : register(s0);
 
 cbuffer CB1 : register(b1)
 {

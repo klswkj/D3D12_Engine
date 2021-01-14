@@ -25,7 +25,7 @@ OutlineDrawingPass::OutlineDrawingPass(std::string pName, UINT BufferWidth, UINT
 	m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
 	m_RootSignature.Finalize
 	(
-		L"OutlineDrawingPass", 
+		L"OutlineDrawingPass_RS", 
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
@@ -43,7 +43,7 @@ OutlineDrawingPass::OutlineDrawingPass(std::string pName, UINT BufferWidth, UINT
 	m_GraphicsPSO.SetPixelShader(g_pFlat_PS, _countof(g_pFlat_PS));
 	m_GraphicsPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
 	m_GraphicsPSO.SetRenderTargetFormats(0, nullptr, bufferManager::g_StencilBuffer.GetFormat());
-	m_GraphicsPSO.Finalize();
+	m_GraphicsPSO.Finalize(L"OutlineDrawingPass_PSO");
 	// 여기서 만든걸 BlurPass에 패스.
 
 	PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));

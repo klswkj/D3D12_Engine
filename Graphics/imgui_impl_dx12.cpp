@@ -269,6 +269,8 @@ static void ImGui_ImplDX12_CreateFontsTexture()
         g_pd3dDevice->CreateCommittedResource(&props, D3D12_HEAP_FLAG_NONE, &desc,
             D3D12_RESOURCE_STATE_COPY_DEST, NULL, IID_PPV_ARGS(&pTexture));
 
+        pTexture->SetName(L"ImGui_CreateFont_Resource");
+
         UINT uploadPitch = (width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u);
         UINT uploadSize = height * uploadPitch;
         desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -291,6 +293,8 @@ static void ImGui_ImplDX12_CreateFontsTexture()
         HRESULT hr = g_pd3dDevice->CreateCommittedResource(&props, D3D12_HEAP_FLAG_NONE, &desc,
             D3D12_RESOURCE_STATE_GENERIC_READ, NULL, IID_PPV_ARGS(&uploadBuffer));
         IM_ASSERT(SUCCEEDED(hr));
+
+        uploadBuffer->SetName(L"ImGui_CreateFont_UploadResource");
 
         void* mapped = NULL;
         D3D12_RANGE range = { 0, uploadSize };
@@ -325,6 +329,7 @@ static void ImGui_ImplDX12_CreateFontsTexture()
         ID3D12Fence* fence = NULL;
         hr = g_pd3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
         IM_ASSERT(SUCCEEDED(hr));
+        fence->SetName(L"ImGui_CreateFont_ID3D12Fence");
 
         HANDLE event = CreateEvent(0, 0, 0, 0);
         IM_ASSERT(event != NULL);
@@ -337,14 +342,17 @@ static void ImGui_ImplDX12_CreateFontsTexture()
         ID3D12CommandQueue* cmdQueue = NULL;
         hr = g_pd3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue));
         IM_ASSERT(SUCCEEDED(hr));
+        cmdQueue->SetName(L"ImGui_CreateFont_ID3D12CommandQueue");
 
         ID3D12CommandAllocator* cmdAlloc = NULL;
         hr = g_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&cmdAlloc));
         IM_ASSERT(SUCCEEDED(hr));
+        cmdQueue->SetName(L"ImGui_CreateFont_ID3D12CommandAllocator");
 
         ID3D12GraphicsCommandList* cmdList = NULL;
         hr = g_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAlloc, NULL, IID_PPV_ARGS(&cmdList));
         IM_ASSERT(SUCCEEDED(hr));
+        cmdList->SetName(L"ImGui_CreateFont_ID3D12GraphicsCommandList");
 
         cmdList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, NULL);
         cmdList->ResourceBarrier(1, &barrier);
@@ -445,6 +453,7 @@ bool    ImGui_ImplDX12_CreateDeviceObjects()
             return false;
 
         g_pd3dDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&g_pRootSignature));
+        g_pRootSignature->SetName(L"ImGui_ID3D12RootSignature");
         blob->Release();
     }
 
@@ -461,7 +470,8 @@ bool    ImGui_ImplDX12_CreateDeviceObjects()
     psoDesc.pRootSignature = g_pRootSignature;
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = g_RTVFormat;
+    // psoDesc.RTVFormats[0] = g_RTVFormat;
+    psoDesc.RTVFormats[0] = DXGI_FORMAT_R11G11B10_FLOAT;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 

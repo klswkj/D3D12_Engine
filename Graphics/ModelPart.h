@@ -11,28 +11,29 @@ class ModelPart
 {
 	friend class Model;
 public:
-	ModelPart(uint32_t _ID, std::string _Name, std::vector<Mesh*> pMeshes, const DirectX::XMMATRIX& InputMatrix) DEBUG_EXCEPT;
-	void Submit(eObjectFilterFlag _FilterFlag, DirectX::XMMATRIX AccumulatedTransformMatrix) const DEBUG_EXCEPT;
-	void SetAppliedTransform(DirectX::XMMATRIX _Transform) noexcept;
-	const DirectX::XMFLOAT4X4& GetAppliedTransform() const noexcept;
+	ModelPart(uint32_t _ID, std::string _Name, std::vector<Mesh*> pMeshes, const Math::Matrix4& InputMatrix) DEBUG_EXCEPT;
+	void Submit(eObjectFilterFlag _FilterFlag, Math::Matrix4 AccumulatedTransformMatrix) const DEBUG_EXCEPT;
+	void SetAppliedTransform(Math::Matrix4 _Transform) noexcept;
 
-	uint32_t GetId() const noexcept;
-	bool HasChildren() const noexcept;
+	Math::Matrix4& GetAppliedTransform() noexcept { return m_AppliedTransform; }
+	std::string GetName() const { return m_Name; }
+	uint32_t GetKey() const noexcept { return m_ID; }
+
+	bool HasChildren() const noexcept { return 0 < m_ModelParts.size(); }
 	void RecursivePushComponent(ModelComponentWindow& _ModelWindow);
-	void PushAddon(ITechniqueWindow& _TechniqueWindow);
-	std::string GetName() const;
-private:
-	void AddChild(std::unique_ptr<ModelPart> pChild) DEBUG_EXCEPT;
+	void PushAddon(IWindow& _TechniqueWindow);
 
 private:
-	std::vector<std::unique_ptr<ModelPart>> childPtrs;
-	std::vector<Mesh*> meshPtrs;
+	void AddModelPart(std::unique_ptr<ModelPart> pModelPart) DEBUG_EXCEPT;
 
+private:
 	std::string m_Name;
 	uint32_t m_ID;
-	DirectX::XMFLOAT4X4 m_Transform;
-	DirectX::XMFLOAT4X4 m_AppliedTransform;
-};
+	// DirectX::XMFLOAT4X4 m_Transform;
+	// DirectX::XMFLOAT4X4 m_AppliedTransform;
+	Math::Matrix4 m_Transform;
+	Math::Matrix4 m_AppliedTransform;
 
-inline bool ModelPart::HasChildren() const noexcept { return 0 < childPtrs.size(); }
-inline std::string ModelPart::GetName() const { return m_Name; }
+	std::vector<std::unique_ptr<ModelPart>> m_ModelParts;
+	std::vector<Mesh*> m_pMeshes;
+};

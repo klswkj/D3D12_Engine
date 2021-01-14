@@ -9,13 +9,8 @@
 void Job::Execute(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 {
 	m_pEntity->Bind(BaseContext);
-	m_pStep->Bind(BaseContext);
-	BaseContext.GetGraphicsContext().DrawIndexed(m_pEntity->GetIndexCount());
-	// TODO : make 
-	// BaseContext.GetGraphicsContext().DrawIndexed(m_pEntity->GetIndexCount(), m_pEntity->GetStartIndexLocation(), m_pEntity->GetBaseVertexLocation());
-	
-	
-	// BaseContext.GetComputeContext().DispatchIndirect;
-}
+	m_pStep->Bind(BaseContext); // RootSignature나, PSO 바인딩할 때, 최적화 확인
 
-// Entity에 IndexCount, StartLocation, BaseVertexLocation 추가해야됨.
+	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+	graphicsContext.DrawIndexed(m_pEntity->GetIndexCount(), m_pEntity->GetStartIndexLocation(), m_pEntity->GetBaseVertexLocation());
+}

@@ -7,6 +7,8 @@ namespace custom
     class CommandContext;
 }
 
+class MainLight;
+
 class ShadowCamera : public IBaseCamera
 {
 public:

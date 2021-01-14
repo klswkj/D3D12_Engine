@@ -45,7 +45,7 @@ namespace custom
             )
         );
 
-        m_pResource->SetName(L"Texture");
+        // m_pResource->SetName(L"Texture");
 
         D3D12_SUBRESOURCE_DATA texResource;
         texResource.pData = InitialData;
@@ -176,7 +176,11 @@ namespace custom
 			m_hCpuDescriptorHandle = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
         device::g_pDevice->CreateShaderResourceView(m_pResource, nullptr, m_hCpuDescriptorHandle);
-
+#if(_DEBUG)
+        std::wstring normalizedwString = _NormalizeWString(fileName);
+        normalizedwString += L"_ManagedTexture"; // will be removed.
+        m_pResource->SetName(normalizedwString.c_str());
+#endif
         return SUCCEEDED(hr);
     }
 }

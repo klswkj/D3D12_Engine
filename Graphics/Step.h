@@ -5,7 +5,7 @@ namespace custom
 }
 
 class Entity;
-class ITechniqueWindow;
+class IWindow;
 class RenderQueuePass;
 class MasterRenderGraph;
 class RenderingResource;
@@ -22,7 +22,7 @@ public:
 	void Submit(const Entity&) const;
 	void Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT;
 	void InitializeParentReferences(const Entity& _Entity) noexcept;
-	void Accept(ITechniqueWindow&);
+	void Accept(IWindow& _IWindow);
 	void Link(MasterRenderGraph&);
 private:
 	std::vector<std::shared_ptr<RenderingResource>> m_RenderingResources;

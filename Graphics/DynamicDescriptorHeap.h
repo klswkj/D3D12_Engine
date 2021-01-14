@@ -154,7 +154,7 @@ namespace custom
 		struct DescriptorTableCache
 		{
 			DescriptorTableCache() 
-				: assignedHandlesBitMap(0) 
+				: pTableStart(nullptr), assignedHandlesBitMap(0), tableSize(0)
 			{
 			}
 

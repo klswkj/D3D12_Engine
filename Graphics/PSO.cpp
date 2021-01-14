@@ -4,11 +4,22 @@
 // #include "RootSignature.h"
 #include "CommandContext.h"
 
-static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_graphicsPSOHashMap;
-static std::unordered_map<size_t, Microsoft::WRL::ComPtr<ID3D12PipelineState>> s_computePSOHashMap;
+static std::unordered_map<size_t, ID3D12PipelineState*> s_graphicsPSOHashMap;
+static std::unordered_map<size_t, ID3D12PipelineState*> s_computePSOHashMap;
 
 void custom::PSO::DestroyAll()
 {
+    for (auto& e : s_graphicsPSOHashMap)
+    {
+        e.second->Release();
+        e.second = nullptr;
+    }
+    for (auto& e : s_computePSOHashMap)
+    {
+        e.second->Release();
+        e.second = nullptr;
+    }
+
     s_graphicsPSOHashMap.clear();
     s_computePSOHashMap.clear();
 }
@@ -24,7 +35,7 @@ GraphicsPSO::GraphicsPSO()
 
 GraphicsPSO::GraphicsPSO(GraphicsPSO& _GraphicsPSO) noexcept
 {
-    m_pRootSignature        = &_GraphicsPSO.GetRootSignature();
+    // m_pRootSignature        = &_GraphicsPSO.GetRootSignature();
     m_PersonalRootSignature = _GraphicsPSO.GetRootSignature();
     m_PSO                   = _GraphicsPSO.m_PSO;
     m_PSODesc               = _GraphicsPSO.m_PSODesc;
@@ -152,8 +163,9 @@ void ComputePSO::Bind(custom::CommandContext& BaseContext)
     BaseContext.SetPipelineState(*this);
 }
 
-void GraphicsPSO::Finalize(const std::wstring& name)
+void GraphicsPSO::Finalize(const std::wstring& Name, bool ExpectedCollision)
 {
+    ASSERT(2 <= Name.size());
     // Make sure the root signature is finalized first
     // m_PSODesc.pRootSignature = m_pRootSignature->GetSignature();
     m_PSODesc.pRootSignature = m_PersonalRootSignature.GetSignature();
@@ -162,7 +174,7 @@ void GraphicsPSO::Finalize(const std::wstring& name)
     m_PSODesc.InputLayout.pInputElementDescs = nullptr;
 
     m_hash.SetHashSeed(m_PSODesc);
-    size_t HashCode = Hash::MakeHash(&m_hash.Hash0, 2);
+    size_t HashCode = Hash::MakeHash(&m_hash.Hash0, 2ull);
     m_PSODesc.InputLayout.pInputElementDescs = m_inputLayouts.get();
 
     ID3D12PipelineState** PSORef = nullptr;
@@ -176,25 +188,24 @@ void GraphicsPSO::Finalize(const std::wstring& name)
         if (iter == s_graphicsPSOHashMap.end())
         {
             firstCompile = true;
-            PSORef = s_graphicsPSOHashMap[HashCode].GetAddressOf();
+            PSORef = &s_graphicsPSOHashMap[HashCode];
         }
 		else
 		{
-			PSORef = iter->second.GetAddressOf();
+			PSORef = &iter->second;
 		}
     }
 
     if (firstCompile)
     {
-        HRESULT hardwareResult;
+        HRESULT hardwareResult = S_FALSE;
 
         ASSERT_HR(hardwareResult = device::g_pDevice->CreateGraphicsPipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
-        s_graphicsPSOHashMap[HashCode].Attach(m_PSO);
+        s_graphicsPSOHashMap[HashCode] = m_PSO;
 
 #ifdef _DEBUG
-        m_PSO->SetName(name.c_str());
-#elif
-        name;
+        m_PSO->SetName(Name.c_str());
+        m_Name = Name;
 #endif
     }
     else
@@ -204,13 +215,32 @@ void GraphicsPSO::Finalize(const std::wstring& name)
 			std::this_thread::yield();
 		}
         m_PSO = *PSORef;
+#ifdef _DEBUG
+        wchar_t name[128] = {};
+        UINT size = sizeof(name);
+        (*PSORef)->GetPrivateData(WKPDID_D3DDebugObjectNameW, &size, name);
+        m_PSO->SetName(name);
+
+        m_Name.clear();
+
+        if (Name.size())
+        {
+            m_Name += Name;
+            m_Name += L" is Overwritten by ";
+        }
+
+        m_Name += name;
+#endif
     }
 }
 
-void ComputePSO::Finalize(const std::wstring& name)
+void ComputePSO::Finalize(const std::wstring& Name)
 {
+    ASSERT(2 <= Name.size());
+
     // Make sure the root signature is finalized first
-    m_PSODesc.pRootSignature = m_pRootSignature->GetSignature();
+    // m_PSODesc.pRootSignature = m_pRootSignature->GetSignature();
+    m_PSODesc.pRootSignature = m_PersonalRootSignature.GetSignature();
     ASSERT(m_PSODesc.pRootSignature != nullptr);
 
     m_hash.SetHashSeed(m_PSODesc);
@@ -227,23 +257,25 @@ void ComputePSO::Finalize(const std::wstring& name)
         if (iter == s_computePSOHashMap.end())
         {
             firstCompile = true;
-            PSORef = s_computePSOHashMap[HashCode].GetAddressOf();
+            PSORef = &s_computePSOHashMap[HashCode];
         }
 		else
 		{
-			PSORef = iter->second.GetAddressOf();
+			PSORef = &iter->second;
 		}
     }
 
     if (firstCompile)
     {
-        ASSERT_HR(device::g_pDevice->CreateComputePipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
-        s_computePSOHashMap[HashCode].Attach(m_PSO); 
+        static HRESULT hardwareResult;
+        ASSERT_HR(hardwareResult = device::g_pDevice->CreateComputePipelineState(&m_PSODesc, IID_PPV_ARGS(&m_PSO)));
+        s_computePSOHashMap[HashCode] = m_PSO; 
 
 #ifdef _DEBUG
-            m_PSO->SetName(name.c_str());
+            m_PSO->SetName(Name.c_str());
+            m_Name = Name;
 #elif
-        name;
+        Name;
 #endif
     }
     else

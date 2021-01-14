@@ -13,7 +13,6 @@ public:
     std::vector<Technique> GetTechniques() const noexcept;
 
 private:
-    // GraphicsPSO m_PSO;
 	std::vector<Technique> m_Techniques;
 	std::string m_ModelFilePath;  // must be std::string
 	std::string m_Name;           // must be std::string

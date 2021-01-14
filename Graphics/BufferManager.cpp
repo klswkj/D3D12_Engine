@@ -18,10 +18,11 @@ namespace bufferManager
      ColorBuffer  g_VelocityBuffer;     // R10G10B10  (3D velocity)
      ShadowBuffer g_ShadowBuffer;
 
+     ColorBuffer g_SceneDebugBuffer(custom::Color(0.5f, 0.5f, 0.5f));
      ColorBuffer g_StencilBuffer;
 
      ColorBuffer g_SSAOFullScreen(custom::Color(1.0f, 1.0f, 1.0f));    // R8_UNORM
-     ColorBuffer g_LinearDepth[2];    // Normalized planar distance (0 at eye, 1 at far plane) computed from the SceneDepthBuffer
+     ColorBuffer g_LinearDepth[3];    // Normalized planar distance (0 at eye, 1 at far plane) computed from the SceneDepthBuffer
      ColorBuffer g_MinMaxDepth8;      // Min and max depth values of 8x8 tiles
      ColorBuffer g_MinMaxDepth16;     // Min and max depth values of 16x16 tiles
      ColorBuffer g_MinMaxDepth32;     // Min and max depth values of 16x16 tiles
@@ -45,24 +46,24 @@ namespace bufferManager
      ColorBuffer g_AOHighQuality3;
      ColorBuffer g_AOHighQuality4;
 
-     ColorBuffer g_DoFTileClass[2];
+     ColorBuffer g_DoFTileClass[3];
      ColorBuffer g_DoFPresortBuffer;
      ColorBuffer g_DoFPrefilter;
-     ColorBuffer g_DoFBlurColor[2];
-     ColorBuffer g_DoFBlurAlpha[2];
+     ColorBuffer g_DoFBlurColor[3];
+     ColorBuffer g_DoFBlurAlpha[3];
      custom::StructuredBuffer g_DoFWorkQueue;
      custom::StructuredBuffer g_DoFFastQueue;
      custom::StructuredBuffer g_DoFFixupQueue;
 
      ColorBuffer g_MotionPrepBuffer;        // R10G10B10A2
      ColorBuffer g_LumaBuffer;
-     ColorBuffer g_TemporalColor[2];
+     ColorBuffer g_TemporalColor[3];
 
-     ColorBuffer g_aBloomUAV1[2];        // 640x384 (1/3)
-     ColorBuffer g_aBloomUAV2[2];        // 320x192 (1/6)  
-     ColorBuffer g_aBloomUAV3[2];        // 160x96  (1/12)
-     ColorBuffer g_aBloomUAV4[2];        // 80x48   (1/24)
-     ColorBuffer g_aBloomUAV5[2];        // 40x24   (1/48)
+     ColorBuffer g_aBloomUAV1[3];        // 640x384 (1/3)
+     ColorBuffer g_aBloomUAV2[3];        // 320x192 (1/6)  
+     ColorBuffer g_aBloomUAV3[3];        // 160x96  (1/12)
+     ColorBuffer g_aBloomUAV4[3];        // 80x48   (1/24)
+     ColorBuffer g_aBloomUAV5[3];        // 40x24   (1/48)
      ColorBuffer g_LumaLR;
 
      custom::ByteAddressBuffer g_Histogram;
@@ -116,6 +117,7 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
 
     g_LinearDepth[0].Create(L"Linear Depth 0", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16_UNORM);
     g_LinearDepth[1].Create(L"Linear Depth 1", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16_UNORM);
+    g_LinearDepth[2].Create(L"Linear Depth 2", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16_UNORM);
     g_MinMaxDepth8.Create(L"MinMaxDepth 8x8", bufferWidth[3], bufferHeight[3], 1, DXGI_FORMAT_R32_UINT);
     g_MinMaxDepth16.Create(L"MinMaxDepth 16x16", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R32_UINT);
     g_MinMaxDepth32.Create(L"MinMaxDepth 32x32", bufferWidth[5], bufferHeight[5], 1, DXGI_FORMAT_R32_UINT);
@@ -146,23 +148,29 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
 
     g_ShadowBuffer.Create(L"Shadow Map", 2048, 2048);
 
-    g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_B8G8R8A8_UNORM);
-
+    g_SceneDebugBuffer.Create(L"Debug Buffer", bufferWidth[0], bufferHeight[0], 1, DefaultColorFormat);
+    // g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_B8G8R8A8_UNORM);
+    g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R32_FLOAT);
+    
     g_DoFTileClass[0].Create(L"DoF Tile Classification Buffer 0", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
     g_DoFTileClass[1].Create(L"DoF Tile Classification Buffer 1", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFTileClass[2].Create(L"DoF Tile Classification Buffer 2", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
 
     g_DoFPresortBuffer.Create(L"DoF Presort Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
     g_DoFPrefilter.Create(L"DoF PreFilter Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurColor[0].Create(L"DoF Blur Color", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurColor[1].Create(L"DoF Blur Color", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurAlpha[0].Create(L"DoF FG Alpha", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
-    g_DoFBlurAlpha[1].Create(L"DoF FG Alpha", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
+    g_DoFBlurColor[0].Create(L"DoF Blur Color 0", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFBlurColor[1].Create(L"DoF Blur Color 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFBlurColor[2].Create(L"DoF Blur Color 2", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFBlurAlpha[0].Create(L"DoF FG Alpha 0", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
+    g_DoFBlurAlpha[1].Create(L"DoF FG Alpha 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
+    g_DoFBlurAlpha[2].Create(L"DoF FG Alpha 2", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
     g_DoFWorkQueue.Create(L"DoF Work Queue", bufferWidth[4] * bufferHeight[4], 4);
     g_DoFFastQueue.Create(L"DoF Fast Queue", bufferWidth[4] * bufferHeight[4], 4);
     g_DoFFixupQueue.Create(L"DoF Fixup Queue", bufferWidth[4] * bufferHeight[4], 4);
 
     g_TemporalColor[0].Create(L"Temporal Color 0", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16G16B16A16_FLOAT);
     g_TemporalColor[1].Create(L"Temporal Color 1", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16G16B16A16_FLOAT);
+    g_TemporalColor[2].Create(L"Temporal Color 2", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
     g_MotionPrepBuffer.Create(L"Motion Blur Prep", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R16G16B16A16_FLOAT);
 
@@ -176,14 +184,19 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_LumaLR.Create(L"Luma Buffer", kBloomWidth, kBloomHeight, 1, DXGI_FORMAT_R8_UINT);
     g_aBloomUAV1[0].Create(L"Bloom Buffer 1a", kBloomWidth, kBloomHeight, 1, DefaultColorFormat);
     g_aBloomUAV1[1].Create(L"Bloom Buffer 1b", kBloomWidth, kBloomHeight, 1, DefaultColorFormat);
+    g_aBloomUAV1[2].Create(L"Bloom Buffer 1c", kBloomWidth, kBloomHeight, 1, DefaultColorFormat);
     g_aBloomUAV2[0].Create(L"Bloom Buffer 2a", kBloomWidth / 2, kBloomHeight / 2, 1, DefaultColorFormat);
     g_aBloomUAV2[1].Create(L"Bloom Buffer 2b", kBloomWidth / 2, kBloomHeight / 2, 1, DefaultColorFormat);
+    g_aBloomUAV2[2].Create(L"Bloom Buffer 2c", kBloomWidth / 2, kBloomHeight / 2, 1, DefaultColorFormat);
     g_aBloomUAV3[0].Create(L"Bloom Buffer 3a", kBloomWidth / 4, kBloomHeight / 4, 1, DefaultColorFormat);
     g_aBloomUAV3[1].Create(L"Bloom Buffer 3b", kBloomWidth / 4, kBloomHeight / 4, 1, DefaultColorFormat);
+    g_aBloomUAV3[2].Create(L"Bloom Buffer 3c", kBloomWidth / 4, kBloomHeight / 4, 1, DefaultColorFormat);
     g_aBloomUAV4[0].Create(L"Bloom Buffer 4a", kBloomWidth / 8, kBloomHeight / 8, 1, DefaultColorFormat);
     g_aBloomUAV4[1].Create(L"Bloom Buffer 4b", kBloomWidth / 8, kBloomHeight / 8, 1, DefaultColorFormat);
+    g_aBloomUAV4[2].Create(L"Bloom Buffer 4c", kBloomWidth / 8, kBloomHeight / 8, 1, DefaultColorFormat);
     g_aBloomUAV5[0].Create(L"Bloom Buffer 5a", kBloomWidth / 16, kBloomHeight / 16, 1, DefaultColorFormat);
     g_aBloomUAV5[1].Create(L"Bloom Buffer 5b", kBloomWidth / 16, kBloomHeight / 16, 1, DefaultColorFormat);
+    g_aBloomUAV5[2].Create(L"Bloom Buffer 5c", kBloomWidth / 16, kBloomHeight / 16, 1, DefaultColorFormat);
 
     const uint32_t kFXAAWorkSize = bufferWidth[0] * bufferHeight[0] / 4 + 128;
     g_FXAAWorkQueue.Create(L"FXAA Work Queue", kFXAAWorkSize, sizeof(uint32_t));
@@ -193,8 +206,8 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
 
     g_GenMipsBuffer.Create(L"GenMips", bufferWidth[0], bufferHeight[0], 0, DXGI_FORMAT_R11G11B10_FLOAT);
     
-    g_OverlayBuffer.Create(L"UI Overlay", window::g_TargetWindowWidth, window::g_TargetWindowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
-    g_HorizontalBuffer.Create(L"Bicubic Intermediate", window::g_TargetWindowWidth, bufferHeight[0], 1, DefaultColorFormat);
+    g_OverlayBuffer.Create(L"g_OverlayBuffer", window::g_TargetWindowWidth, window::g_TargetWindowHeight, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+    g_HorizontalBuffer.Create(L"g_HorizontalBuffer", window::g_TargetWindowWidth, bufferHeight[0], 1, DefaultColorFormat);
 
     graphicsContext.Finish();
 }
@@ -209,12 +222,13 @@ void bufferManager::DestroyRenderingBuffers()
     g_PostEffectsBuffer.Destroy();
 
     g_ShadowBuffer.Destroy();
-
+    g_SceneDebugBuffer.Destroy();
     g_StencilBuffer.Destroy();
 
     g_SSAOFullScreen.Destroy();
     g_LinearDepth[0].Destroy();
     g_LinearDepth[1].Destroy();
+    g_LinearDepth[2].Destroy();
     g_MinMaxDepth8.Destroy();
     g_MinMaxDepth16.Destroy();
     g_MinMaxDepth32.Destroy();
@@ -240,12 +254,15 @@ void bufferManager::DestroyRenderingBuffers()
 
     g_DoFTileClass[0].Destroy();
     g_DoFTileClass[1].Destroy();
+    g_DoFTileClass[2].Destroy();
     g_DoFPresortBuffer.Destroy();
     g_DoFPrefilter.Destroy();
     g_DoFBlurColor[0].Destroy();
     g_DoFBlurColor[1].Destroy();
+    g_DoFBlurColor[2].Destroy();
     g_DoFBlurAlpha[0].Destroy();
     g_DoFBlurAlpha[1].Destroy();
+    g_DoFBlurAlpha[2].Destroy();
     g_DoFWorkQueue.Destroy();
     g_DoFFastQueue.Destroy();
     g_DoFFixupQueue.Destroy();
@@ -254,16 +271,22 @@ void bufferManager::DestroyRenderingBuffers()
     g_LumaBuffer.Destroy();
     g_TemporalColor[0].Destroy();
     g_TemporalColor[1].Destroy();
+    g_TemporalColor[2].Destroy();
     g_aBloomUAV1[0].Destroy();
     g_aBloomUAV1[1].Destroy();
+    g_aBloomUAV1[2].Destroy();
     g_aBloomUAV2[0].Destroy();
     g_aBloomUAV2[1].Destroy();
+    g_aBloomUAV2[2].Destroy();
     g_aBloomUAV3[0].Destroy();
     g_aBloomUAV3[1].Destroy();
+    g_aBloomUAV3[2].Destroy();
     g_aBloomUAV4[0].Destroy();
     g_aBloomUAV4[1].Destroy();
+    g_aBloomUAV4[2].Destroy();
     g_aBloomUAV5[0].Destroy();
     g_aBloomUAV5[1].Destroy();
+    g_aBloomUAV5[2].Destroy();
     g_LumaLR.Destroy();
     g_Histogram.Destroy();
     g_FXAAWorkCounters.Destroy();

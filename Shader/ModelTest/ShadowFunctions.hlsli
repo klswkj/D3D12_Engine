@@ -17,11 +17,12 @@ void FSchlick(inout float3 specular, inout float3 diffuse, float3 lightDir, floa
     diffuse = lerp(diffuse, 0, fresnel);
 }
 
-float3 ApplyAmbientLight(
-    float3 diffuse, // Diffuse albedo
-    float ao, // Pre-computed ambient-occlusion
+float3 ApplyAmbientLight
+(
+    float3 diffuse,   // Diffuse albedo
+    float ao,         // Pre-computed ambient-occlusion
     float3 lightColor // Radiance of ambient light
-    )
+)
 {
     return ao * diffuse * lightColor;
 }
@@ -71,7 +72,8 @@ float3 ApplyLightCommon
     float3 normal,        // World-space normal
     float3 viewDir,       // World-space vector from eye to point
     float3 lightDir,      // World-space vector from point to light
-    float3 lightColor     // Radiance of directional light
+    float3 lightColor,     // Radiance of directional light
+    float specularPower
 )
 {
     float3 halfVec = normalize(lightDir - viewDir);
@@ -79,11 +81,14 @@ float3 ApplyLightCommon
 
     FSchlick(diffuseColor, specularColor, lightDir, halfVec);
 
-    float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
-
+    // float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
+    
     float nDotL = saturate(dot(normal, lightDir));
 
-    return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
+    const float3 w = normal * dot(halfVec, normal);
+    const float3 reflectedLight = normalize(w * 2.0f - halfVec);
+    
+    return nDotL * lightColor * (diffuseColor + /*specularFactor*/specularMask * specularColor * pow(max(0.0f, dot(-reflectedLight, viewDir)), specularPower));
 }
 
 float3 ApplyDirectionalLight
@@ -98,6 +103,7 @@ float3 ApplyDirectionalLight
     float3 lightColor,      // Radiance of directional light
     float3 shadowCoord,     // Shadow coordinate (Shadow map UV & light-relative Z)
     float4 ShadowTexelSize,
+    float specularPower,
     uniform Texture2D<float> texShadow,
     SamplerComparisonState shadowSampler
 )
@@ -115,7 +121,8 @@ float3 ApplyDirectionalLight
         normal,
         viewDir,
         lightDir,
-        lightColor
+        lightColor,
+        specularPower
      );
 }
 
@@ -143,7 +150,8 @@ float3 ApplyPointLight
     float distanceFalloff = lightRadiusSq * (invLightDist * invLightDist);
     distanceFalloff = max(0, distanceFalloff - rsqrt(distanceFalloff));
 
-    return distanceFalloff * ApplyLightCommon(
+    return distanceFalloff * ApplyLightCommon
+    (
         diffuseColor,
         specularColor,
         specularMask,
@@ -151,7 +159,8 @@ float3 ApplyPointLight
         normal,
         viewDir,
         lightDir,
-        lightColor
+        lightColor,
+        1.0f
         );
 }
 
@@ -183,7 +192,8 @@ float3 ApplyConeLight(
     float coneFalloff = dot(-lightDir, coneDir);
     coneFalloff = saturate((coneFalloff - coneAngles.y) * coneAngles.x);
 
-    return (coneFalloff * distanceFalloff) * ApplyLightCommon(
+    return (coneFalloff * distanceFalloff) * ApplyLightCommon
+    (
         diffuseColor,
         specularColor,
         specularMask,
@@ -191,7 +201,8 @@ float3 ApplyConeLight(
         normal,
         viewDir,
         lightDir,
-        lightColor
+        lightColor,
+        1.0f
         );
 }
 
@@ -219,7 +230,8 @@ float3 ApplyConeShadowedLight(
     // float GetShadowConeLight(uint lightIndex, float3 shadowCoord, Texture2DArray<float> lightShadowArrayTex, SamplerComparisonState shadowSampler)
     float shadow = GetShadowConeLight(lightIndex, shadowCoord.xyz, lightShadowArrayTex, shadowSampler);
 
-    return shadow * ApplyConeLight(
+    return shadow * ApplyConeLight
+    (
         diffuseColor,
         specularColor,
         specularMask,
@@ -232,7 +244,7 @@ float3 ApplyConeShadowedLight(
         lightColor,
         coneDir,
         coneAngles
-        );
+    );
 }
 
 #endif

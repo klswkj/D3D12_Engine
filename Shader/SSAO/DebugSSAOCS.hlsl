@@ -8,7 +8,7 @@
 //
 #include "SSAORS.hlsli"
 
-Texture2D<float> SsaoBuffer : register( t0 );
+Texture2D<float> SsaoBuffer  : register( t0 );
 RWTexture2D<float3> OutColor : register( u0 );
 
 [RootSignature(SSAO_RootSig)]

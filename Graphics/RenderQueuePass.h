@@ -21,6 +21,7 @@ public:
 	void PushBackJob(Job _Job) noexcept;
 	void Execute(custom::CommandContext&) DEBUG_EXCEPT override;
 	void Reset() DEBUG_EXCEPT override;
+	size_t GetJobCount() const;
 private:
 	std::vector<Job> m_Jobs;
 };

@@ -18,9 +18,12 @@ namespace TextureManager
 		s_RootPath = TextureLibRoot;
 	}
 
-	void Shutdown(void)
+	void Shutdown()
 	{
-		s_TextureCache.clear();
+		for (auto& e : s_TextureCache)
+		{
+			e.second->Destroy();
+		}
 	}
 
 	std::wstring GetRootPath()

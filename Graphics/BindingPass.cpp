@@ -43,7 +43,4 @@ void IBindingPass::bindAll(custom::CommandContext& BaseContext) const noexcept
 void IBindingPass::finalize()
 {
 	Pass::finalize();
-
-	// ASSERT(m_pRenderTarget != nullptr, "BindingPass ", GetRegisteredName(), "RenderTarget don't exist.");
-	// ASSERT(m_pDepthStencil != nullptr, "BindingPass ", GetRegisteredName(), "DepthStencil don't exist.");
 }

@@ -8,9 +8,9 @@ cbuffer ControllerConstants : register(b1) // Specular, Normal
     uint UseSpecularMap;   // Starts a new vector
     float SpecularWeight;
     float SpecularGloss;
-    float normalMapWeight; 
+    float NormalMapWeight; 
     float3 SpecularColor;  // Starts a new vector
-    uint useNormalMap;
+    uint UseNormalMap;
 }
 
 #include "ModelTest_PS.hlsli"

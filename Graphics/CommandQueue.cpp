@@ -46,14 +46,15 @@ namespace custom
         commandQueueDesc.NodeMask = 1;
         ASSERT_HR(pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue)));
 
-        static size_t NumCommandQueue = 0;
-
-        // SET_NAME(m_commandQueue);
-
-        // m_commandQueue->SetName(StringToWString(std::string("0" + NumCommandQueue++)).c_str());
+        static size_t NumCommandQueue = -1;
 
         ASSERT_HR(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
-        SET_NAME(m_pFence);
+
+#ifdef _DEBUG
+        m_pFence->SetName(StringToWString("CommandQueue::m_pFence" + std::to_string(++NumCommandQueue)).c_str());
+        m_commandQueue->SetName(StringToWString("CommandQueue::m_CommandQueue" + std::to_string(++NumCommandQueue)).c_str());
+#endif
+
         m_pFence->Signal((uint64_t)m_type << 56);
 
         m_fenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
@@ -116,9 +117,24 @@ namespace custom
         m_commandQueue->ExecuteCommandLists(1, &List);
 
         // Signal the next fence value (with the GPU)
-        m_commandQueue->Signal(m_pFence, m_nextFenceValue);
+       HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
 
-        // And increment the fence value.  
+        // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // D3D12 WARNING: ID3D12CommandList::DrawIndexedInstanced: Viewport: 0 is non-empty while the corresponding scissor rectangle is empty.
+        // Nothing will be written to the render target when this viewport is selected.  
+        // In D3D12, scissor testing is always enabled. [ EXECUTION WARNING #695: DRAW_EMPTY_SCISSOR_RECTANGLE]
+        
+        // D3D12 ERROR : ID3D12CommandQueue::ExecuteCommandLists : 
+        // A command list, which writes to a swapchain back buffer, may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
+        // Such a back buffer is also referred to as the "current back buffer".
+        // Swap Chain : 0x000002BD5EDCB610 : 'Unnamed Object' 
+        // - Current Back Buffer Buffer : 0x000002BD68C2E010 : 'g_DisplayColorBuffer 0' 
+        // - Attempted Write Buffer : 0x000002BD68C2F9F0 : 'g_DisplayColorBuffer 2'[STATE_SETTING ERROR #907: EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE]
+        // And increment the fence value.
+
+        // End LRR
+
         return m_nextFenceValue++;
     }
 

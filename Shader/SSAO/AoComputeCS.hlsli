@@ -22,7 +22,7 @@ Texture2DArray<float> DepthTex : register(t0);
 #else
 Texture2D<float> DepthTex : register(t0);
 #endif
-RWTexture2D<float> Occlusion : register(u0);
+RWTexture2D<float> Occlusion     : register(u0);
 SamplerState LinearBorderSampler : register(s1);
 cbuffer CB1 : register(b1)
 {

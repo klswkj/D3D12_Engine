@@ -1,22 +1,45 @@
 #include "stdafx.h"
 #include "Camera.h"
-#include "Vector.h"
+#include "CameraManager.h"
 #include "CameraEntity.h"
 #include "CameraFrustum.h"
+#include "CustomImgui.h"
 
-Camera::Camera(char* Name, Math::Vector3 InitPosition, float InitPitch, float InitYaw)
-	: m_Name(Name), m_InitPosition(InitPosition), m_InitPitch(InitPitch), m_InitYaw(InitYaw),
-	m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f)
+Camera::Camera(CameraManager* OwningManager, char* Name, bool Visible, Math::Vector3 InitPosition, float InitPitch, float InitYaw)
+	: m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
+	m_Entity(this)
 {
+	m_Name         = Name;
+	m_InitPosition = InitPosition;
+	m_InitPitch    = m_InitPitch;
+	m_InitYaw      = m_InitYaw;
+
+	m_bTethered      = false;
+	m_bDrawCamera    = Visible;
+	m_bDrawProjector = Visible;
+
+	m_pCameraManager = OwningManager;
+
 	SetPerspectiveMatrix(DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f); // Camera Frustum
 
 	Reset();
 }
 
-Camera::Camera(const char* Name, Math::Vector3 InitPosition/* = Math::Vector3{ 0.0f, 0.0f, 0.0f }*/, float InitPitch/* = 0.0f*/, float InitYaw/* = 0.0f*/)
-	: m_Name(Name), m_InitPosition(InitPosition), m_InitPitch(InitPitch), m_InitYaw(InitYaw),
-	m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f)
+Camera::Camera(CameraManager* OwningManager, const char* Name, bool Visible, Math::Vector3 InitPosition/* = Math::Vector3{ 0.0f, 0.0f, 0.0f }*/, float InitPitch/* = 0.0f*/, float InitYaw/* = 0.0f*/)
+	: m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
+	m_Entity(this)
 {
+	m_Name = Name;
+	m_InitPosition = InitPosition;
+	m_InitPitch = m_InitPitch;
+	m_InitYaw = m_InitYaw;
+
+	m_bTethered      = false;
+	m_bDrawCamera    = Visible;
+	m_bDrawProjector = Visible;
+
+	m_pCameraManager = OwningManager;
+
 	SetPerspectiveMatrix(DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f); // Camera Frustum
 
 	Reset();
@@ -62,27 +85,67 @@ void Camera::UpdateProjMatrix()
 
 void Camera::RenderWindow() noexcept
 {
+	if (!m_pCameraManager)
+	{
+		return;
+	}
+
 	bool bRotationDirty{ false };
 	bool bPositionDirty{ false };
 	const auto dcheck = [](bool d, bool& carry) { carry = carry || d; };
 
+	ImGui::CenteredSeparator(100);
+	ImGui::SameLine();
+	ImGui::CenteredSeparator();
 	ImGui::Text(m_Name.c_str());
+
+	const CameraManager::CaptureBox& CaptureBox = m_pCameraManager->GetCaputreBox();
+	Math::Vector3 MinPoint = CaptureBox.MinPoint;
+	Math::Vector3 MaxPoint = CaptureBox.MaxPoint;
 
 	if (!m_bTethered)
 	{
 		ImGui::Text("Position");
 
-		Math::Vector3* temp = &m_CameraToWorld.GetTranslation();
+		Math::Vector3 temp = m_CameraToWorld.GetTranslation();
 
-		// Warning 항상의심.
-		dcheck(ImGui::SliderFloat("X", &temp->m_vec.m128_f32[0], -80.0f, 80.0f, "%.1f"), bPositionDirty); // ViewMatrix
-		dcheck(ImGui::SliderFloat("Y", &temp->m_vec.m128_f32[1], -80.0f, 80.0f, "%.1f"), bPositionDirty); // ViewMatrix
-		dcheck(ImGui::SliderFloat("Z", &temp->m_vec.m128_f32[2], -80.0f, 80.0f, "%.1f"), bPositionDirty); // ViewMatrix
+		dcheck(ImGui::SliderFloat("X", &temp.m_vec.m128_f32[0], MinPoint.GetX(), MaxPoint.GetX(), "%.1f"), bPositionDirty); // ViewMatrix
+		dcheck(ImGui::SliderFloat("Y", &temp.m_vec.m128_f32[1], MinPoint.GetY(), MaxPoint.GetY(), "%.1f"), bPositionDirty); // ViewMatrix
+		dcheck(ImGui::SliderFloat("Z", &temp.m_vec.m128_f32[2], MinPoint.GetZ(), MaxPoint.GetZ(), "%.1f"), bPositionDirty); // ViewMatrix
+
+		if (bPositionDirty)
+		{
+			SetPosition(temp);
+
+			Math::Vector3 Position = m_CameraToWorld.GetTranslation();
+			m_Entity.SetPosition(Position);
+			m_Projector.SetPosition(Position);
+		}
+
+		ImGui::Text("Orientation");
+
+		float PitchTemp = m_pCameraManager->GetCurrentPitch();
+		float YawTemp   = m_pCameraManager->GetCurrentHeading();
+
+		dcheck(ImGui::SliderAngle("Pitch", &PitchTemp, -90.0f, 90.0f), bRotationDirty); // Show Radian Value.
+		dcheck(ImGui::SliderAngle("Yaw",   &YawTemp, -180.0f, 180.0f), bRotationDirty);   // Show Radian Value.
+
+		if (bRotationDirty)
+		{
+			m_Pitch = PitchTemp;
+			m_Yaw   = YawTemp;
+			m_pCameraManager->SetCurrentPitch(PitchTemp);
+			m_pCameraManager->SetCurrentHeading(YawTemp);
+
+			DirectX::XMFLOAT3 PitchYaw = { m_Pitch, m_Yaw, 0.0f };
+			m_Entity.SetRotation(PitchYaw);
+			m_Projector.SetRotation(PitchYaw);
+		}
 	}
 
-	ImGui::Text("Orientation");
-	dcheck(ImGui::SliderAngle("Pitch", &m_Pitch, -90.0f, 90.0f), bRotationDirty); // Show Radian Value.
-	dcheck(ImGui::SliderAngle("Yaw", &m_Yaw, -180.0f, 180.0f), bRotationDirty);   // Show Radian Value.
+	ImGui::CenteredSeparator(100);
+	ImGui::SameLine();
+	ImGui::CenteredSeparator();
 
 	m_Projector.RenderWidgets();
 
@@ -92,20 +155,6 @@ void Camera::RenderWindow() noexcept
 	if (ImGui::Button("Reset"))
 	{
 		Reset();
-	}
-
-	if (bPositionDirty)
-	{
-		Math::Vector3 Position = m_CameraToWorld.GetTranslation();
-		m_Entity.SetPosition(Position);
-		m_Projector.SetPosition(Position);
-	}
-
-	if (bRotationDirty)
-	{
-		DirectX::XMFLOAT3 PitchYaw = { m_Pitch, m_Yaw, 0.0f };
-		m_Entity.SetRotation(PitchYaw);
-		m_Projector.SetRotation(PitchYaw);
 	}
 }
 
@@ -123,6 +172,8 @@ void Camera::Submit(eObjectFilterFlag Filter)
 
 void Camera::Reset()
 {
+	// m_CameraToWorld.SetTranslation(m_InitPosition);
+	SetPosition(m_InitPosition);
 	m_Entity.SetPosition(m_InitPosition);
 	m_Projector.SetPosition(m_InitPosition);
 }

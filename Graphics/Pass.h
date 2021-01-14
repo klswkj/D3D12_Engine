@@ -35,10 +35,11 @@ public:
 	virtual void finalize();
 
 public:
-	bool m_bActive{ true };
+	bool m_bActive = true;
 	uint32_t m_PassIndex;
 #ifdef _DEBUG
 	float m_DeltaTime = 0.0f;
+	float m_DeltaTimeBefore = 0.0f;
 #endif
 private:
 	std::string m_Name;
