@@ -17,6 +17,8 @@
 //  ¦§ std::vector<LinearAllocationPage*> m_retiredPages;          ¦§ std::vector<LinearAllocationPage*> m_retiredPages;
 //  ¦¦ std::vector<LinearAllocationPage*> m_largePageList;         ¦¦ std::vector<LinearAllocationPage*> m_largePageList;
 
+static size_t LinearAllocateCount = 0ul;
+
 #pragma region LINEAR_ALLOCATION_PAGE_MANAGER
 
 LinearAllocatorType LinearAllocator::LinearAllocationPageManager::sm_autoType = LinearAllocatorType::GPU_WRITEABLE;
@@ -128,6 +130,12 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
             &ResourceDesc, DefaultUsage, nullptr, IID_PPV_ARGS(&pBuffer)
         )
     );
+
+#if defined(_DEBUG)
+    wchar_t ResourceName[32];
+    swprintf(ResourceName, _countof(ResourceName), L"LinearAllocateResource %zu", ++LinearAllocateCount);
+    pBuffer->SetName(ResourceName);
+#endif
 
     return new LinearAllocationPage(pBuffer, DefaultUsage);
 }

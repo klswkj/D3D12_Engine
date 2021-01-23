@@ -14,10 +14,7 @@
 #include "PSO.h"
 #include "RootSignature.h"
 #include "ColorBuffer.h"
-#include "UAVBuffer.h"
 #include "LinearAllocator.h"
-#include "DynamicDescriptorHeap.h"
-#include "CommandSignature.h"
 
 #include "IBaseCamera.h"
 #include "Camera.h"
@@ -820,6 +817,25 @@ namespace custom
 	{
 		SetViewport((float)x, (float)y, (float)w, (float)h);
 		SetScissor(x, y, x + w, y + h);
+	}
+
+	void GraphicsContext::SetViewportAndScissor(PixelBuffer& TargetBuffer)
+	{
+		D3D12_VIEWPORT vp;
+		D3D12_RECT RECT;
+		vp.Width = (float)TargetBuffer.GetWidth();
+		vp.Height = (float)TargetBuffer.GetHeight();
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+
+		RECT.left   = 0l;
+		RECT.top    = 0l;
+		RECT.right  = (LONG)TargetBuffer.GetWidth();
+		RECT.bottom = (LONG)TargetBuffer.GetHeight();
+
+		SetViewportAndScissor(vp, RECT);
 	}
 
 	void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology)

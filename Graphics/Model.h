@@ -1,7 +1,7 @@
 #pragma once
 
 // Model  ┌─ ModelPart* Root 
-//        └─ vector<Mesh* : public Entity>   ┌─ XMFLOAT4X4   m_Transform
+//        └─ vector<Mesh* : public IEntity>   ┌─ XMFLOAT4X4   m_Transform
 //                                           │  VertexBuffer           <- class Material::Vertex (FLOAT3) =>  StructuredBuffer
 //                                           │  IndexBuffer            <- class Material::Index  (FLOAT3) => ByteAddressBuffer
 //                                           │  Topology               <  D3D11_PRIMITIVE_TOPOLOGY
@@ -11,7 +11,7 @@
 // 
 //                                                    uint32_t Channel은 Imgui에서 숫자로 Index될 데이터.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//             ┌  Entity*
+//             ┌  IEntity*
 // vector<Job> ┤  
 //             └  RenderStage*
 

@@ -225,6 +225,9 @@
     <Filter Include="External Dependencies\Custom Imgui">
       <UniqueIdentifier>{a96ed636-b699-46c5-8dbd-a99eb72d65f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SceneGraph\Renderer\RenderGraph\OutlineDrawingPass">
+      <UniqueIdentifier>{0169def9-30ef-4e5e-852f-fe72d8f5a215}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -347,9 +350,6 @@
     <ClCompile Include="FileReader.cpp">
       <Filter>External Dependencies</Filter>
     </ClCompile>
-    <ClCompile Include="PassWindow.cpp">
-      <Filter>SceneGraph\Renderer\imgui Window</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>SceneGraph\Camera</Filter>
     </ClCompile>
@@ -467,12 +467,6 @@
     <ClCompile Include="FundamentalVertexIndex.cpp">
       <Filter>Graphics\D3D12Resource\UAV</Filter>
     </ClCompile>
-    <ClCompile Include="BlurPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
-    </ClCompile>
-    <ClCompile Include="OutlineDrawingPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
-    </ClCompile>
     <ClCompile Include="LightPrePass.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph\1</Filter>
     </ClCompile>
@@ -526,6 +520,12 @@
     </ClCompile>
     <ClCompile Include="TransformConstants.cpp">
       <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorConstants.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="OutlineDrawingPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -718,9 +718,6 @@
     <ClInclude Include="FileReader.h">
       <Filter>External Dependencies</Filter>
     </ClInclude>
-    <ClInclude Include="PassWindow.h">
-      <Filter>SceneGraph\Renderer\imgui Window</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>SceneGraph\Camera</Filter>
     </ClInclude>
@@ -868,12 +865,6 @@
     <ClInclude Include="FundamentalVertexIndex.h">
       <Filter>Graphics\D3D12Resource\UAV</Filter>
     </ClInclude>
-    <ClInclude Include="BlurPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
-    </ClInclude>
-    <ClInclude Include="OutlineDrawingPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Candidate</Filter>
-    </ClInclude>
     <ClInclude Include="LightPrePass.h">
       <Filter>SceneGraph\Renderer\RenderGraph\1</Filter>
     </ClInclude>
@@ -927,6 +918,12 @@
     </ClInclude>
     <ClInclude Include="TransformConstants.h">
       <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorConstants.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="OutlineDrawingPass.h">
+      <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1180,12 +1177,6 @@
     <FxCompile Include="..\Shader\OutlineWithBlur\OutlineWithBlurPS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
     </FxCompile>
-    <FxCompile Include="VerticalBlurCS.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
-    </FxCompile>
-    <FxCompile Include="HoriontalBlurCS.hlsl">
-      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
-    </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Vertex Shader\ModelVS_Basic.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Model Basic Shader</Filter>
     </FxCompile>
@@ -1254,6 +1245,15 @@
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Debug\DebugShadowMap\DebugShadowMap_PS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\Viewer\Debug\DebugShadowMap</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\GaussianBlurCS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\Paper2VS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\Paper2PS.hlsl">
+      <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "Pass.h"
 
-static int32_t passIndex= 0;
+static uint32_t passIndex = 0;
 
 Pass::Pass(std::string Name) noexcept
 	: m_Name(Name), m_PassIndex(passIndex++)

@@ -139,21 +139,7 @@ void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 
 	// Set Fundmental Context.
 	{
-		D3D12_VIEWPORT vp;
-		D3D12_RECT RECT;
-		vp.Width    = (float)bufferManager::g_SceneColorBuffer.GetWidth();
-		vp.Height   = (float)bufferManager::g_SceneColorBuffer.GetHeight();
-		vp.TopLeftX = 0.0f;
-		vp.TopLeftY = 0.0f;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-
-		RECT.left   = 0l;
-		RECT.top    = 0l;
-		RECT.right  = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
-		RECT.bottom = (LONG)bufferManager::g_SceneColorBuffer.GetHeight();
-
-		graphicsContext.SetViewportAndScissor(vp, RECT);
+		graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
 		graphicsContext.SetRootSignature(*m_pRootSignature);
 		graphicsContext.SetPipelineState(*m_pPSO);
 		graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

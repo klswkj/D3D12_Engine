@@ -68,6 +68,8 @@ Model::Model(const std::string& pathString, float scale/* = 1.0f*/)
 		const aiMesh&      _aiMesh = *pScene->mMeshes[IMesh];
 		const MeshData& __MeshData = pMeshData[IMesh];
 
+		_aiMesh.mName.C_Str();
+
 		UINT _IndexStartLocation          = (UINT)(__MeshData.IndexDataByteOffset  / sizeof(uint16_t));
 		INT _VertexStartLocation          = (INT)(__MeshData.VertexDataByteOffset / VERTEX_LAYOUT_BYTE_SIZE);
 		size_t VertexStartLocationInArray = __MeshData.VertexDataByteOffset / sizeof(float);
@@ -87,6 +89,9 @@ Model::Model(const std::string& pathString, float scale/* = 1.0f*/)
 				materials[_aiMesh.mMaterialIndex],
 				FVI,
 				pVertexData + VertexStartLocationInArray
+#if defined(_DEBUG)
+				, std::string(_aiMesh.mName.C_Str())
+#endif
 			)
 		);
 	}

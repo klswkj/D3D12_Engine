@@ -1,6 +1,8 @@
 #pragma once
 #include "Pass.h"
 
+// Not Used.
+
 namespace custom
 {
 	class CommandContext;

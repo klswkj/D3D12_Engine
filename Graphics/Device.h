@@ -39,6 +39,7 @@ namespace device
     extern bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT;
 
     extern IDXGISwapChain3* g_pDXGISwapChain;
+    extern HANDLE           g_hSwapChainWaitableObject;
     extern ID3D12DescriptorHeap* g_ImguiFontHeap;
 
     extern UINT g_DisplayBufferCount;

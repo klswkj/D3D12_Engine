@@ -199,7 +199,7 @@ void ImguiRenderStage::Render(const uint32 frameIndex, const FrameContext& frame
 	if (count > 0)
 	{
 		static ImguiVisitor visitor;
-		ImGui::Begin("Entity", &showEntity);
+		ImGui::Begin("IEntity", &showEntity);
 		auto components = em->GetComponents(selectedEntities[0]);
 		for (auto comp : components)
 		{

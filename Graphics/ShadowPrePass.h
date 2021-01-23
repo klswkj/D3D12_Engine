@@ -21,7 +21,7 @@ private:
 	static ShadowPrePass* s_pShadowPrePass;
 
 	custom::RootSignature* m_pRootSignature;
-	GraphicsPSO* m_pShadowPSO;
+	GraphicsPSO*           m_pShadowPSO;
 
 	bool m_bAllocateRootSignature = false;
 	bool m_bAllocatePSO = false;

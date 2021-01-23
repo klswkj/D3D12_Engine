@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderingResource.h"
 
-class Entity;
+class IEntity;
 class IWindow;
 
 #define DEFAULT_DIFFUSE_COLOR  Math::Vector3(0.18f, 0.18f, 0.18f)
@@ -15,7 +15,7 @@ class IWindow;
 D3D12Engine::EndFrame()
 ModelComponentWindow::RenderWindow()
 Node::Accept(Window);
-Entity::Accept(Window);
+IEntity::Accept(Window);
 Technique::Accept(Window);
 Step::Accept(Window);
 RenderingResource::Accept(Window);
@@ -336,6 +336,7 @@ public:
 	Data m_Data;
 };
 
+/*
 class Color3Buffer : public RenderingResource
 {
 public:
@@ -347,14 +348,16 @@ public:
 
 	DirectX::XMFLOAT3 Color;
 };
+*/
 
+/*
 class TransformBuffer : public RenderingResource
 {
 public:
 	TransformBuffer(DirectX::XMMATRIX _ModelViewProj = {});
 	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
 
-	void InitializeParentReference(const Entity& _Entity) noexcept override;
+	void InitializeParentReference(const IEntity& _Entity) noexcept override;
 
 	void SetModelViewProj(DirectX::XMMATRIX _ModelViewProj);
 	void SetModelViewProjByComponent(DirectX::XMMATRIX View, DirectX::XMMATRIX Proj);
@@ -365,5 +368,6 @@ private:
 	void updateBind(custom::CommandContext& BaseContext);
 	void updateModelViewProj(custom::CommandContext& BaseContext);
 private:
-	const Entity* pParentEntity = nullptr;
+	const IEntity* pParentEntity = nullptr;
 };
+*/

@@ -4,7 +4,7 @@ namespace custom
 	class CommandContext;
 }
 
-class Entity;
+class IEntity;
 class IWindow;
 class RenderQueuePass;
 class MasterRenderGraph;
@@ -19,9 +19,9 @@ public:
 	Step& operator=(const Step&) = delete;
 	Step& operator=(Step&&) = delete;
 	void PushBack(std::shared_ptr<RenderingResource>) noexcept;
-	void Submit(const Entity&) const;
+	void Submit(const IEntity&) const;
 	void Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT;
-	void InitializeParentReferences(const Entity& _Entity) noexcept;
+	void InitializeParentReferences(const IEntity& _Entity) noexcept;
 	void Accept(IWindow& _IWindow);
 	void Link(MasterRenderGraph&);
 private:

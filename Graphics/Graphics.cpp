@@ -15,6 +15,7 @@
 #include "GpuTime.h"
 #include "CpuTime.h"
 
+#pragma region SHADER_HEADER
 #if defined(_DEBUG) | !defined(NDEBUG)
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ScreenQuadVS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/BufferCopyPS.h"
@@ -59,6 +60,7 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/GenerateMipsGammaOddYCS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/GenerateMipsGammaOddCS.h"
 #endif
+#pragma endregion
 
 namespace graphics
 {
@@ -129,6 +131,7 @@ void graphics::Initialize()
     // GraphRenderer::Initialize();
 
     GPUTime::ClockInitialize();
+    
     CPUTime::Initialize();
 }
 
@@ -141,7 +144,7 @@ void graphics::initializePresent()
         Microsoft::WRL::ComPtr<IDXGIOutput6> output6;
         DXGI_OUTPUT_DESC1 outputDesc;
         UINT colorSpaceSupport;
-
+        
         // Query support for ST.2084 on the display and set the color space accordingly
         if (SUCCEEDED(swapChain->GetContainingOutput(&output)) &&
             SUCCEEDED(output.As(&output6)) &&
@@ -153,6 +156,7 @@ void graphics::initializePresent()
         {
             g_bHDROutput = true;
         }
+        
     }
 #else
 #ifdef _DEBUG
@@ -488,6 +492,8 @@ void graphics::Present()
     }
 
     g_CurrentBufferIndex = (g_CurrentBufferIndex + 1) % device::g_DisplayBufferCount;
+
+    // HANDLE waitableObjests[2] = { device::g_hSwapChainWaitableObject, nullptr };
 
 #undef max
     UINT PresentInterval = s_EnableVSync ? std::max(4, (int)Math::Round(s_FrameTime * 60.0f)) : 0;

@@ -2,7 +2,7 @@
 #include "Step.h"
 #include "ObjectFilterFlag.h"
 
-class Entity;
+class IEntity;
 class IWindow;
 class MasterRenderGraph;
 
@@ -12,11 +12,11 @@ public:
 	Technique(std::string Name, eObjectFilterFlag Filter = eObjectFilterFlag::kOpaque, bool bActivating = true)
 		: m_Name(Name), m_Filter(Filter), m_Steps(), m_bActive(bActivating) {}
 
-	void Submit(const Entity& drawable, eObjectFilterFlag Filter) const noexcept;
+	void Submit(const IEntity& drawable, eObjectFilterFlag Filter) const noexcept;
 	void PushBackStep(Step step) noexcept;
 	bool IsActive() const noexcept;
 	void SetActiveState(bool active_in) noexcept;
-	void InitializeParentReferences(const Entity& parent) noexcept;
+	void InitializeParentReferences(const IEntity& parent) noexcept;
 	void Accept(IWindow& _IWindow);
 	void Link(MasterRenderGraph& _MasterRenderGraph);
 	std::string GetName() const noexcept;

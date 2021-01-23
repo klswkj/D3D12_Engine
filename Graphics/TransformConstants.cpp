@@ -18,7 +18,7 @@ void TransformConstants::Bind(custom::CommandContext& BaseContext)
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(m_Transform), &m_Transform);
 }
-void TransformConstants::InitializeParentReference(const Entity& _Entity) noexcept
+void TransformConstants::InitializeParentReference(const IEntity& _Entity) noexcept
 {
 	m_pParent = &_Entity;
 }

@@ -4128,7 +4128,7 @@ void ImGui::EndFrame()
     {
         if (g.CurrentWindowStack.Size > 1)
         {
-            IM_ASSERT(g.CurrentWindowStack.Size == 1 && "Mismatched Begin/BeginChild vs End/EndChild calls: did you forget to call End/EndChild?");
+            ASSERT(g.CurrentWindowStack.Size == 1 && "Mismatched Begin/BeginChild vs End/EndChild calls: did you forget to call End/EndChild?");
             while (g.CurrentWindowStack.Size > 1) // FIXME-ERRORHANDLING
                 End();
         }
@@ -4779,9 +4779,9 @@ static void CheckStacksSize(ImGuiWindow* window, bool write)
     // NOT checking: DC.ItemWidth, DC.AllowKeyboardFocus, DC.ButtonRepeat, DC.TextWrapPos (per window) to allow user to conveniently push once and not pop (they are cleared on Begin)
     ImGuiContext& g = *GImGui;
     short* p_backup = &window->DC.StackSizesBackup[0];
-    { int current = window->IDStack.Size;       if (write) *p_backup = (short)current; else IM_ASSERT(*p_backup == current && "PushID/PopID or TreeNode/TreePop Mismatch!");   p_backup++; }    // Too few or too many PopID()/TreePop()
-    { int current = window->DC.GroupStack.Size; if (write) *p_backup = (short)current; else IM_ASSERT(*p_backup == current && "BeginGroup/EndGroup Mismatch!");                p_backup++; }    // Too few or too many EndGroup()
-    { int current = g.BeginPopupStack.Size;     if (write) *p_backup = (short)current; else IM_ASSERT(*p_backup == current && "BeginMenu/EndMenu or BeginPopup/EndPopup Mismatch"); p_backup++;}// Too few or too many EndMenu()/EndPopup()
+    { int current = window->IDStack.Size;       if (write) *p_backup = (short)current; else ASSERT(*p_backup == current && "PushID/PopID or TreeNode/TreePop Mismatch!");   p_backup++; }    // Too few or too many PopID()/TreePop()
+    { int current = window->DC.GroupStack.Size; if (write) *p_backup = (short)current; else ASSERT(*p_backup == current && "BeginGroup/EndGroup Mismatch!");                p_backup++; }    // Too few or too many EndGroup()
+    { int current = g.BeginPopupStack.Size;     if (write) *p_backup = (short)current; else ASSERT(*p_backup == current && "BeginMenu/EndMenu or BeginPopup/EndPopup Mismatch"); p_backup++;}// Too few or too many EndMenu()/EndPopup()
     // For color, style and font stacks there is an incentive to use Push/Begin/Pop/.../End patterns, so we relax our checks a little to allow them.
     { int current = g.ColorModifiers.Size;      if (write) *p_backup = (short)current; else IM_ASSERT(*p_backup >= current && "PushStyleColor/PopStyleColor Mismatch!");       p_backup++; }    // Too few or too many PopStyleColor()
     { int current = g.StyleModifiers.Size;      if (write) *p_backup = (short)current; else IM_ASSERT(*p_backup >= current && "PushStyleVar/PopStyleVar Mismatch!");           p_backup++; }    // Too few or too many PopStyleVar()

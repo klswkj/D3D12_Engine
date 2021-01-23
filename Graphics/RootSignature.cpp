@@ -200,8 +200,9 @@ namespace custom
 					1, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature)
 				)
 			);
-
+#if defined(_DEBUG)
             m_rootSignature->SetName(name.c_str());
+#endif
             s_RootSignatureMap[HashCode] = m_rootSignature;
 
             ASSERT(*RSRef == m_rootSignature);

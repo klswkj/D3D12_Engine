@@ -60,6 +60,8 @@ D3D12Engine::D3D12Engine(const std::string& CommandLine)
 
 D3D12Engine::~D3D12Engine()
 {
+	// custom::StructuredBuffer::DestroyAllVertexBuffer();
+	// custom::ByteAddressBuffer::DestroyIndexAllBuffer();
 }
 
 void D3D12Engine::Render()
@@ -188,7 +190,8 @@ void D3D12Engine::HandleInput()
 	}
 	if (windowInput::IsFirstPressed(windowInput::DigitalInput::kKey_1))
 	{
-		// m_MasterRenderGraph.ToggleDebugPasses(); // Current Issue.
+		// TODO : Current Issue.
+		// m_MasterRenderGraph.ToggleDebugPasses(); 
 	}
 	if (windowInput::IsFirstPressed(windowInput::DigitalInput::kKey_2))
 	{
@@ -270,6 +273,7 @@ void D3D12Engine::EndFrame(custom::CommandContext& BaseContext)
 		m_CameraManager.RenderWindows();
 		m_ObjModelManager.RenderComponentWindows();
 
+		ImGuiContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
 		ImGuiContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 		ImGuiContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV());
 		// ImGuiContext.SetViewportAndScissor(0, 0, bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight());

@@ -83,7 +83,9 @@ void LightPrePass::Execute(custom::CommandContext& BaseContext)
 
 void LightPrePass::RenderWindow() DEBUG_EXCEPT
 {
-    ImGui::Begin("LightPrePass"); // 여기 Begin말고, ImGui::BeginChild해야, 
+
+    /*
+    ImGui::BeginChild("LightPrePass"); // 여기 Begin말고, ImGui::BeginChild해야, 
 
     std::vector<LightData>& m_Lights = bufferManager::g_Lights;
     std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;
@@ -109,11 +111,12 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
         }
 
         ImGui::EndChild();
-        ImGui::NextColumn();
+
     }
 
     static size_t SelectedLightIndex = -1;
     {
+        ImGui::NextColumn();
         ImGui::BeginChild("", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
 
         const int Imgui_Node_Flags = ImGuiTreeNodeFlags_OpenOnArrow |
@@ -122,45 +125,39 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
 
         for (size_t i= 0; i < m_Lights.size(); ++i)
         {
-            ImGui::TreeNodeEx("Light", Imgui_Node_Flags, sm_LightLabel[m_Lights[i].type]);
-            
-            if (ImGui::IsItemClicked())
+            if (ImGui::TreeNodeEx("Light", Imgui_Node_Flags, sm_LightLabel[m_Lights[i].type]))
             {
                 SelectedLightIndex = i;
+                ImGui::TreePop();
             }
         }
-
         ImGui::EndChild();
-        ImGui::NextColumn();
     }
 
     if (bHasLight && SelectedLightIndex != -1)
     {
+        ImGui::NextColumn();
         ImGui::BeginChild("", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
 
-        bool dirtyPos = false;
-        bool dirtyCone = false;
-        bool dirtyRadius = false;
-        bool dirtyColor = false;
-        bool bTypeChanged = false;
+        bool bDirty = false;
         const auto SetDirty = [](bool given, bool dirtybit) {dirtybit = dirtybit || given; };
 
         LightData& lightData = m_Lights[SelectedLightIndex];
 
         ImGui::Text("Position");
-        SetDirty(ImGui::SliderFloat("X", &lightData.pos.x, -100.0f, 100.0f, "%0.5f"), dirtyPos);
-        SetDirty(ImGui::SliderFloat("Y", &lightData.pos.y, -100.0f, 100.0f, "%0.5ff"), dirtyPos);
-        SetDirty(ImGui::SliderFloat("Z", &lightData.pos.z, -100.0f, 100.0f, "%0.5f"), dirtyPos);
+        SetDirty(ImGui::SliderFloat("X", &lightData.pos.x, -100.0f, 100.0f, "%0.5f"), bDirty);
+        SetDirty(ImGui::SliderFloat("Y", &lightData.pos.y, -100.0f, 100.0f, "%0.5ff"), bDirty);
+        SetDirty(ImGui::SliderFloat("Z", &lightData.pos.z, -100.0f, 100.0f, "%0.5f"), bDirty);
 
         ImGui::Text("Cone Direction / Orientation");
-        SetDirty(ImGui::SliderFloat("X", &lightData.coneDir.x, -90.0f, 90.0f, "%0.5f"), dirtyCone);
-        SetDirty(ImGui::SliderFloat("Y", &lightData.coneDir.y, -90.0f, 90.0f, "%0.5ff"), dirtyCone);
-        SetDirty(ImGui::SliderFloat("Z", &lightData.coneDir.z, -90.0f, 90.0f, "%0.5f"), dirtyCone);
+        SetDirty(ImGui::SliderFloat("X", &lightData.coneDir.x, -90.0f, 90.0f, "%0.5f"), bDirty);
+        SetDirty(ImGui::SliderFloat("Y", &lightData.coneDir.y, -90.0f, 90.0f, "%0.5ff"), bDirty);
+        SetDirty(ImGui::SliderFloat("Z", &lightData.coneDir.z, -90.0f, 90.0f, "%0.5f"), bDirty);
 
-        SetDirty(ImGui::SliderFloat("X", &lightData.coneDir.x, -90.0f, 90.0f, "%0.5f"), dirtyCone);
+        SetDirty(ImGui::SliderFloat("X", &lightData.coneDir.x, -90.0f, 90.0f, "%0.5f"), bDirty);
 
         ImGui::Text("Radius");
-        SetDirty(ImGui::SliderFloat("Z", &lightData.radiusSq, 100.0f, 2000000.0f, "%100.f"), dirtyRadius);
+        SetDirty(ImGui::SliderFloat("Z", &lightData.radiusSq, 100.0f, 2000000.0f, "%100.f"), bDirty);
 
         ImGui::Text("Color");
         ImGui::ColorEdit3("Light Diffuse Color", &lightData.color.x);
@@ -176,7 +173,6 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
 
                 if (ImGui::Selectable(sm_LightLabel[n], isSelected))
                 {
-                    bTypeChanged = true;
                     curItem = sm_LightLabel[n];
                     if (curItem == sm_LightLabel[0])
                     {
@@ -197,30 +193,38 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
                 }
             }
             ImGui::EndCombo();
-            ImGui::EndChild();
         }
 
-        Camera tempCamera(nullptr, "To modify light");
-        // tempCamera.SetEyeAtUp(lightData.pos, DirectX::operator+(lightData.pos, lightData.coneDir), Math::Vector3(0, 1, 0));
-        tempCamera.SetEyeAtUp(lightData.pos, 
-            Math::Vector3(lightData.pos.x + lightData.coneDir.x, lightData.pos.y + lightData.coneDir.y, lightData.pos.z + lightData.coneDir.z), 
-            Math::Vector3(0, 1, 0));
+        if (bDirty == true)
+        {
+            Camera tempCamera(nullptr, "To modify light");
+            // tempCamera.SetEyeAtUp(lightData.pos, DirectX::operator+(lightData.pos, lightData.coneDir), Math::Vector3(0, 1, 0));
+            tempCamera.SetEyeAtUp
+            (
+                lightData.pos,
+                Math::Vector3(lightData.pos.x + lightData.coneDir.x, lightData.pos.y + lightData.coneDir.y, lightData.pos.z + lightData.coneDir.z),
+                Math::Vector3(0, 1, 0)
+            );
 
-        const float ConeOuter = acos(lightData.coneAngles.y);
-        const float lightRadius = sqrt(lightData.radiusSq);
+            const float ConeOuter = acos(lightData.coneAngles.y);
+            const float lightRadius = sqrt(lightData.radiusSq);
 
-        tempCamera.SetPerspectiveMatrix(ConeOuter * 2, 1.0f, lightRadius / 20.0f, lightRadius);
-        tempCamera.Update();
+            tempCamera.SetPerspectiveMatrix(ConeOuter * 2, 1.0f, lightRadius / 20.0f, lightRadius);
+            tempCamera.Update();
 
-        m_LightShadowMatrixes[SelectedLightIndex] = tempCamera.GetViewProjMatrix();
+            m_LightShadowMatrixes[SelectedLightIndex] = tempCamera.GetViewProjMatrix();
 
-        Math::Matrix4 shadowTextureMatrix = Math::Matrix4(Math::AffineTransform(Math::Matrix3::MakeScale(0.5f, -0.5f, 1.0f), Math::Vector3(0.5f, 0.5f, 0.0f))) * m_LightShadowMatrixes[SelectedLightIndex];
+            Math::Matrix4 shadowTextureMatrix = Math::Matrix4(Math::AffineTransform(Math::Matrix3::MakeScale(0.5f, -0.5f, 1.0f), Math::Vector3(0.5f, 0.5f, 0.0f))) * m_LightShadowMatrixes[SelectedLightIndex];
 
-        memcpy_s(lightData.shadowTextureMatrix, sizeof(float) * 16, &shadowTextureMatrix, sizeof(shadowTextureMatrix));
+            memcpy_s(lightData.shadowTextureMatrix, sizeof(float) * 16, &shadowTextureMatrix, sizeof(shadowTextureMatrix));
 
-        m_DirtyLightIndex = SelectedLightIndex;
+            m_DirtyLightIndex = SelectedLightIndex;
+        }
+        ImGui::EndChild();
     }
-    ImGui::End(); // ImGui::EndChild() 만들어야할 수도
+
+    ImGui::EndChild();
+    */
 }
 
 void LightPrePass::CreateLight(UINT LightType)

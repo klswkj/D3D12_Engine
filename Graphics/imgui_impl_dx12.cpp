@@ -470,8 +470,8 @@ bool    ImGui_ImplDX12_CreateDeviceObjects()
     psoDesc.pRootSignature = g_pRootSignature;
     psoDesc.SampleMask = UINT_MAX;
     psoDesc.NumRenderTargets = 1;
-    // psoDesc.RTVFormats[0] = g_RTVFormat;
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R11G11B10_FLOAT;
+    psoDesc.RTVFormats[0] = g_RTVFormat;
+    // psoDesc.RTVFormats[0] = DXGI_FORMAT_R11G11B10_FLOAT;
     psoDesc.SampleDesc.Count = 1;
     psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 

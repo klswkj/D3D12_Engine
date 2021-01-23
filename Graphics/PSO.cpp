@@ -127,9 +127,9 @@ void GraphicsPSO::SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFor
 	{
 		m_PSODesc.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
 	}
-    m_PSODesc.NumRenderTargets = NumRTVs;
-    m_PSODesc.DSVFormat = DSVFormat;
-    m_PSODesc.SampleDesc.Count = MsaaCount;
+    m_PSODesc.NumRenderTargets   = NumRTVs;
+    m_PSODesc.DSVFormat          = DSVFormat;
+    m_PSODesc.SampleDesc.Count   = MsaaCount;
     m_PSODesc.SampleDesc.Quality = MsaaQuality;
 }
 void GraphicsPSO::SetInputLayout(UINT NumElements, const D3D12_INPUT_ELEMENT_DESC* pInputElementDescs)

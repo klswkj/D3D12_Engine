@@ -12,7 +12,9 @@ namespace premade
     extern custom::SamplerDescriptor g_SamplerVolumeWrapDesc;
     extern custom::SamplerDescriptor g_SamplerPointClampDesc;
     extern custom::SamplerDescriptor g_SamplerPointBorderDesc;
+    extern custom::SamplerDescriptor g_SamplerPointMirrorDesc;
     extern custom::SamplerDescriptor g_SamplerLinearBorderDesc;
+    extern custom::SamplerDescriptor g_SamplerLinearMirrorDesc;
 
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_DefaultSampler;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerLinearWrap;
@@ -22,7 +24,9 @@ namespace premade
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerVolumeWrap;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerPointClamp;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerPointBorder;
+    extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerPointMirror;
     extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerLinearBorder;
+    extern D3D12_CPU_DESCRIPTOR_HANDLE g_SamplerLinearMirror;
 
     // Position, TexCoord, Normal, Tangent, Bitangent
     extern D3D12_INPUT_ELEMENT_DESC g_InputElements[];
@@ -52,13 +56,16 @@ namespace premade
     extern D3D12_BLEND_DESC g_BlendTraditional;
     extern D3D12_BLEND_DESC g_BlendAdditive;
     extern D3D12_BLEND_DESC g_BlendTraditionalAdditive;
+    extern D3D12_BLEND_DESC g_BlendOutlineDrawing;
 
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateDisabled;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadWrite;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnly;
-    extern D3D12_DEPTH_STENCIL_DESC g_StencilStateWriteOnly;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateReadOnlyReversed;
     extern D3D12_DEPTH_STENCIL_DESC g_DepthStateTestEqual;
+
+    extern D3D12_DEPTH_STENCIL_DESC g_DepthStencilWrite;
+    extern D3D12_DEPTH_STENCIL_DESC g_DepthStencilMask;
 
     void Initialize();
     void Shutdown();

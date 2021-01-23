@@ -108,6 +108,7 @@ void ShadowPrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	size_t LightShadowMatrixSize              = bufferManager::g_LightShadowMatrixes.size();
 
 	graphicsContext.TransitionResource(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_COPY_DEST, false);
+
 	for (UINT i = 0; i < LightShadowMatrixSize; ++i)
 	{
 		CumulativeLightShadowBuffer.BeginRendering(graphicsContext);

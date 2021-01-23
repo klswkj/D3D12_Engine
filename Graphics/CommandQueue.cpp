@@ -76,6 +76,9 @@ namespace custom
         return FenceValue <= m_lastCompletedFenceValue;
     }
 
+    // TODO 3 : 혹시모를 Swapchain starvation대비해서
+    // FrameContext(Swapchain 갯수만큼), WaitForNextFrameResources 만들기
+    // 그래서 CommandContext.Finish(bool WaitForCompletion = false, bool WaitForSwapChain = false)형식으로 해서
     
     void CommandQueue::StallForFence(uint64_t FenceValue)
     {
@@ -94,10 +97,11 @@ namespace custom
         {
             return;
         }
-        // TODO:  Think about how this might affect a multi-threaded situation.  Suppose thread A
-        // wants to wait for fence 100, then thread B comes along and wants to wait for 99.  If
-        // the fence can only have one event set on completion, then thread B has to wait for 
-        // 100 before it knows 99 is ready.  Maybe insert sequential events?
+        // TODO:  Think about how this might affect a multi-threaded situation.  
+        // Suppose thread A wants to wait for fence 100, then thread B comes along and wants to wait for 99.  
+        // If the fence can only have one event set on completion, 
+        // then thread B has to wait for 100 before it knows 99 is ready.  
+        // Maybe insert sequential events?
         {
             std::lock_guard<std::mutex> LockGuard(m_eventMutex);
 
@@ -117,14 +121,11 @@ namespace custom
         m_commandQueue->ExecuteCommandLists(1, &List);
 
         // Signal the next fence value (with the GPU)
-       HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
+      HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
 
         // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
 
-        // D3D12 WARNING: ID3D12CommandList::DrawIndexedInstanced: Viewport: 0 is non-empty while the corresponding scissor rectangle is empty.
-        // Nothing will be written to the render target when this viewport is selected.  
-        // In D3D12, scissor testing is always enabled. [ EXECUTION WARNING #695: DRAW_EMPTY_SCISSOR_RECTANGLE]
-        
+        // -> WaitObject swapchainbuffer -> Go to swapchainbuffeerHANDLE at device.cpp
         // D3D12 ERROR : ID3D12CommandQueue::ExecuteCommandLists : 
         // A command list, which writes to a swapchain back buffer, may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
         // Such a back buffer is also referred to as the "current back buffer".

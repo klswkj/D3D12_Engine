@@ -9,6 +9,8 @@
 
 #include "Technique.h"
 #include "MaterialConstants.h"
+#include "ColorConstants.h"
+#include "TransformConstants.h"
 
 #include "ObjectFilterFlag.h"
 
@@ -31,6 +33,8 @@
 #define Z -2.0f
 #define THALF 0.5f
 #define TSPACE 0.15f
+#define TransformRootIndex 1u
+#define Color3RootIndex    3u
 
 CameraEntity::CameraEntity(Camera* pCamera)
 {
@@ -66,8 +70,8 @@ CameraEntity::CameraEntity(Camera* pCamera)
 		7, 5
 	};
 
-	// m_VerticesBuffer.Create(L"Camera Entity VertexBuffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
-	// m_IndicesBuffer.Create(L"Camera Entity IndexBuffer", _countof(indices), sizeof(uint8_t), indices);
+	// m_VerticesBuffer.Create(L"Camera IEntity VertexBuffer", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
+	// m_IndicesBuffer.Create(L"Camera IEntity IndexBuffer", _countof(indices), sizeof(uint8_t), indices);
 
 	custom::StructuredBuffer* pVertexBuffer = 
 		custom::StructuredBuffer::CreateVertexBuffer(L"Camera_Entity_VB", _countof(vertices), sizeof(DirectX::XMFLOAT3), vertices);
@@ -89,9 +93,10 @@ CameraEntity::CameraEntity(Camera* pCamera)
 	Technique DrawLine{ "Draw Camera", eObjectFilterFlag::kOpaque };
 	Step DrawLineInMainPass("MainRenderPass");
 
-	m_RootSignature.Reset(2, 0);
+	m_RootSignature.Reset(3, 0);
 	m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
-	m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
+	m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX);
+	m_RootSignature[2].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
 	m_RootSignature.Finalize(L"CameraEntity_RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// DrawLineInMainPas.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
@@ -120,10 +125,10 @@ CameraEntity::CameraEntity(Camera* pCamera)
 
 	DrawLineInMainPass.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
 
-	Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.6f });
-	DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(colorBuffer));
+	// Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.2f });
+	DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(Color3RootIndex));
 
-	DrawLineInMainPass.PushBack(std::make_shared<TransformBuffer>());
+	DrawLineInMainPass.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 
 	DrawLine.PushBackStep(std::move(DrawLineInMainPass));
 	AddTechnique(std::move(DrawLine));
@@ -133,6 +138,11 @@ CameraEntity::CameraEntity(Camera* pCamera)
 	// AddTechnique(std::move(DrawLine));
 
 	m_pParentCamera = pCamera;
+}
+
+CameraEntity::~CameraEntity()
+{
+
 }
 
 /*

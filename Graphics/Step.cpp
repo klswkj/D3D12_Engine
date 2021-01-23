@@ -34,7 +34,7 @@ void Step::PushBack(std::shared_ptr<RenderingResource> _RenderingResource) noexc
 
 	m_RenderingResources.push_back(std::move(_RenderingResource));
 }
-void Step::Submit(const Entity& _Entity) const
+void Step::Submit(const IEntity& _Entity) const
 {
 	m_pTargetPass->PushBackJob(Job{ &_Entity, this });
 }
@@ -46,7 +46,7 @@ void Step::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 	}
 }
 
-void Step::InitializeParentReferences(const Entity & parent) noexcept
+void Step::InitializeParentReferences(const IEntity & parent) noexcept
 {
 	for (const auto& e : m_RenderingResources)
 	{

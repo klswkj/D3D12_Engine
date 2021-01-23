@@ -8,6 +8,8 @@
 #include "Technique.h"
 #include "Step.h"
 #include "MaterialConstants.h"
+#include "ColorConstants.h"
+#include "TransformConstants.h"
 
 #if defined(_DEBUG) | !defined(NDEBUG)
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h"
@@ -16,6 +18,9 @@
 #include "../x64/RELEASE/Graphics(.lib)/CompiledShaders/Flat_VS.h"
 #include "../x64/RELEASE/Graphics(.lib)/CompiledShaders/Flat_PS.h"
 #endif
+
+#define TransformRootIndex 1u
+#define Color3RootIndex    3u
 
 CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float NearZ, float FarZ)
 {
@@ -56,9 +61,10 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 	Technique DrawFrustumTechnique{ "Draw Frustum", eObjectFilterFlag::kOpaque };
 
 	{
-		m_RootSignature.Reset(2, 0);
+		m_RootSignature.Reset(3, 0);
 		m_RootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX);
-		m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
+		m_RootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX);
+		m_RootSignature[2].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);
 		m_RootSignature.Finalize(L"CameraFrustum_RS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		D3D12_INPUT_ELEMENT_DESC vertexElements[] =
@@ -87,10 +93,10 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		DrawLineInMainPass.PushBack(std::make_shared<custom::RootSignature>(m_RootSignature));
 		DrawLineInMainPass.PushBack(std::make_shared<GraphicsPSO>(m_PSO));
 
-		Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.6f });
-		DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(colorBuffer));
+		// Color3Buffer colorBuffer({ 0.2f, 0.2f, 0.6f });
+		DrawLineInMainPass.PushBack(std::make_shared<Color3Buffer>(Color3RootIndex));
 
-		DrawLineInMainPass.PushBack(std::make_shared<TransformBuffer>());
+		DrawLineInMainPass.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 
 		DrawFrustumTechnique.PushBackStep(std::move(DrawLineInMainPass));
 	}
@@ -109,7 +115,7 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 		DrawFrustumTechnique.PushBackStep(std::move(occuluded));
 		*/
 	}
-	// techniques.push_back(std::move(DrawFrustumTechnique));
+	// m_Techniques.push_back(std::move(DrawFrustumTechnique));
 	AddTechnique(std::move(DrawFrustumTechnique));
 }
 //         UpVector axis           

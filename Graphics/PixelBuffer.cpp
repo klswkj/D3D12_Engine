@@ -174,8 +174,8 @@ DXGI_FORMAT PixelBuffer::GetStencilFormat(DXGI_FORMAT defaultFormat)
     case DXGI_FORMAT_D24_UNORM_S8_UINT:
     case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
     case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-        return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
-
+        // return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
     default:
         return DXGI_FORMAT_UNKNOWN;
     }
@@ -365,5 +365,7 @@ void PixelBuffer::CreateTextureResource
     m_currentState = D3D12_RESOURCE_STATE_COMMON;
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 
+#if defined(_DEBUG)
     m_pResource->SetName(Name.c_str());
+#endif
 }

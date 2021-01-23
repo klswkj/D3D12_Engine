@@ -21,6 +21,7 @@
 #include "FillLightGridPass.h"
 #include "ShadowMappingPass.h"
 #include "MainRenderPass.h"
+#include "OutlineDrawingPass.h"
 #include "DebugWireFramePass.h"
 #include "DebugShadowMapPass.h"
 
@@ -33,8 +34,8 @@
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelPS_Basic.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelPS_TexCoord.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelPS_TexNormal.h"
-#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h" // For OutlineDrawingShader (Current State : Pseudo)
-#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_PS.h" // For OutlineDrawingShader (Current State : Pseudo)
+#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h"
+#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_PS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/OutlineWithBlurPS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/HoriontalBlurCS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/VerticalBlurCS.h"
@@ -47,8 +48,8 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelPS_Basic.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelPS_TexCoord.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelPS_TexNormal.h"
-#include "../x64/Release/Graphics(.lib)/CompiledShaders/Flat_VS.h" // For OutlineDrawingShader (Current State : Pseudo)
-#include "../x64/Release/Graphics(.lib)/CompiledShaders/Flat_PS.h" // For OutlineDrawingShader (Current State : Pseudo)
+#include "../x64/Release/Graphics(.lib)/CompiledShaders/Flat_VS.h"
+#include "../x64/Release/Graphics(.lib)/CompiledShaders/Flat_PS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/OutlineWithBlurPS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/HoriontalBlurCS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/VerticalBlurCS.h"
@@ -70,7 +71,9 @@ MasterRenderGraph::MasterRenderGraph()
 	ASSERT(s_pMasterRenderGraph == nullptr);
 	s_pMasterRenderGraph = this;
 
-	// TODO : RootSignature, PSO 세팅
+	// TODO 1 : 
+	// 1. RootSignature 통합 (최대한 많이 쓰고, 한꺼번에 바인딩 -> 하지만 내 컴퓨터에서 Resource Tier가 낮아서 하나도 빠짐없이 바인딩해야된다)
+	// 2. PSO 갯수 줄일 수 있으면 줄이기
 	{
 		m_RootSignature;
 		m_RootSignature.Reset(6, 2); // (4, 2) -> (5, 2) -> (6, 2)
@@ -85,6 +88,7 @@ MasterRenderGraph::MasterRenderGraph()
 
 		m_RootSignature.Finalize(L"MainRS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 	}
+
 	DXGI_FORMAT ColorFormat = bufferManager::g_SceneColorBuffer.GetFormat();
 	DXGI_FORMAT DepthFormat = bufferManager::g_SceneDepthBuffer.GetFormat();
 
@@ -171,12 +175,20 @@ MasterRenderGraph::MasterRenderGraph()
 		m_pShadowMappingPass = dynamic_cast<ShadowMappingPass*>(m_pPasses.back().get());
 		ASSERT(m_pShadowMappingPass);
 	}
+	// OutlineDrawingPass
+	
 	// *7* MainRenderPass
 	{
 		std::unique_ptr<MainRenderPass> _MainRenderPass = std::make_unique<MainRenderPass>("MainRenderPass");
 		appendPass(std::move(_MainRenderPass));
 		m_pMainRenderPass = dynamic_cast<MainRenderPass*>(m_pPasses.back().get());
 		ASSERT(m_pMainRenderPass);
+	}
+	{
+		std::unique_ptr<OutlineDrawingPass> _OutlineDrawingPass = std::make_unique<OutlineDrawingPass>("OutlineDrawingPass");
+		appendPass(std::move(_OutlineDrawingPass));
+		m_pOutlineDrawingPass = dynamic_cast<OutlineDrawingPass*>(m_pPasses.back().get());
+		ASSERT(m_pOutlineDrawingPass);
 	}
 #if defined(_DEBUG)
 	{
@@ -206,6 +218,8 @@ MasterRenderGraph::MasterRenderGraph()
 	m_bMainRenderPass    = true;
 
 	m_bDebugShadowMap = false;
+
+	m_SelctedPassIndex = 0ul;
 }
 
 MasterRenderGraph::~MasterRenderGraph()
@@ -214,11 +228,14 @@ MasterRenderGraph::~MasterRenderGraph()
 
 void MasterRenderGraph::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
-	BaseContext.PIXBeginEvent(L"Scene Render");
-	ASSERT(m_pCurrentActiveCamera);
+	ASSERT(m_pCurrentActiveCamera != nullptr);
+
+	RenderPassesWindow();
 
 	BaseContext.SetMainCamera(*m_pCurrentActiveCamera);
-	BaseContext.SetModelToShadow(m_pMainLights->front().GetShadowMatrix()); // TODO : Move to Update()?
+	BaseContext.SetModelToShadow(m_pMainLights->front().GetShadowMatrix());
+
+	BaseContext.PIXBeginEvent(L"Scene Render");
 
 	for (auto& p : (m_bDebugPasses) ? m_pFullScreenDebugPasses : m_pPasses)
 	{
@@ -392,6 +409,36 @@ void MasterRenderGraph::finalize()
 	{
 		p->finalize();
 	}
+}
+
+void MasterRenderGraph::RenderPassesWindow()
+{
+	ImGui::Begin("Passes");
+
+	ImGui::Columns(2, 0, true);
+	ImGui::BeginChild("Passes");
+
+	// 콤보박스
+	ImGui::Text("Select Pass");
+	if (ImGui::BeginCombo("", m_pPasses[m_SelctedPassIndex]->GetRegisteredName().c_str()))
+	{
+		for (size_t PassIndex = 0; PassIndex < m_pPasses.size(); ++PassIndex)
+		{
+			const bool bSelected = (PassIndex == m_SelctedPassIndex);
+
+			if (ImGui::Selectable(m_pPasses[PassIndex]->GetRegisteredName().c_str(), bSelected))
+			{
+				m_SelctedPassIndex = PassIndex;
+			}
+		}
+		ImGui::EndCombo();
+	}
+
+	ImGui::EndChild(); // End Passes
+	ImGui::NextColumn();
+	m_pPasses[m_SelctedPassIndex]->RenderWindow();
+
+	ImGui::End();
 }
 
 void MasterRenderGraph::BindMainCamera(Camera* pCamera)

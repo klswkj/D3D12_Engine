@@ -26,7 +26,7 @@ public:
 	Pass(std::string Name) noexcept;
 	virtual ~Pass();
 
-	virtual void Execute(custom::CommandContext&) DEBUG_EXCEPT = 0;
+	virtual void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT = 0;
 	virtual void RenderWindow() DEBUG_EXCEPT;
 	virtual void Reset() DEBUG_EXCEPT;
 
@@ -37,6 +37,7 @@ public:
 public:
 	bool m_bActive = true;
 	uint32_t m_PassIndex;
+
 #ifdef _DEBUG
 	float m_DeltaTime = 0.0f;
 	float m_DeltaTimeBefore = 0.0f;

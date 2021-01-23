@@ -6,11 +6,11 @@ class Material;
 struct aiMesh;
 struct FundamentalVertexIndex;
 
-class Mesh : public Entity
+class Mesh : public IEntity
 {
 	struct BoundingBox;
 public:
-	Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation);
+	Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
 
 	// DirectX::XMMATRIX GetTransformXM() const noexcept;
 	Math::Matrix4 GetTransform() const noexcept;

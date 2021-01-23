@@ -32,9 +32,11 @@ ID3D12CommandAllocator* CommandAllocatorPool::RequestAllocator(uint64_t Complete
     if (pAllocator == nullptr)
     {
         ASSERT_HR(device::g_pDevice->CreateCommandAllocator(m_commandListType, IID_PPV_ARGS(&pAllocator)));
+#if defined(_DEBUG)
         wchar_t AllocatorName[32];
-        swprintf(AllocatorName, 32, L"CommandAllocator %zu", m_allocatorPool.size());
+        swprintf(AllocatorName, _countof(AllocatorName), L"CommandAllocator %zu", m_allocatorPool.size());
         pAllocator->SetName(AllocatorName);
+#endif
         m_allocatorPool.push_back(pAllocator);
     }
 

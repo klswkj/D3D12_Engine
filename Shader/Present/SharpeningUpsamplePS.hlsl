@@ -28,15 +28,15 @@ float3 GetColor(float2 UV)
 }
 
 [RootSignature(Present_RootSignature)]
-float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
+float4 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 {
     float3 Color = WB * GetColor(uv) - WA * (
         GetColor(uv + UVOffset0) + GetColor(uv - UVOffset0) +
         GetColor(uv + UVOffset1) + GetColor(uv - UVOffset1));
 
 #ifdef GAMMA_SPACE
-    return Color;
+    return float4(Color, 1.0f);
 #else
-    return ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT);
+    return float4(ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT), 1.0f);
 #endif
 }

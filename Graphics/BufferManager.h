@@ -17,7 +17,8 @@ namespace bufferManager
     extern ShadowBuffer g_ShadowBuffer;
 
     extern ColorBuffer g_SceneDebugBuffer;  // For Debug
-    extern ColorBuffer g_StencilBuffer;
+    extern ColorBuffer g_OutlineBuffer;
+    extern ColorBuffer g_OutlineHelpBuffer;
 
     extern ColorBuffer g_SSAOFullScreen;    // R8_UNORM
     extern ColorBuffer g_LinearDepth[3];    // Normalized planar distance (0 at eye, 1 at far plane) 
@@ -86,5 +87,7 @@ namespace bufferManager
     extern custom::ByteAddressBuffer  g_LightGridBitMask; // lightGridBitMask    : register(t69);
 
     void InitializeAllBuffers(uint32_t Width, uint32_t Height);
+    void InitializeLightBuffers();
+    void DestroyLightBuffers();
     void DestroyRenderingBuffers();
 }

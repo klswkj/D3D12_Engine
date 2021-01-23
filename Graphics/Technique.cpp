@@ -6,7 +6,7 @@
 
 std::mutex Technique::sm_mutex;
 
-void Technique::Submit(const Entity& drawable, eObjectFilterFlag Filter) const noexcept
+void Technique::Submit(const IEntity& drawable, eObjectFilterFlag Filter) const noexcept
 {
 	if (m_bActive && ((m_Filter && Filter) != 0))
 	{
@@ -17,7 +17,7 @@ void Technique::Submit(const Entity& drawable, eObjectFilterFlag Filter) const n
 	}
 }
 
-void Technique::InitializeParentReferences(const Entity& parent) noexcept
+void Technique::InitializeParentReferences(const IEntity& parent) noexcept
 {
 	for (auto& Step : m_Steps)
 	{

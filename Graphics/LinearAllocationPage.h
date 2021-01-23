@@ -19,6 +19,8 @@ public:
     ~LinearAllocationPage()
     {
         SafeUnmap();
+        m_pResource->Release();
+        m_pResource = nullptr;
     }
 
     void SafeMap(void)

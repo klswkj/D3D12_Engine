@@ -12,5 +12,13 @@ void Job::Execute(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 	m_pStep->Bind(BaseContext); // RootSignature나, PSO 바인딩할 때, 최적화 확인
 
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+
+#if defined(_DEBUG)
+	graphicsContext.PIXBeginEvent(StringToWString(m_pEntity->m_name).c_str());
 	graphicsContext.DrawIndexed(m_pEntity->GetIndexCount(), m_pEntity->GetStartIndexLocation(), m_pEntity->GetBaseVertexLocation());
+	graphicsContext.PIXEndEvent();
+#else
+	graphicsContext.DrawIndexed(m_pEntity->GetIndexCount(), m_pEntity->GetStartIndexLocation(), m_pEntity->GetBaseVertexLocation());
+#endif
+
 }

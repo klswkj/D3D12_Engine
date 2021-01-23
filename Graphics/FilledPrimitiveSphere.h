@@ -2,7 +2,7 @@
 #include "Entity.h"
 #include "UAVBuffer.h"
 
-class FilledPrimitiveSphere : public Entity
+class FilledPrimitiveSphere : public IEntity
 {
 public:
 	FilledPrimitiveSphere(float Radius = 2.0f, uint32_t SliceCount = 20u, uint32_t StackCount = 20u);

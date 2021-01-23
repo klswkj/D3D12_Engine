@@ -19,7 +19,8 @@ namespace bufferManager
      ShadowBuffer g_ShadowBuffer;
 
      ColorBuffer g_SceneDebugBuffer(custom::Color(0.5f, 0.5f, 0.5f));
-     ColorBuffer g_StencilBuffer;
+     ColorBuffer g_OutlineBuffer;
+     ColorBuffer g_OutlineHelpBuffer;
 
      ColorBuffer g_SSAOFullScreen(custom::Color(1.0f, 1.0f, 1.0f));    // R8_UNORM
      ColorBuffer g_LinearDepth[3];    // Normalized planar distance (0 at eye, 1 at far plane) computed from the SceneDepthBuffer
@@ -83,8 +84,11 @@ namespace bufferManager
 
      custom::ByteAddressBuffer  g_LightGrid;        // lightGrid           : register(t68);
      custom::ByteAddressBuffer  g_LightGridBitMask; // lightGridBitMask    : register(t69);
-
-     constexpr static DXGI_FORMAT DefaultColorFormat{ DXGI_FORMAT_R11G11B10_FLOAT };
+     constexpr static DXGI_FORMAT DefaultColorFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
+     // constexpr static DXGI_FORMAT DefaultColorFormat = DXGI_FORMAT_R11G11B10_FLOAT;
+     constexpr static DXGI_FORMAT DefaultDepthFormat = DXGI_FORMAT_D32_FLOAT;
+     constexpr static DXGI_FORMAT DefaultDepthStencilFormat  = DXGI_FORMAT_D24_UNORM_S8_UINT;
+     constexpr static DXGI_FORMAT DefaultOutlineBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
 }
 
 void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
@@ -122,7 +126,10 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_MinMaxDepth16.Create(L"MinMaxDepth 16x16", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R32_UINT);
     g_MinMaxDepth32.Create(L"MinMaxDepth 32x32", bufferWidth[5], bufferHeight[5], 1, DXGI_FORMAT_R32_UINT);
 
-    g_SceneDepthBuffer.Create(L"Scene Depth Buffer", bufferWidth[0], bufferHeight[0], DXGI_FORMAT_D32_FLOAT);
+    // g_SceneDepthBuffer.Create(L"Scene Depth Buffer", bufferWidth[0], bufferHeight[0], DefaultDepthFormat);
+    g_SceneDepthBuffer.Create(L"Scene Depth-Stencil Buffer", bufferWidth[0], bufferHeight[0], DefaultDepthStencilFormat);
+    g_OutlineBuffer.Create(L"Outline Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultOutlineBufferFormat);
+    g_OutlineHelpBuffer.Create(L"OutlineHelp Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultOutlineBufferFormat);
 
     g_SSAOFullScreen.Create(L"SSAO Full Resolution", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R8_UNORM);
 
@@ -149,18 +156,16 @@ void bufferManager::InitializeAllBuffers(uint32_t Width, uint32_t Height)
     g_ShadowBuffer.Create(L"Shadow Map", 2048, 2048);
 
     g_SceneDebugBuffer.Create(L"Debug Buffer", bufferWidth[0], bufferHeight[0], 1, DefaultColorFormat);
-    // g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_B8G8R8A8_UNORM);
-    g_StencilBuffer.Create(L"Stencil Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R32_FLOAT);
     
-    g_DoFTileClass[0].Create(L"DoF Tile Classification Buffer 0", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFTileClass[1].Create(L"DoF Tile Classification Buffer 1", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFTileClass[2].Create(L"DoF Tile Classification Buffer 2", bufferWidth[4], bufferHeight[4], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFTileClass[0].Create(L"DoF Tile Classification Buffer 0", bufferWidth[4], bufferHeight[4], 1, DefaultColorFormat);
+    g_DoFTileClass[1].Create(L"DoF Tile Classification Buffer 1", bufferWidth[4], bufferHeight[4], 1, DefaultColorFormat);
+    g_DoFTileClass[2].Create(L"DoF Tile Classification Buffer 2", bufferWidth[4], bufferHeight[4], 1, DefaultColorFormat);
 
-    g_DoFPresortBuffer.Create(L"DoF Presort Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFPrefilter.Create(L"DoF PreFilter Buffer", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurColor[0].Create(L"DoF Blur Color 0", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurColor[1].Create(L"DoF Blur Color 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
-    g_DoFBlurColor[2].Create(L"DoF Blur Color 2", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R11G11B10_FLOAT);
+    g_DoFPresortBuffer.Create(L"DoF Presort Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultColorFormat);
+    g_DoFPrefilter.Create(L"DoF PreFilter Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultColorFormat);
+    g_DoFBlurColor[0].Create(L"DoF Blur Color 0", bufferWidth[1], bufferHeight[1], 1, DefaultColorFormat);
+    g_DoFBlurColor[1].Create(L"DoF Blur Color 1", bufferWidth[1], bufferHeight[1], 1, DefaultColorFormat);
+    g_DoFBlurColor[2].Create(L"DoF Blur Color 2", bufferWidth[1], bufferHeight[1], 1, DefaultColorFormat);
     g_DoFBlurAlpha[0].Create(L"DoF FG Alpha 0", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
     g_DoFBlurAlpha[1].Create(L"DoF FG Alpha 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
     g_DoFBlurAlpha[2].Create(L"DoF FG Alpha 2", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R8_UNORM);
@@ -223,7 +228,8 @@ void bufferManager::DestroyRenderingBuffers()
 
     g_ShadowBuffer.Destroy();
     g_SceneDebugBuffer.Destroy();
-    g_StencilBuffer.Destroy();
+    g_OutlineBuffer.Destroy();
+    g_OutlineHelpBuffer.Destroy();
 
     g_SSAOFullScreen.Destroy();
     g_LinearDepth[0].Destroy();
@@ -294,7 +300,13 @@ void bufferManager::DestroyRenderingBuffers()
     g_FXAAColorQueue.Destroy();
 
     g_GenMipsBuffer.Destroy();
+}
 
+void bufferManager::InitializeLightBuffers()
+{
+}
+void bufferManager::DestroyLightBuffers()
+{
     g_LightBuffer.Destroy();      // lightBuffer         : register(t66);
     g_LightShadowArray.Destroy(); // lightShadowArrayTex : register(t67);
     g_CumulativeShadowBuffer.Destroy();

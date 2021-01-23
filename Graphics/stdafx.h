@@ -177,3 +177,13 @@ if (_CrtMemDifference(&s3, &s1, &s2))         \
 #define CRTDEBUG2 {}
 #endif
 #endif
+
+#if _MSC_VER >= 1400
+#define OVERRIDE override
+#define FINAL final
+#define SEALED sealed
+#else
+#define OVERRIDE
+#define FINAL
+#define SEALED
+#endif

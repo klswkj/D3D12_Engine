@@ -21,6 +21,13 @@ std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> DescriptorHeapAllocato
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pHeap;
     ASSERT_HR(device::g_pDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&pHeap)));
+
+#if defined(_DEBUG)
+    wchar_t DescriptorHeapName[40];
+    swprintf(DescriptorHeapName, _countof(DescriptorHeapName), L"DescriptorHeapManager(num:256) %zu", sm_descriptorHeapPool.size());
+    pHeap->SetName(DescriptorHeapName);
+#endif
+
     sm_descriptorHeapPool.emplace_back(pHeap);
     return pHeap.Get();
 }

@@ -102,7 +102,7 @@ uint PullNextBit(inout uint bits)
 #endif
 
 [RootSignature(ModelTest_RootSignature)]
-float3 main(VSOutput vsOutput) : SV_Target0
+float4 main(VSOutput vsOutput) : SV_Target0
 {
     uint2 pixelPos = vsOutput.position.xy;
 #if defined(EXIST_DIFFUSE_TEXTURE)
@@ -423,5 +423,5 @@ float3 main(VSOutput vsOutput) : SV_Target0
     }
 #endif
 
-    return colorSum;
+    return float4(colorSum, 1.0f);
 }

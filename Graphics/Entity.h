@@ -16,15 +16,16 @@ class MasterRenderGraph;
 class IWindow;
 enum class eObjectFilterFlag;
 
-class Entity
+class IEntity
 {
+	friend class Job;
 public:
-	Entity() = default;
-	virtual ~Entity() {};
+	IEntity() = default;
+	virtual ~IEntity() {};
 	
-	// Entity(const Material& CMaterial, const aiMesh& _AiMesh, float _Scale = 1.0f) noexcept;
-	Entity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation);
-	Entity(const Entity&) = delete;
+	// IEntity(const Material& CMaterial, const aiMesh& _AiMesh, float _Scale = 1.0f) noexcept;
+	IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
+	IEntity(const IEntity&) = delete;
 	void AddTechnique(Technique Tech) noexcept;
 	virtual Math::Matrix4 GetTransform() const noexcept = 0;
 	void Submit(eObjectFilterFlag Filter) const noexcept;
@@ -60,11 +61,14 @@ private:
 	void LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint16_t** pIndices);
 
 protected:
-	std::vector<Technique> techniques;
+#if defined(_DEBUG)
+	std::string m_name;
+#endif
+	std::vector<Technique> m_Techniques;
 
 	BoundingBox m_BoundingBox;
 
-	D3D12_PRIMITIVE_TOPOLOGY m_Topology{ D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST };
+	D3D12_PRIMITIVE_TOPOLOGY m_Topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	UINT m_IndexCount         = -1; 
 	UINT m_StartIndexLocation = -1;

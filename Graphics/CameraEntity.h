@@ -7,10 +7,11 @@
 class Camera;
 
 // CameraIndicator's D3D_PRIMITIVE_TOPLOGY is LINELIST!
-class CameraEntity : public Entity
+class CameraEntity : public IEntity
 {
 public:
 	CameraEntity(Camera* pCamera);
+	~CameraEntity();
 	void SetPosition(DirectX::XMFLOAT3& Position) noexcept;
 	void SetPosition(Math::Vector3& Position) noexcept;
 	void SetRotation(DirectX::XMFLOAT3& RollPitchYaw) noexcept;

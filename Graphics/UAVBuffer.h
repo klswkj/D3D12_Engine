@@ -153,7 +153,7 @@ namespace custom
 	public:
 		~StructuredBuffer()
 		{
-			Destroy();
+		 	Destroy();
 		}
 		virtual void CreateUAV(std::wstring Name = L"") override;
 

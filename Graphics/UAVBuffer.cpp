@@ -25,8 +25,8 @@ namespace custom
 			delete e.second;
 		}
 
-		s_VertexBufferCache.clear();
-		s_VertexBufferCache2.clear();
+		// s_VertexBufferCache.clear();
+		// s_VertexBufferCache2.clear();
 	}
 
 	void ByteAddressBuffer::DestroyIndexAllBuffer() // static
@@ -42,8 +42,8 @@ namespace custom
 			delete e.second;
 		}
 
-		s_IndexBufferCache.clear();
-		s_IndexBufferCache2.clear();
+		// s_IndexBufferCache.clear();
+		// s_IndexBufferCache2.clear();
 	}
 
 	void UAVBuffer::Create

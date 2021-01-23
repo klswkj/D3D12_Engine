@@ -7,7 +7,7 @@ namespace custom
     class CommandContext;
 }
 
-class Entity;
+class IEntity;
 
 class ManagedTexture : public custom::Texture
 {

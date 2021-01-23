@@ -49,6 +49,13 @@ namespace custom
             HeapDesc.NodeMask = 1;
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> HeapPtr;
             ASSERT_HR(device::g_pDevice->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&HeapPtr)));
+
+#if defined(_DEBUG)
+            wchar_t DescriptorHeapName[40];
+            swprintf(DescriptorHeapName, _countof(DescriptorHeapName), L"DynamicDescriptorHeap(num:1024) %zu", sm_descriptorHeapPool[idx].size());
+            HeapPtr->SetName(DescriptorHeapName);
+#endif
+
             sm_descriptorHeapPool[idx].emplace_back(HeapPtr);
             return HeapPtr.Get();
         }
@@ -287,8 +294,6 @@ namespace custom
 
         return DestHandle.GetGpuHandle();
     }
-
-
 
     void DynamicDescriptorHeap::DescriptorHandleCache::UnbindAllValid()
     {

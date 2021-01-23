@@ -100,26 +100,10 @@ void Z_PrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	graphicsContext.SetPipelineState(*m_pDepthPSO);
 
 	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-	graphicsContext.ClearDepth(bufferManager::g_SceneDepthBuffer);
+	graphicsContext.ClearDepthAndStencil(bufferManager::g_SceneDepthBuffer);
 	graphicsContext.SetOnlyDepthStencil(bufferManager::g_SceneDepthBuffer.GetDSV());
+	graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
 
-	{
-		D3D12_VIEWPORT vp;
-		D3D12_RECT RECT;
-		vp.Width = (float)bufferManager::g_SceneColorBuffer.GetWidth();
-		vp.Height = (float)bufferManager::g_SceneColorBuffer.GetHeight();
-		vp.TopLeftX = 0.0f;
-		vp.TopLeftY = 0.0f;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-
-		RECT.left   = 0l;
-		RECT.top    = 0l;
-		RECT.right  = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
-		RECT.bottom = (LONG)bufferManager::g_SceneColorBuffer.GetHeight();
-
-		graphicsContext.SetViewportAndScissor(vp, RECT);
-	}
 	{
 		graphicsContext.SetMainCamera(*graphicsContext.GetpMainCamera());
 		// graphicsContext.SetModelToShadow(MasterRenderGraph::s_pMasterRenderGraph->m_pMainLights->begin()->GetShadowMatrix()); // TODO : Edit the Code.

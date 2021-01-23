@@ -45,7 +45,7 @@ namespace custom
             )
         );
 
-        // m_pResource->SetName(L"Texture");
+        m_pResource->SetName(L"Texture");
 
         D3D12_SUBRESOURCE_DATA texResource;
         texResource.pData = InitialData;

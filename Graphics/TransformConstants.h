@@ -1,8 +1,8 @@
 #pragma once
 #include "RenderingResource.h"
-// #include "Entity.h"
+// #include "IEntity.h"
 
-class Entity;
+class IEntity;
 
 namespace custom
 {
@@ -19,12 +19,12 @@ public:
 
 	TransformConstants(UINT RootIndex);
 	void Bind(custom::CommandContext& BaseContext) override;
-	void InitializeParentReference(const Entity& _Entity) noexcept override;
+	void InitializeParentReference(const IEntity& _Entity) noexcept override;
 	// void UpdateBind(custom::CommandContext& BaseContext);
 	// Transform GetTransform(custom::CommandContext& BaseContext);
 
 private:
 	UINT m_RootIndex;
-	const Entity* m_pParent = nullptr;
+	const IEntity* m_pParent = nullptr;
 	Transform m_Transform;
 };

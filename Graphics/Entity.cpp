@@ -5,7 +5,10 @@
 #include "CommandContext.h"
 #include "FundamentalVertexIndex.h"
 
-Entity::Entity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation)
+IEntity::IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName)
+#if defined(_DEBUG)
+	: m_name(MeshName)
+#endif
 {
 	ASSERT(Input.BaseVertexLocation != -1);
 	ASSERT(Input.IndexCount         != -1);
@@ -26,47 +29,46 @@ Entity::Entity(const Material& CMaterial, FundamentalVertexIndex& Input, const f
 	}
 }
 
-void Entity::AddTechnique(Technique _Technique) noexcept
+void IEntity::AddTechnique(Technique _Technique) noexcept
 {
 	_Technique.InitializeParentReferences(*this);
-	techniques.push_back(std::move(_Technique));
+	m_Techniques.push_back(std::move(_Technique));
 }
 
-void Entity::Submit(eObjectFilterFlag Filter) const noexcept
+void IEntity::Submit(eObjectFilterFlag Filter) const noexcept
 {
-	for (const std::vector<Technique>::iterator::value_type& Tech : techniques)
+	for (const std::vector<Technique>::iterator::value_type& Tech : m_Techniques)
 	{
 		Tech.Submit(*this, Filter);
 	}
 }
 
-void Entity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
+void IEntity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-
 	graphicsContext.SetVertexBuffer(0, m_VertexBufferView);
 	graphicsContext.SetIndexBuffer(m_IndexBufferView);
 	graphicsContext.SetPrimitiveTopology(m_Topology);
 }
 
-void Entity::Accept(IWindow& window)
+void IEntity::Accept(IWindow& window)
 {
-	for (auto& Tech : techniques)
+	for (auto& Tech : m_Techniques)
 	{
 		Tech.Accept(window); // For Outline Technique
 	}
 }
 
-void Entity::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
+void IEntity::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
 {
-	for (auto& tech : techniques)
+	for (auto& tech : m_Techniques)
 	{
 		tech.Link(_MasterRenderGraph);
 	}
 }
 
 // Must keep in sync with HLSL
-void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint16_t** pIndices)
+void IEntity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint16_t** pIndices)
 {
 	ASSERT(_aiMesh.HasPositions());
 	ASSERT(_aiMesh.HasTextureCoords(0));
@@ -215,7 +217,7 @@ void Entity::LoadMesh(const aiMesh& _aiMesh, VertexLayout** pVertexLayout, uint1
 	delete[] pTempVertexBegin;
 }
 
-void Entity::ComputeBoundingBox(const float* pVertices, size_t NumVertices, size_t VertexStrideCount)
+void IEntity::ComputeBoundingBox(const float* pVertices, size_t NumVertices, size_t VertexStrideCount)
 {
 	if (0 < NumVertices)
 	{
@@ -234,7 +236,7 @@ void Entity::ComputeBoundingBox(const float* pVertices, size_t NumVertices, size
 
 /*
 // TODO : Make Bounding Box
-Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
+IEntity::IEntity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
 	: m_BoundingBox({ Math::Scalar(0.0f), Math::Scalar(0.0f) })
 {
 	VertexLayout* pVertexLayout = nullptr;
@@ -260,7 +262,7 @@ Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) n
 }
 */
 /*
-Entity::Entity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
+IEntity::IEntity(const Material& CMaterial, const aiMesh& _aiMesh, float _Scale) noexcept
 {
 	// unsigned int mNumVertices -> size of per-vertex data arrays
 	// unsigned int mNumFaces    -> size of mFaces array

@@ -165,9 +165,7 @@
   <ItemGroup>
     <ClCompile Include="BindingPass.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="BlurPass.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="BufferManager.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -177,6 +175,7 @@
     <ClCompile Include="CameraProjector.cpp" />
     <ClCompile Include="Color.cpp" />
     <ClCompile Include="ColorBuffer.cpp" />
+    <ClCompile Include="ColorConstants.cpp" />
     <ClCompile Include="CommandAllocatorPool.cpp" />
     <ClCompile Include="CommandContext.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -251,7 +250,6 @@
     <ClCompile Include="Pass.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="PassWindow.cpp" />
     <ClCompile Include="PreMadePSO.cpp" />
     <ClCompile Include="Profiling.cpp" />
     <ClCompile Include="RawPSO.cpp" />
@@ -320,8 +318,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Font Header\consola24.h" />
-    <ClInclude Include="BindingPass.h" />
-    <ClInclude Include="BlurPass.h" />
+    <ClInclude Include="BindingPass.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="BoundingPlane.h" />
     <ClInclude Include="BoundingSphere.h" />
     <ClInclude Include="BufferManager.h" />
@@ -332,6 +331,7 @@
     <ClInclude Include="CameraProjector.h" />
     <ClInclude Include="Color.h" />
     <ClInclude Include="ColorBuffer.h" />
+    <ClInclude Include="ColorConstants.h" />
     <ClInclude Include="CommandAllocatorPool.h" />
     <ClInclude Include="CommandContext.h" />
     <ClInclude Include="CommandContextManager.h" />
@@ -400,7 +400,6 @@
     <ClInclude Include="OutlineDrawingPass.h" />
     <ClInclude Include="Pass.h" />
     <ClInclude Include="PassFlag.h" />
-    <ClInclude Include="PassWindow.h" />
     <ClInclude Include="Profiling.h" />
     <ClInclude Include="Quaternion.h" />
     <ClInclude Include="RawPSO.h" />
@@ -830,6 +829,16 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\GaussianBlurCS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="..\Shader\OutlineWithBlur\OutlineWithBlurPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -845,6 +854,18 @@
       <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ObjectFileOutput>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\Paper2PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Shader\OutlineWithBlur\Paper2VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="..\Shader\Present\BicubicHorizontalUpsamplePS.hlsl">
       <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
@@ -1353,42 +1374,6 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="HoriontalBlurCS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
-      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename) </VariableName>
-      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ObjectFileOutput>
-      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename) </VariableName>
-      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ObjectFileOutput>
-    </FxCompile>
-    <FxCompile Include="VerticalBlurCS.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">4.0</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
-      <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename) </VariableName>
-      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </ObjectFileOutput>
-      <VariableName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">g_p%(Filename) </VariableName>
-      <HeaderFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\CompiledShaders\%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </ObjectFileOutput>
     </FxCompile>
     <FxCompile Include="VHS_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

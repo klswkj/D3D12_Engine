@@ -765,7 +765,7 @@ void ControllerConstants7::RenderingWindow(IWindow& _IWindow)
 
 #pragma endregion CONTROLLERCONSTANTS
 
-
+/*
 Color3Buffer::Color3Buffer(DirectX::XMFLOAT3 InputColor)
 {
 	Color = InputColor;
@@ -786,8 +786,8 @@ void Color3Buffer::SetColorByComponent(float R, float G, float B)
 	Color.y = G;
 	Color.z = B;
 }
-
-
+*/
+/*
 TransformBuffer::TransformBuffer(DirectX::XMMATRIX _ModelViewProj)
 {
 	ModelViewProj = _ModelViewProj;
@@ -797,7 +797,7 @@ void TransformBuffer::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	updateBind(BaseContext);
 }
 
-void TransformBuffer::InitializeParentReference(const Entity& _Entity) noexcept
+void TransformBuffer::InitializeParentReference(const IEntity& _Entity) noexcept
 {
 	pParentEntity = &_Entity;
 
@@ -838,3 +838,4 @@ void TransformBuffer::updateModelViewProj(custom::CommandContext& BaseContext)
 	const DirectX::XMMATRIX Model = pParentEntity->GetTransform();
 	ModelViewProj = Model * pMainCamera->GetViewProjMatrix();
 }
+*/

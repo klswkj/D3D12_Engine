@@ -8,7 +8,7 @@
 
 class Camera;
 
-class CameraFrustum : public Entity
+class CameraFrustum : public IEntity
 {
 public:
 	// width, height is given -> near Z plane is normalized, -> multiplication with m_AspectRatio.

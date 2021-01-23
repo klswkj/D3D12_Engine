@@ -23,6 +23,7 @@ class SSAOPass;
 class FillLightGridPass;
 class ShadowMappingPass;
 class MainRenderPass;
+class OutlineDrawingPass;
 class DebugWireFramePass;
 class DebugShadowMapPass;
 enum class eObjectFilterFlag;
@@ -44,6 +45,8 @@ public:
 	void ShowPassesWindows();
 	void BindMainCamera(Camera* pCamera);
 	void BindMainLightContainer(std::vector<MainLight>* MainLightContainer);
+
+	void RenderPassesWindow();
 
 	void ToggleFullScreenDebugPasses();
 	void ToggleDebugPasses();
@@ -83,6 +86,7 @@ private:
 	FillLightGridPass*  m_pFillLightGridPass;
 	ShadowMappingPass*  m_pShadowMappingPass;
 	MainRenderPass*     m_pMainRenderPass;
+	OutlineDrawingPass* m_pOutlineDrawingPass;
 	DebugWireFramePass* m_pDebugWireFramePass;
 	DebugShadowMapPass* m_pDebugShadowMapPass;
 
@@ -90,4 +94,6 @@ private:
 	GraphicsPSO m_DepthPSO;
 	GraphicsPSO m_ShadowPSO;
 	GraphicsPSO m_MainRenderPSO;
+
+	size_t m_SelctedPassIndex;
 };

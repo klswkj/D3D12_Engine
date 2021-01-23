@@ -210,6 +210,7 @@ namespace custom
         void SetScissor(LONG left, LONG top, LONG right, LONG bottom);
         void SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect);
         void SetViewportAndScissor(LONG x, LONG y, LONG w, LONG h);
+        void SetViewportAndScissor(PixelBuffer& TargetBuffer);
         void SetStencilRef(UINT StencilRef) { m_commandList->OMSetStencilRef(StencilRef); }
         void SetBlendFactor(custom::Color BlendFactor) { m_commandList->OMSetBlendFactor(BlendFactor.GetPtr()); }
         void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology);

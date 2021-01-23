@@ -55,6 +55,7 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
     Device->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[1]);
 
     DXGI_FORMAT stencilReadFormat = GetStencilFormat(Format);
+
     if (stencilReadFormat != DXGI_FORMAT_UNKNOWN)
     {
         if (m_hDSV[2].ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
@@ -82,6 +83,8 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
 
     D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
     SRVDesc.Format = GetDepthFormat(Format);
+
+
     if (dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
     {
         SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -91,6 +94,7 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
     {
         SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
     }
+
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     Device->CreateShaderResourceView(Resource, &SRVDesc, m_hDepthSRV);
 
@@ -105,3 +109,17 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
         Device->CreateShaderResourceView(Resource, &SRVDesc, m_hStencilSRV);
     }
 }
+/*
+https://stackoverflow.com/questions/38933565/which-format-to-use-for-a-shader-resource-view-into-depth-stencil-buffer-resourc
+
+Resource as R24G8_TYPELESS
+DSV as D24_UNORM_S8_UINT
+SRV as R24_UNORM_X8_TYPELESS
+
+DXGI_FORMAT_D24_UNORM_S8_UINT
+D3D12 ERROR: ID3D12Device::CreateShaderResourceView: 
+The Plane Slice 0 cannot be used when the resource format is R24G8_TYPELESS and the view format is X24_TYPELESS_G8_UINT.
+See documentation for the set of valid view format names for this resource format, 
+determining which how the resource (or part of it) will appear to shader. 
+[ STATE_CREATION ERROR #29: CREATESHADERRESOURCEVIEW_INVALIDVIDEOPLANESLICE]
+*/

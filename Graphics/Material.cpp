@@ -15,6 +15,7 @@
 #include "RenderingResource.h"
 #include "MaterialConstants.h"
 #include "TransformConstants.h"
+#include "ColorConstants.h"
 #include "RawPSO.h"
 #include "ObjectFilterFlag.h"
 
@@ -28,6 +29,10 @@
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelTest_DiffuseNormal_PS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelTest_SpecularNormal_PS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/ModelTest_DiffuseSpecularNormal_PS.h"
+
+#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h"
+#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_PS.h"
+
 #elif !defined(_DEBUG) | defined(NDEBUG)
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelTest_VS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelTest_NONE_PS.h"
@@ -38,6 +43,10 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelTest_DiffuseNormal_PS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelTest_SpecularNormal_PS.h"
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelTest_DiffuseSpecularNormal_PS.h"
+
+#include "../x64/Release/Graphics(.lib)/CompiledShaders/Flat_VS.h"
+#include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_PS.h"
+
 #endif
 
 std::mutex Material::sm_mutex;
@@ -123,7 +132,9 @@ std::mutex Material::sm_mutex;
 	AI_MATKEY_TEXTURE(aiTextureType_REFLECTION,N)
 */
 
+#define FlatColorRootIndex 1u
 #define TransformRootIndex 1u
+#define Color3RootIndex    3u
 #define MaterialRootIndex  4u
 
 Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) DEBUG_EXCEPT
@@ -173,6 +184,10 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 	m_Techniques.push_back(std::move(PrePass));
 	m_Techniques.push_back(std::move(_ShadowPass));
 
+	DXGI_FORMAT ColorFormat   = bufferManager::g_SceneColorBuffer.GetFormat();
+	DXGI_FORMAT StencilFormat = bufferManager::g_OutlineBuffer.GetFormat();
+	DXGI_FORMAT DepthFormat   = bufferManager::g_SceneDepthBuffer.GetFormat();
+
 	{
 		Technique Phong("Phong");
 		Step Lambertian("MainRenderPass");
@@ -221,11 +236,7 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		
 		Lambertian.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 
-		DXGI_FORMAT ColorFormat = bufferManager::g_SceneColorBuffer.GetFormat();
-		DXGI_FORMAT DepthFormat = bufferManager::g_SceneDepthBuffer.GetFormat();
-
 		custom::RootSignature MainRootSignature;
-
 		MainRootSignature.Reset(6, 2);
 		MainRootSignature.InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
 		MainRootSignature.InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -254,11 +265,11 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		GraphicsPSO MainPSO;
 		MainPSO.SetRootSignature        (MainRootSignature);
 		MainPSO.SetRasterizerState      (premade::g_RasterizerDefault);
-		MainPSO.SetBlendState           (premade::g_BlendNoColorWrite);
-		MainPSO.SetDepthStencilState    (premade::g_DepthStateReadWrite);
+		// MainPSO.SetBlendState           (premade::g_BlendNoColorWrite);
+		// MainPSO.SetDepthStencilState    (premade::g_DepthStateReadWrite);
+		// MainPSO.SetRenderTargetFormats  (0, nullptr, DepthFormat);
 		MainPSO.SetInputLayout          (5, premade::g_InputElements);
 		MainPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		MainPSO.SetRenderTargetFormats  (0, nullptr, DepthFormat);
 		MainPSO.SetBlendState           (premade::g_BlendDisable);
 		MainPSO.SetDepthStencilState    (premade::g_DepthStateTestEqual);
 		MainPSO.SetRenderTargetFormats  (1, &ColorFormat, DepthFormat);
@@ -378,17 +389,80 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		default:
 			ASSERT(false, "Invalid TextureBitMap.");
 		}
-	
-		
+
+
 		Phong.PushBackStep(std::move(Lambertian));
 		m_Techniques.push_back(std::move(Phong));
 	}
+	
+    {
+	Technique Outline("Outline", eObjectFilterFlag::kOpaque, false);
+	Step OutlineMaskStep("OutlineDrawingPass");
+	Step OutlineDraw("OutlineDrawingPass");
 
-	// TestPass
+	custom::RootSignature OutlineRootSignature;
+	OutlineRootSignature.Reset(6, 2);
+	OutlineRootSignature.InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+	OutlineRootSignature.InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+	OutlineRootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b0)
+	OutlineRootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b1)
+	OutlineRootSignature[2].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)
+	OutlineRootSignature[3].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b1)
+	OutlineRootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);
+	OutlineRootSignature[5].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL);
+	OutlineRootSignature.Finalize(L"OutlineRS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	OutlineMaskStep.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
+	OutlineDraw.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
+
 	{
-	Technique Debug_Technique("Debug");
-	Step Debug_Step("DebugWireFramePass");
-	Debug_Technique.PushBackStep(std::move(Debug_Step));
-	m_Techniques.push_back(std::move(Debug_Technique));
+		GraphicsPSO OutlineMaskPSO;
+		OutlineMaskPSO.SetRootSignature        (OutlineRootSignature);
+		OutlineMaskPSO.SetRasterizerState      (premade::g_RasterizerBackSided);
+		OutlineMaskPSO.SetDepthStencilState    (premade::g_DepthStencilWrite);
+		OutlineMaskPSO.SetRenderTargetFormats  (0, nullptr, DepthFormat);
+		OutlineMaskPSO.SetBlendState           (premade::g_BlendDisable);
+		OutlineMaskPSO.SetInputLayout          (5, premade::g_InputElements);
+		OutlineMaskPSO.SetVertexShader         (g_pFlat_VS, sizeof(g_pFlat_VS));
+		OutlineMaskPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+		OutlineMaskPSO.Finalize(L"OutlineMaskPSO");
+
+		OutlineMaskStep.PushBack(std::make_shared<GraphicsPSO>(OutlineMaskPSO));
+		OutlineMaskStep.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
+		
+		Outline.PushBackStep(OutlineMaskStep);
 	}
+	{
+		GraphicsPSO OutlineDrawPSO;
+		OutlineDrawPSO.SetRootSignature        (OutlineRootSignature);
+		OutlineDrawPSO.SetRasterizerState      (premade::g_RasterizerBackSided);
+		OutlineDrawPSO.SetDepthStencilState    (premade::g_DepthStencilMask);
+		OutlineDrawPSO.SetRenderTargetFormat   (StencilFormat, DXGI_FORMAT_UNKNOWN);
+		OutlineDrawPSO.SetBlendState           (premade::g_BlendOutlineDrawing);
+		OutlineDrawPSO.SetInputLayout          (5, premade::g_InputElements);
+		OutlineDrawPSO.SetVertexShader         (g_pFlat_VS, sizeof(g_pFlat_VS));
+		OutlineDrawPSO.SetPixelShader          (g_pFlat_PS, sizeof(g_pFlat_PS));
+		OutlineDrawPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+		OutlineDrawPSO.Finalize(L"OutlineDrawPSO");
+
+		OutlineDraw.PushBack(std::make_shared<GraphicsPSO>(OutlineDrawPSO));
+		// OutlineDraw.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
+
+		// TODO : ColorConstants
+		// Color3Buffer ColorBuffer;
+		// OutlineDraw.PushBack(std::make_shared<Color3Buffer>(ColorBuffer));
+		OutlineDraw.PushBack(std::make_shared<Color3Buffer>(Color3RootIndex));
+
+		Outline.PushBackStep(OutlineDraw);
+	}
+	m_Techniques.push_back(std::move(Outline));
+    }
+
+    // TestPass
+    {
+	    Technique Debug_Technique("Debug");
+	    Step Debug_Step("DebugWireFramePass");
+	    Debug_Technique.PushBackStep(std::move(Debug_Step));
+	    m_Techniques.push_back(std::move(Debug_Technique));
+    }
 }

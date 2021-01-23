@@ -136,22 +136,6 @@ void SSAOPass::Reset()
 
 void SSAOPass::RenderWindow()
 {
-	/*
-	bool m_bEnable;
-	bool m_bDebugDraw;
-	bool m_bAsyncCompute;
-	bool m_bComputeLinearZ;
-
-	float m_NoiseFilterTolerance; // // -8.0f ~ 0.0f, 0.25f
-	float m_BlurTolerance; // -0.8f ~ -0.1f 0.25f
-	float m_UpsampleTolerance; // -12.0f ~ -0.1f, 0.5f
-	float m_RejectionFallOff; // 1 ~ 10 , 0.5
-	float m_Accentuation; // 0.1f~1.0f
-	float m_ScreenSpaceDiameter; // 0.0f ~ 200.0f, 10.0f
-	uint32_t m_HierarchyDepth; // 1 ~ 4
-
-	QualityLevel m_eQuality; { kVeryLow = 0, kLow, kMedium, kHigh, kVeryHigh, kCount };
-	*/
 	ImGui::BeginChild("Test1", ImVec2(0, -ImGui::GetItemsLineHeightWithSpacing()), false);
 
 	ImGui::Checkbox("SSAO Enable", &m_bEnable);
@@ -159,12 +143,12 @@ void SSAOPass::RenderWindow()
 	ImGui::Checkbox("SSAO Enable", &m_bAsyncCompute);
 	ImGui::Checkbox("SSAO Enable", &m_bComputeLinearZ);
 
-	ImGui::SliderFloat("NoiseFilter Tolerance", &m_NoiseFilterTolerance, -8.0f, 0.1f, "%.25f");
-	ImGui::SliderFloat("Blur Tolerance", &m_BlurTolerance, -8.0f, -0.1f, "%.25f");
-	ImGui::SliderFloat("Upsample Tolerance", &m_UpsampleTolerance, -12.0f, -0.1f, "%.5f");
-	ImGui::SliderFloat("Rejection Fall-off", &m_RejectionFallOff, 1.0f, 10.0f, "%.5f");
+	ImGui::SliderFloat("NoiseFilter Tolerance",        &m_NoiseFilterTolerance, -8.0f, 0.1f, "%.25f");
+	ImGui::SliderFloat("Blur Tolerance",               &m_BlurTolerance,       -8.0f, -0.1f, "%.25f");
+	ImGui::SliderFloat("Upsample Tolerance",           &m_UpsampleTolerance,  -12.0f, -0.1f, "%.5f");
+	ImGui::SliderFloat("Rejection Fall-off",           &m_RejectionFallOff,     1.0f, 10.0f, "%.5f");
 	ImGui::SliderFloat("Screen-Space Sphere Diameter", &m_ScreenSpaceDiameter, 10.0f, 200.0f, "10.0f");
-	ImGui::SliderInt("HierarchyDepth", &m_HierarchyDepth, 1, 4);
+	ImGui::SliderInt("HierarchyDepth",                 &m_HierarchyDepth,          1,     4);
 
 	static const char* CurrentLevelLabel = m_QualityLabel[0];
 
@@ -266,8 +250,8 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		have mismatching types, at Dispatch Index: [0].
 
 		// GPU Descriptor Handle => CommandContext.m_DynamicViewDescriptorHeap.m_FirstDescriptor.m_GpuHandle.ptr
-
 		*/
+
 		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 		computeContext.TransitionResource(MainDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
@@ -564,7 +548,7 @@ void SSAOPass::BlurAndUpsampling
 )
 {
 	{
-		ComputePSO* computeShader{ nullptr };
+		ComputePSO* computeShader = nullptr;
 
 		if (HighResolutionAO == nullptr)
 		{

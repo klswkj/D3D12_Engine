@@ -29,7 +29,7 @@ public:
 	void Rotate1();
 	void Rotate2();
 private:
-	// FilledPrimitiveSphere m_Mesh; // Entity
+	// FilledPrimitiveSphere m_Mesh; // IEntity
 
 	float m_LightOrientation;
 	float m_LightInclination;

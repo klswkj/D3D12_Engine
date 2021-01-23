@@ -7,6 +7,7 @@
 #include "CommandContextManager.h"
 #include "CommandContext.h"
 #include "DescriptorHeapManager.h"
+#include "ImGuiManager.h" // For Resize
 #include "DynamicDescriptorHeap.h"
 
 namespace device
@@ -33,12 +34,15 @@ namespace device
 	ID3D12Device*         g_pDevice = nullptr;
 	ColorBuffer           g_DisplayColorBuffer[3];
 	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
+	// IDXGISwapChain2*      g_pDXGISwapChain = nullptr;
+	HANDLE                g_hSwapChainWaitableObject = nullptr; // SwapChain Ver. 2 
 	ID3D12DescriptorHeap* g_ImguiFontHeap;
 
 	CommandQueueManager   g_commandQueueManager;
 	CommandContextManager g_commandContextManager;
 	DescriptorHeapManager g_descriptorHeapManager;
 
+	// DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 	DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 	D3D_FEATURE_LEVEL g_D3DFeatureLevel;
 	D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
@@ -91,7 +95,7 @@ namespace device
 		createDeviceDependentStateInternal();
 		
 		premade::Initialize();
-		// bufferManager::DestroyRenderingBuffers();
+		
 		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
 		// TODO : TextRender Init
 
@@ -131,7 +135,29 @@ namespace device
 			g_DisplayColorBuffer[i].Destroy();
 		}
 
-		ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, 0));
+		{
+			DXGI_SWAP_CHAIN_DESC1 SwapChainDesc;
+			g_pDXGISwapChain->GetDesc1(&SwapChainDesc);
+			SwapChainDesc.Width = width;
+			SwapChainDesc.Height = height;
+
+			IDXGIFactory2* dxgiFactory = nullptr;
+			g_pDXGISwapChain->GetParent(IID_PPV_ARGS(&dxgiFactory));
+
+			g_pDXGISwapChain->Release();
+			CloseHandle(g_hSwapChainWaitableObject);
+
+			ID3D12CommandQueue* CommandQueue = g_commandQueueManager.GetCommandQueue();
+			IDXGISwapChain1* swapChain1 = nullptr;
+			dxgiFactory->CreateSwapChainForHwnd(CommandQueue, window::g_hWnd, &SwapChainDesc, nullptr, nullptr, &swapChain1);
+			swapChain1->QueryInterface(IID_PPV_ARGS(&g_pDXGISwapChain));
+			swapChain1->Release();
+			dxgiFactory->Release();
+
+			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
+		}
+
+		// ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, 0));
 
 		{
 			std::wstring DisplayBufferName = L"g_DisplayColorBuffer 0";
@@ -145,8 +171,13 @@ namespace device
 				++DisplayBufferName.back();
 			}
 		}
-		// bufferManager::DestroyRenderingBuffers();
-		// bufferManager::InitializeAllBuffers(width, height);
+		bufferManager::DestroyRenderingBuffers();
+		bufferManager::InitializeAllBuffers(width, height);
+
+		if (imguiManager::bImguiEnabled)
+		{
+
+		}
 
 		return S_OK;
 	}
@@ -177,7 +208,7 @@ namespace device
 
 		premade::Shutdown(); // There is nothing yet.
 		bufferManager::DestroyRenderingBuffers();
-
+		bufferManager::DestroyLightBuffers();
 		SafeRelease(g_ImguiFontHeap);
 
 #if(_DEBUG)
@@ -270,7 +301,7 @@ namespace device
 		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device::g_pDevice)));
 		g_pDevice->SetName(L"device::g_pDevice");
 		g_commandQueueManager.Create(g_pDevice);
-
+		/*
 #ifndef RELEASE
 		{
 			bool DeveloperModeEnabled = false;
@@ -299,6 +330,7 @@ namespace device
 			}
 		}
 #endif
+		*/
 
 #if defined(_DEBUG)
 		ID3D12InfoQueue* pInfoQueue = nullptr;
@@ -370,7 +402,7 @@ namespace device
 		SwapChainDesc.Height      = window::g_TargetWindowHeight;
 		SwapChainDesc.Width       = window::g_TargetWindowWidth;
 		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		SwapChainDesc.Flags       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		SwapChainDesc.Flags       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		SwapChainDesc.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		SwapChainDesc.BufferCount = device::SWAP_CHAIN_BUFFER_COUNT;
 		SwapChainDesc.Format      = SwapChainFormat;
@@ -382,6 +414,7 @@ namespace device
 			ID3D12CommandQueue* CommandQueue = g_commandQueueManager.GetCommandQueue();
 
 			ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(CommandQueue, window::g_hWnd, &SwapChainDesc, nullptr, nullptr, (IDXGISwapChain1**)&g_pDXGISwapChain));
+			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
 		}
         #else // when running platform is UWP.
         ASSERT(WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP), "Invalid Platform.");
