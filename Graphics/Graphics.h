@@ -37,10 +37,10 @@ namespace graphics
     extern custom::CommandSignature g_DispatchIndirectCommandSignature;
     extern custom::CommandSignature g_DrawIndirectCommandSignature;
 
-    extern UINT32 g_CurrentBufferIndex;
-    extern float g_HDRPaperWhite;
-    extern float g_MaxDisplayLuminance;
-    extern uint32_t g_bHDRDebugMode;
+    extern uint64_t  g_CurrentBufferIndex;
+    extern float     g_HDRPaperWhite;
+    extern float     g_MaxDisplayLuminance;
+    extern uint32_t  g_bHDRDebugMode;
 
     enum class UpsampleFilter;
     extern UpsampleFilter g_UpsampleFilter;

@@ -33,6 +33,12 @@ public:
         m_graphicsCommandQueue.Shutdown();
         m_computeCommandQueue.Shutdown();
         m_copyCommandQueue.Shutdown();
+
+        if (m_FenceEvent)
+        { 
+            CloseHandle(m_FenceEvent);
+            m_FenceEvent = NULL;
+        }
     }
 
     custom::CommandQueue& GetGraphicsQueue() 
@@ -87,12 +93,19 @@ public:
 
     void StallForFence(uint64_t FenceValue);
 
+    void WaitForSwapChain();
+    void WaitForNextFrameResources();
+
+    void SetFenceValueForSwapChain(uint64_t FenceValue)     { m_LastFenceValueForSwapChain  = FenceValue; }
+    void SetFenceForSwapChain(ID3D12Fence* pFence)          { m_lastSubmitFenceForSwapChain = pFence; }
+    void SetSwapChainWaitableObject(HANDLE* WaitableObject) { m_swapChainWaitableObject     = WaitableObject; }
+
     // The CPU will wait for all command queues to empty (so that the GPU is idle)
     void IdleGPU(void)
     {
         m_graphicsCommandQueue.WaitForIdle();
-        m_computeCommandQueue.WaitForIdle();
-        m_copyCommandQueue.WaitForIdle();
+        m_computeCommandQueue .WaitForIdle();
+        m_copyCommandQueue    .WaitForIdle();
     }
 
 private:
@@ -101,4 +114,9 @@ private:
     custom::CommandQueue m_graphicsCommandQueue;
     custom::CommandQueue m_computeCommandQueue;
     custom::CommandQueue m_copyCommandQueue;
+
+    ID3D12Fence* m_lastSubmitFenceForSwapChain;
+    HANDLE*      m_swapChainWaitableObject; // = g_hSwapChainWaitableObject
+    HANDLE       m_FenceEvent;
+    uint64_t     m_LastFenceValueForSwapChain;
 };

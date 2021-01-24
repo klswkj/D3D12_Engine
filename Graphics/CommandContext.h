@@ -55,7 +55,7 @@ namespace custom
         uint64_t Flush(bool WaitForCompletion = false);
 
         // Flush existing commands and release the current context
-        uint64_t Finish(bool WaitForCompletion = false);
+        uint64_t Finish(bool WaitForCompletion = false, bool RecordForSwapChainFence = false);
 
         // Prepare to render by reserving a command list and command allocator
         void Initialize(const std::wstring& ID);
@@ -140,7 +140,7 @@ namespace custom
         void bindDescriptorHeaps();
 
     protected:
-        CommandQueueManager*       m_owningManager;
+        // CommandQueueManager*       m_owningManager;
         ID3D12GraphicsCommandList* m_commandList;
         ID3D12CommandAllocator*    m_currentCommandAllocator;
 
@@ -152,7 +152,7 @@ namespace custom
         DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
 
         D3D12_RESOURCE_BARRIER m_resourceBarriers[16];
-        UINT m_numStandByBarriers;
+        UINT                   m_numStandByBarriers;
         D3D12_PRIMITIVE_TOPOLOGY m_PrimitiveTopology;
 
         D3D12_VIEWPORT m_Viewport;
@@ -261,6 +261,21 @@ namespace custom
     };
 }
 
-// CameraManager 가져오는 이유 : 
-// m_viewPort,
-// GetProjectionMatrix-> FXMATRIX -> At VertexShader b0.modelToProjection
+/*                                      device::g_commandQueueManager
+CommandContex ┬─ CommandQueueManager*       m_owningManager ┬─ ID3D12Device* pDevice == device::g_pDevice
+              │                                             └─ custom::CommandQueue CommandQueue[3] { graphics, Compute, Copy }
+              │                                                               ├─ ID3D12Fence*         m_pFence    ,   FenceValue
+              │                                                               ├─ ID3D12CommandQueue*  m_commandQueue
+              │                                                               └─ CommandAllocatorPool m_allocatorPool
+              ├─ ID3D12GraphicsCommandList* m_commandList                                                      ▼
+              │                                   ^                                                            │
+              │::CommandQueueManager >────────────┘                                                            │
+              │                                                                                                │
+              ├─ ID3D12CommandAllocator*    m_currentCommandAllocator <────────────────────────────────────────┘
+              │
+              │
+              │
+              └─ UINT                       m_numStandByBarriers
+
+
+*/

@@ -30,7 +30,7 @@ namespace custom
 		m_CPULinearAllocator(LinearAllocatorType::CPU_WRITEABLE),
 		m_GPULinearAllocator(LinearAllocatorType::GPU_WRITEABLE)
 	{
-		m_owningManager = nullptr;
+		// m_owningManager = nullptr; // Not used yet.
 		m_commandList = nullptr;
 		m_currentCommandAllocator = nullptr;
 		ZeroMemory(m_pCurrentDescriptorHeaps, sizeof(m_pCurrentDescriptorHeaps));
@@ -68,7 +68,7 @@ namespace custom
 		return *NewContext;
 	}
 
-	uint64_t CommandContext::Finish(bool WaitForCompletion)
+	uint64_t CommandContext::Finish(bool WaitForCompletion, bool RecordForSwapChainFence)
 	{
 		ASSERT(m_type == D3D12_COMMAND_LIST_TYPE_DIRECT || m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
@@ -81,8 +81,15 @@ namespace custom
 		ASSERT(m_currentCommandAllocator != nullptr);
 
 		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
-
 		uint64_t FenceValue = Queue.executeCommandList(m_commandList);
+
+		if (RecordForSwapChainFence)
+		{
+			ASSERT(Queue.GetFence() != nullptr);
+			device::g_commandQueueManager.SetFenceValueForSwapChain(FenceValue + 1);
+			device::g_commandQueueManager.SetFenceForSwapChain(Queue.GetFence());
+		}
+
 		Queue.discardAllocator(FenceValue, m_currentCommandAllocator);
 		m_currentCommandAllocator = nullptr;
 

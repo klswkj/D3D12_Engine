@@ -5,9 +5,10 @@
 #include "RootSignature.h"
 #include "CommandContext.h"
 #include "ComputeContext.h"
-#include "PSO.h"
 #include "CommandSignature.h"
+#include "CommandQueueManager.h"
 #include "DescriptorHeapManager.h"
+#include "PSO.h"
 #include "BufferManager.h"
 #include "PreMadePSO.h"
 #include "TextureManager.h"
@@ -88,7 +89,15 @@ namespace graphics
     custom::CommandSignature g_DispatchIndirectCommandSignature(1); // goto ReadyMadePSO
     custom::CommandSignature g_DrawIndirectCommandSignature(1);     // goto ReadyMadePSO
 
-    uint32_t g_CurrentBufferIndex = 0u;
+    uint64_t g_CurrentBufferIndex = 0ull;
+
+    struct SwapChainContext
+    {
+        uint64_t     FenceValue;
+        HANDLE       FenceEvent;
+        ID3D12Fence* LastSubmitToSwapChain;
+    };
+    SwapChainContext g_SwapChainContexts[3]; // device::g_DisplayBufferCount
 
     bool     g_bHDROutput          = false;
     float    g_HDRPaperWhite       = 150.0f;
@@ -311,14 +320,14 @@ void PresentHDR()
 
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex], D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     LONG Width = window::g_TargetWindowWidth;
     LONG Height = window::g_TargetWindowHeight;
 
     D3D12_CPU_DESCRIPTOR_HANDLE RTVs[] =
     {
-        device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex].GetRTV()
+        device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount].GetRTV()
     };
 
     Context.SetRootSignature(graphics::s_PresentHDR_RS);
@@ -352,7 +361,7 @@ void PresentHDR()
     Context.SetConstantArray(1, sizeof(Constants) / 4, (float*)&consts);
     Context.Draw(3);
 
-    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
+    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_PRESENT);
 
     Context.PIXEndEvent();
 
@@ -390,7 +399,7 @@ void PresentLDR()
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     Context.SetDynamicDescriptor(0, 0, bufferManager::g_SceneColorBuffer.GetSRV());
 
-    ColorBuffer& UpsampleDest = device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex];
+    ColorBuffer& UpsampleDest = device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount];
 
     if (window::g_TargetWindowWidth == device::g_DisplayWidth && window::g_TargetWindowHeight == device::g_DisplayHeight)
     {
@@ -455,13 +464,13 @@ void PresentLDR()
 
     CompositeOverlays(Context);
 
-    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex], D3D12_RESOURCE_STATE_PRESENT);
+    Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_PRESENT);
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     Context.PIXEndEvent();
 
     // Close the final context to be executed before frame present.
-    Context.Finish(true);
+    Context.Finish(false, true);
 }
 
 void graphics::Present()
@@ -476,7 +485,7 @@ void graphics::Present()
     {
         PresentLDR();
         /*
-        ColorBuffer& Dest = device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex];
+        ColorBuffer& Dest = device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount];
         ColorBuffer& Src = bufferManager::g_SceneColorBuffer;
         custom::ComputeContext& CC = custom::ComputeContext::Begin(L"Testing");
         CC.SetRootSignature(g_CopyRootSignature);
@@ -491,9 +500,11 @@ void graphics::Present()
         */
     }
 
-    g_CurrentBufferIndex = (g_CurrentBufferIndex + 1) % device::g_DisplayBufferCount;
+    g_CurrentBufferIndex = (g_CurrentBufferIndex + 1);
 
     // HANDLE waitableObjests[2] = { device::g_hSwapChainWaitableObject, nullptr };
+
+    device::g_commandQueueManager.WaitForNextFrameResources();
 
 #undef max
     UINT PresentInterval = s_EnableVSync ? std::max(4, (int)Math::Round(s_FrameTime * 60.0f)) : 0;

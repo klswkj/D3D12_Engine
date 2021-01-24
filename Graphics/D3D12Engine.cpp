@@ -100,10 +100,9 @@ void D3D12Engine::Render()
 	BaseContext.PIXEndEvent(); // End of Scene Render
 	BaseContext.Finish(true);
 
-	graphics::Present();
-
 	m_MasterRenderGraph.Reset();
 	++m_CurrentTick;
+	// -> Then graphics::Present()
 }
 
 bool D3D12Engine::Update(float DeltaTime)
@@ -145,6 +144,7 @@ int D3D12Engine::Run()
 			float FrameTime = graphics::GetFrameTime();
 			Update(FrameTime);
 			Render();
+			graphics::Present();
 		}
 	);
 

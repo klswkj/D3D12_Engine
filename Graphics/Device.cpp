@@ -63,7 +63,7 @@ namespace device
 #endif
 
 	static constexpr UINT SWAP_CHAIN_BUFFER_COUNT = 3ul;
-	UINT g_DisplayBufferCount = SWAP_CHAIN_BUFFER_COUNT;
+	const UINT            g_DisplayBufferCount    = SWAP_CHAIN_BUFFER_COUNT;
 
 	// Dependent on Resize(float, float) function.
 	uint32_t g_DisplayWidth = 1920; 
@@ -120,7 +120,10 @@ namespace device
 			return S_OK;
 		}
 
+		// Order??
+		g_commandQueueManager.WaitForSwapChain();
 		g_commandQueueManager.IdleGPU();
+		// g_commandQueueManager.WaitForNextFrameResources();
 
 		g_DisplayWidth  = width;
 		g_DisplayHeight = height;
@@ -145,7 +148,10 @@ namespace device
 			g_pDXGISwapChain->GetParent(IID_PPV_ARGS(&dxgiFactory));
 
 			g_pDXGISwapChain->Release();
-			CloseHandle(g_hSwapChainWaitableObject);
+			if (g_hSwapChainWaitableObject != nullptr)
+			{
+				CloseHandle(g_hSwapChainWaitableObject);
+			}
 
 			ID3D12CommandQueue* CommandQueue = g_commandQueueManager.GetCommandQueue();
 			IDXGISwapChain1* swapChain1 = nullptr;
@@ -154,10 +160,13 @@ namespace device
 			swapChain1->Release();
 			dxgiFactory->Release();
 
+			ASSERT_HR(g_pDXGISwapChain->SetMaximumFrameLatency(3)); // Default Value.
+			ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, SwapChainDesc.Flags));
+
 			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
+			g_commandQueueManager.SetSwapChainWaitableObject(&g_hSwapChainWaitableObject);
 		}
 
-		// ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, 0));
 
 		{
 			std::wstring DisplayBufferName = L"g_DisplayColorBuffer 0";
@@ -414,6 +423,9 @@ namespace device
 			ID3D12CommandQueue* CommandQueue = g_commandQueueManager.GetCommandQueue();
 
 			ASSERT_HR(s_pDXGIFactory->CreateSwapChainForHwnd(CommandQueue, window::g_hWnd, &SwapChainDesc, nullptr, nullptr, (IDXGISwapChain1**)&g_pDXGISwapChain));
+			
+			// g_pDXGISwapChain
+
 			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
 		}
         #else // when running platform is UWP.

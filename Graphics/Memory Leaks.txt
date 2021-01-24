@@ -1,7 +1,0 @@
-0 bytes in 0 Free Blocks.
-89492 bytes in 697 Normal Blocks.
-12456 bytes in 14 CRT Blocks.
-0 bytes in 0 Ignore Blocks.
-0 bytes in 0 Client Blocks.
-Largest number used: 17087304 bytes.
-Total allocations: 1758676883 bytes.

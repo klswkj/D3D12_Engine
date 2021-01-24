@@ -42,7 +42,7 @@ namespace device
     extern HANDLE           g_hSwapChainWaitableObject;
     extern ID3D12DescriptorHeap* g_ImguiFontHeap;
 
-    extern UINT g_DisplayBufferCount;
+    extern const UINT g_DisplayBufferCount;
 
     extern uint32_t g_DisplayWidth;
     extern uint32_t g_DisplayHeight;

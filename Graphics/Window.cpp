@@ -44,6 +44,7 @@ namespace window
 
 	///////////////////////////////////////////
 	// Device Stuff
+#pragma region DEVICE_STUFF
 	void EnableCursor() noexcept
 	{
 		g_pCWindow->EnableCursor();
@@ -83,6 +84,7 @@ namespace window
 	{
 		ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
 	}
+#pragma endregion DEVICE_STUFF
 
 	CWindow::CWindow
 	(

@@ -7,9 +7,15 @@
 
 CommandQueueManager::CommandQueueManager() :
     m_graphicsCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
-    m_computeCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE),
-    m_copyCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY)
+    m_computeCommandQueue (D3D12_COMMAND_LIST_TYPE_COMPUTE),
+    m_copyCommandQueue    (D3D12_COMMAND_LIST_TYPE_COPY),
+    m_lastSubmitFenceForSwapChain(nullptr),
+    m_swapChainWaitableObject(nullptr),
+    m_FenceEvent(nullptr),
+    m_LastFenceValueForSwapChain(0)
 {
+    m_FenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    ASSERT(m_FenceEvent != nullptr);
 }
 
 void CommandQueueManager::Create(ID3D12Device* pDevice)
@@ -81,4 +87,47 @@ void CommandQueueManager::StallForFence(uint64_t FenceValue)
 {
     custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
     Producer.m_commandQueue->Wait(Producer.m_pFence, FenceValue);
+}
+
+void CommandQueueManager::WaitForSwapChain()
+{
+    uint64_t fenceValue = m_LastFenceValueForSwapChain;
+
+    // No fence was signaled.
+    if (fenceValue == 0)
+    {
+        return; 
+    }
+
+    m_LastFenceValueForSwapChain = 0;
+    uint64_t CompletedValue = m_lastSubmitFenceForSwapChain->GetCompletedValue();
+
+    // It is already done.
+    if (fenceValue <= CompletedValue)
+    {
+        return;
+    }
+
+    {
+        m_lastSubmitFenceForSwapChain->SetEventOnCompletion(fenceValue, m_FenceEvent);
+        WaitForSingleObject(m_FenceEvent, INFINITE);
+    }
+}
+
+void CommandQueueManager::WaitForNextFrameResources()
+{
+    HANDLE waitableObjects[] = { m_swapChainWaitableObject, nullptr };
+    DWORD numWaitableObjects = 1;
+
+    uint64_t fenceValue = m_LastFenceValueForSwapChain;
+
+    if (fenceValue != 0) // means no fence was signaled
+    {
+        m_LastFenceValueForSwapChain = 0;
+        m_lastSubmitFenceForSwapChain->SetEventOnCompletion(fenceValue, m_FenceEvent);
+        waitableObjects[1] = m_FenceEvent;
+        numWaitableObjects = 2;
+    }
+
+    WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
 }

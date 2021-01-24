@@ -30,15 +30,9 @@ namespace custom
             WaitForFence(IncrementFence()); 
         }
 
-        ID3D12CommandQueue* GetCommandQueue() 
-        { 
-            return m_commandQueue; 
-        }
-
-        uint64_t GetNextFenceValue() 
-        { 
-            return m_nextFenceValue; 
-        }
+        ID3D12CommandQueue* GetCommandQueue()   { return m_commandQueue; }
+        ID3D12Fence*        GetFence()          { return m_pFence; }
+        uint64_t            GetNextFenceValue() { return m_nextFenceValue; }
 
     private:
         uint64_t executeCommandList(ID3D12CommandList* List);

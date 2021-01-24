@@ -120,18 +120,20 @@ namespace custom
         // Kickoff the command list
         m_commandQueue->ExecuteCommandLists(1, &List);
 
-        // Signal the next fence value (with the GPU)
-      HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
+		// Signal the next fence value (with the GPU)
+		HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
 
         // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
 
-        // -> WaitObject swapchainbuffer -> Go to swapchainbuffeerHANDLE at device.cpp
         // D3D12 ERROR : ID3D12CommandQueue::ExecuteCommandLists : 
-        // A command list, which writes to a swapchain back buffer, may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
+        // A command list, which writes to a swapchain back buffer, 
+        // may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
         // Such a back buffer is also referred to as the "current back buffer".
+
         // Swap Chain : 0x000002BD5EDCB610 : 'Unnamed Object' 
         // - Current Back Buffer Buffer : 0x000002BD68C2E010 : 'g_DisplayColorBuffer 0' 
-        // - Attempted Write Buffer : 0x000002BD68C2F9F0 : 'g_DisplayColorBuffer 2'[STATE_SETTING ERROR #907: EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE]
+        // - Attempted Write Buffer : 0x000002BD68C2F9F0 : 
+        // 'g_DisplayColorBuffer 2'[STATE_SETTING ERROR #907: EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE]
         // And increment the fence value.
 
         // End LRR
