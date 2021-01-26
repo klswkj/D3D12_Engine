@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "CommandQueue.h"
+#include "CustomCommandQueue.h"
 
 namespace custom
 {
@@ -27,6 +28,8 @@ public:
         D3D12_COMMAND_LIST_TYPE Type,
         std::wstring ID
     );
+
+    // void AdvanceOrderNewCommandList(size_t NumTypeDirect, size_t );
 
     void Shutdown()
     {
@@ -90,18 +93,17 @@ public:
 
     // The CPU will wait for a fence to reach a specified value
     void WaitForFence(uint64_t FenceValue);
-
     void StallForFence(uint64_t FenceValue);
 
     void WaitForSwapChain();
     void WaitForNextFrameResources();
 
-    void SetFenceValueForSwapChain(uint64_t FenceValue)     { m_LastFenceValueForSwapChain  = FenceValue; }
-    void SetFenceForSwapChain(ID3D12Fence* pFence)          { m_lastSubmitFenceForSwapChain = pFence; }
-    void SetSwapChainWaitableObject(HANDLE* WaitableObject) { m_swapChainWaitableObject     = WaitableObject; }
+    void SetFenceValueForSwapChain (uint64_t FenceValue)     { m_LastFenceValueForSwapChain  = FenceValue; }
+    void SetFenceForSwapChain      (ID3D12Fence* pFence)     { m_lastSubmitFenceForSwapChain = pFence; }
+    void SetSwapChainWaitableObject(HANDLE* WaitableObject)  { m_swapChainWaitableObject     = WaitableObject; }
 
     // The CPU will wait for all command queues to empty (so that the GPU is idle)
-    void IdleGPU(void)
+    void IdleGPU()
     {
         m_graphicsCommandQueue.WaitForIdle();
         m_computeCommandQueue .WaitForIdle();
@@ -109,14 +111,15 @@ public:
     }
 
 private:
-    ID3D12Device* m_pDevice;
+    ID3D12Device* m_pDevice; // = device::g_pDevice;
 
-    custom::CommandQueue m_graphicsCommandQueue;
-    custom::CommandQueue m_computeCommandQueue;
-    custom::CommandQueue m_copyCommandQueue;
+    custom::CommandQueue       m_graphicsCommandQueue;
+    custom::CommandQueue       m_computeCommandQueue;
+    custom::CommandQueue       m_copyCommandQueue;
+    custom::CustomCommandQueue m_customCommandQueue;
 
     ID3D12Fence* m_lastSubmitFenceForSwapChain;
-    HANDLE*      m_swapChainWaitableObject; // = g_hSwapChainWaitableObject
+    HANDLE*      m_swapChainWaitableObject; // = device::g_hSwapChainWaitableObject
     HANDLE       m_FenceEvent;
     uint64_t     m_LastFenceValueForSwapChain;
 };

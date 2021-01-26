@@ -1,10 +1,13 @@
 #include "stdafx.h"
 #include "Pass.h"
 
-static uint32_t passIndex = 0;
+static size_t passIndex = 0;
 
 Pass::Pass(std::string Name) noexcept
-	: m_Name(Name), m_PassIndex(passIndex++)
+	: m_Name(Name),
+	m_bActive(true),
+	m_PassIndex(passIndex++),
+	m_NumWorkingThread(0)
 {
 }
 

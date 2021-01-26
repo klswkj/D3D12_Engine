@@ -19,15 +19,27 @@ public:
 	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
 
 private:
+	void ExecuteWithSingleThread(custom::CommandContext& BaseContext);
+	void ExecuteWithMultiThread();
+	void WorkThread(size_t ThreadIndex);
+
+private:
 	static MainRenderPass* s_pMainRenderPass;
 
 	custom::RootSignature* m_pRootSignature;
-	GraphicsPSO* m_pPSO;
+	GraphicsPSO*           m_pPSO;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_SSAOShadowSRVs[6];
 
 	bool m_bAllocateRootSignature = false;
-	bool m_bAllocatePSO = false;
+	bool m_bAllocatePSO           = false;
+	bool m_MultiThreading         = false;
+
+	size_t m_ThreadIndex[stdafx::g_NumThreads];
+
+	HANDLE m_hWorkerBeginRenderHandle[stdafx::g_NumThreads];
+	HANDLE m_hWorkerFinishRenderHandle[stdafx::g_NumThreads];
+	HANDLE m_hThreadHandles[stdafx::g_NumThreads];
 };
 
 

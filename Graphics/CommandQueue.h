@@ -36,7 +36,7 @@ namespace custom
 
     private:
         uint64_t executeCommandList(ID3D12CommandList* List);
-        ID3D12CommandAllocator* requestAllocator(void);
+        ID3D12CommandAllocator* requestAllocator();
         void discardAllocator(uint64_t FenceValueForReset, ID3D12CommandAllocator* Allocator);
 
     private:

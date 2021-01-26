@@ -141,6 +141,8 @@ DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale);
 
+uint32_t          GetNumberOfCores();
+
 #ifndef RELEASE
 #define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
 #else
@@ -187,3 +189,8 @@ if (_CrtMemDifference(&s3, &s1, &s2))         \
 #define FINAL
 #define SEALED
 #endif
+
+namespace stdafx
+{
+    static const UINT g_NumThreads = 4;
+}

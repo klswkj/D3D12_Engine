@@ -153,6 +153,7 @@ namespace device
 				CloseHandle(g_hSwapChainWaitableObject);
 			}
 
+			// TODO 1 : SwapChain Crush Issue's Critical Point.
 			ID3D12CommandQueue* CommandQueue = g_commandQueueManager.GetCommandQueue();
 			IDXGISwapChain1* swapChain1 = nullptr;
 			dxgiFactory->CreateSwapChainForHwnd(CommandQueue, window::g_hWnd, &SwapChainDesc, nullptr, nullptr, &swapChain1);

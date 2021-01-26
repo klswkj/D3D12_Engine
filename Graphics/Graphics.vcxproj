@@ -187,6 +187,7 @@
     <ClCompile Include="CommandQueueManager.cpp" />
     <ClCompile Include="CommandSignature.cpp" />
     <ClCompile Include="CPULinearAllocator.cpp" />
+    <ClCompile Include="CustomCommandQueue.cpp" />
     <ClCompile Include="CustomImgui.cpp" />
     <ClCompile Include="CustomMemory.cpp" />
     <ClCompile Include="DebugShadowMapPass.cpp" />
@@ -339,6 +340,7 @@
     <ClInclude Include="CommandQueueManager.h" />
     <ClInclude Include="CommandSignature.h" />
     <ClInclude Include="CPULinearAllocator.h" />
+    <ClInclude Include="CustomCommandQueue.h" />
     <ClInclude Include="CustomImgui.h" />
     <ClInclude Include="CustomMemory.h" />
     <ClInclude Include="DebugShadowMapPass.h" />

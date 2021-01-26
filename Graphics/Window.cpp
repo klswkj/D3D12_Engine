@@ -397,7 +397,7 @@ namespace window
 				}
 			}
 
-			if (0 <= pt.x && pt.x < device::g_DisplayWidth && 0 <= pt.y && pt.y < device::g_DisplayHeight)
+			if (0 <= pt.x && (uint32_t)pt.x < device::g_DisplayWidth && 0 <= pt.y && (uint32_t)pt.y < device::g_DisplayHeight)
 			{
 				m_Mouse.OnMouseMove(pt.x, pt.y);
 
@@ -473,7 +473,7 @@ namespace window
 			m_Mouse.OnLeftReleased(pt.x, pt.y);
 
 			// if (pt.x < 0 || g_TargetWindowWidth <= pt.x || pt.y < 0 || g_TargetWindowHeight <= pt.y)
-			if (pt.x < 0 || device::g_DisplayWidth <= pt.x || pt.y < 0 || device::g_DisplayHeight <= pt.y)
+			if (pt.x < 0 || device::g_DisplayWidth <= (uint32_t)pt.x || pt.y < 0 || device::g_DisplayHeight <= (uint32_t)pt.y)
 			{
 				::ReleaseCapture();
 				m_Mouse.OnMouseLeave();
@@ -494,7 +494,7 @@ namespace window
 			const POINTS pt = MAKEPOINTS(lParam);
 			m_Mouse.OnRightReleased(pt.x, pt.y);
 
-			if (pt.x < 0 || device::g_DisplayWidth <= pt.x || pt.y < 0 || device::g_DisplayHeight <= pt.y)
+			if (pt.x < 0 || device::g_DisplayWidth <= (uint32_t)pt.x || pt.y < 0 || device::g_DisplayHeight <= (uint32_t)pt.y)
 			{
 				::ReleaseCapture();
 				m_Mouse.OnMouseLeave();

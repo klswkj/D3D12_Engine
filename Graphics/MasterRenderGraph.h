@@ -13,6 +13,7 @@ namespace Math
 {
 	class Matrix4;
 }
+
 class RenderQueuePass;
 class Camera;
 class Pass;
@@ -53,6 +54,7 @@ public:
 	void ToggleDebugShadowMap();
 	void ToggleSSAOPass();
 	void ToggleSSAODebugMode();
+
 private:
 	void finalize();
 	void appendPass               (std::unique_ptr<Pass> _Pass);
@@ -63,6 +65,9 @@ private:
 	void disableShadowMappingPass();
 	void enableMainRenderPass();
 	void disableMainRenderPass();
+
+	size_t SetNextNumCommandList();
+
 public:
 	static MasterRenderGraph* s_pMasterRenderGraph;
 	std::vector<std::unique_ptr<Pass>> m_pPasses;
@@ -72,12 +77,13 @@ public:
 	Camera* m_pCurrentActiveCamera;
 	
 	bool m_bFullScreenDebugPasses;
-	bool m_bDebugPasses;
+	bool m_bDebugPassesMode;
 	bool m_bDebugShadowMap;    //
 	bool m_bSSAOPassEnable;    //
 	bool m_bSSAODebugDraw;     //
 	bool m_bShadowMappingPass; //
 	bool m_bMainRenderPass;    //
+
 private:
 	LightPrePass*       m_pLightPrePass;
 	ShadowPrePass*      m_pShadowPrePass;
@@ -96,4 +102,6 @@ private:
 	GraphicsPSO m_MainRenderPSO;
 
 	size_t m_SelctedPassIndex;
+	size_t m_SingleThreadingEntityThreshold;
+	size_t m_CurrentNeedCommandList;
 };

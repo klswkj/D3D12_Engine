@@ -48,6 +48,8 @@
 
 SSAOPass* SSAOPass::s_pSSAOPass = nullptr;
 
+// TODO 1 : Recude number of RootSignature.
+
 SSAOPass::SSAOPass(std::string pName)
 	: Pass(pName)
 {
@@ -131,7 +133,6 @@ SSAOPass::SSAOPass(std::string pName)
 
 void SSAOPass::Reset()
 {
-
 }
 
 void SSAOPass::RenderWindow()
@@ -294,7 +295,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		}
 	}
 
-	custom::ComputeContext& computeContext = m_bAsyncCompute ? custom::ComputeContext::Begin(L"Async SSAO") : BaseContext.GetComputeContext();
+	custom::ComputeContext& computeContext = m_bAsyncCompute ? custom::ComputeContext::Begin(L"Async SSAO", true) : BaseContext.GetComputeContext();
 
 	if (m_bAsyncCompute)
 	{
@@ -523,7 +524,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		NewComputeContext.PIXBeginEvent(L"SSAO_Debug_Draw");
 
 		NewComputeContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-		NewComputeContext.TransitionResource(bufferManager::g_SSAOFullScreen, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		NewComputeContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 		// NewComputeContext.SetRootSignature(m_MainRootSignature);
 		NewComputeContext.SetRootSignature(m_LinearizeDepthSignature);
 		NewComputeContext.SetPipelineState(m_DebugSSAOCS);

@@ -165,10 +165,7 @@ namespace custom
     {
         // ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
     }
-    /*
-    void ExecuteIndirect(CommandSignature& CommandSig, UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset = 0,
-            uint32_t MaxCommands = 1, UAVBuffer* CommandCounterBuffer = nullptr, uint64_t CounterOffset = 0);
-    */
+
     void ComputeContext::ExecuteIndirect
     (
         CommandSignature& CommandSig,

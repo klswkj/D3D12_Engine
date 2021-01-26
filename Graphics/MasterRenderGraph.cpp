@@ -13,7 +13,7 @@
 #include "RenderTarget.h"
 #include "DepthStencil.h"
 
-#include "Pass.h"
+#include "RenderQueuePass.h"
 #include "LightPrePass.h"
 #include "ShadowPrePass.h"
 #include "Z_PrePass.h"
@@ -66,7 +66,29 @@
 MasterRenderGraph* MasterRenderGraph::s_pMasterRenderGraph = nullptr;
 
 MasterRenderGraph::MasterRenderGraph()
-//: m_pRenderTarget(), m_pMasterDepth()
+	:
+	m_SelctedPassIndex(0ul),
+	m_SingleThreadingEntityThreshold(50),
+	m_CurrentNeedCommandList(-1),
+	m_pMainLights         (nullptr),
+	m_pCurrentActiveCamera(nullptr),
+	m_bFullScreenDebugPasses(false),
+	m_bDebugPassesMode      (false),
+	m_bDebugShadowMap       (false),
+	m_bSSAOPassEnable       (true),
+	m_bSSAODebugDraw        (false),
+	m_bShadowMappingPass    (true),
+	m_bMainRenderPass       (true),
+	m_pLightPrePass      (nullptr),
+	m_pShadowPrePass     (nullptr),
+	m_pZ_PrePass         (nullptr),
+	m_pSSAOPass          (nullptr),
+	m_pFillLightGridPass (nullptr),
+	m_pShadowMappingPass (nullptr),
+	m_pMainRenderPass    (nullptr),
+	m_pOutlineDrawingPass(nullptr),
+	m_pDebugWireFramePass(nullptr),
+	m_pDebugShadowMapPass(nullptr)
 {
 	ASSERT(s_pMasterRenderGraph == nullptr);
 	s_pMasterRenderGraph = this;
@@ -204,22 +226,8 @@ MasterRenderGraph::MasterRenderGraph()
 		ASSERT(m_pDebugShadowMapPass);
 	}
 #endif
+
 	finalize();
-
-	m_pCurrentActiveCamera = nullptr;
-	m_pMainLights          = nullptr;
-
-	m_bFullScreenDebugPasses = false;
-	m_bDebugPasses           = false;
-
-	m_bSSAOPassEnable    = true;
-	m_bSSAODebugDraw     = false;
-	m_bShadowMappingPass = true;
-	m_bMainRenderPass    = true;
-
-	m_bDebugShadowMap = false;
-
-	m_SelctedPassIndex = 0ul;
 }
 
 MasterRenderGraph::~MasterRenderGraph()
@@ -237,7 +245,7 @@ void MasterRenderGraph::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEP
 
 	BaseContext.PIXBeginEvent(L"Scene Render");
 
-	for (auto& p : (m_bDebugPasses) ? m_pFullScreenDebugPasses : m_pPasses)
+	for (auto& p : (m_bDebugPassesMode) ? m_pFullScreenDebugPasses : m_pPasses)
 	{
 		if (p->m_bActive)
 		{
@@ -286,7 +294,7 @@ void MasterRenderGraph::Profiling()
 #ifdef _DEBUG
 	for (auto& p : m_pPasses)
 	{
-		printf("%s's operational time : %.5f, DDTime : %.4f\n", p->GetRegisteredName().c_str(), p->m_DeltaTime, p->m_DeltaTime - p->m_DeltaTimeBefore);
+		printf("%s's operational time : %.5f, DDTime : %.4lf\n", p->GetRegisteredName().c_str(), p->m_DeltaTime, (double)(p->m_DeltaTime - p->m_DeltaTimeBefore));
 
 		{
 			RenderQueuePass* pRQP = dynamic_cast<RenderQueuePass*>(p.get());
@@ -327,6 +335,10 @@ void MasterRenderGraph::Update()
 	m_pMainRenderPass->m_bActive     = m_bMainRenderPass;
 
 	m_pDebugShadowMapPass->m_bActive = m_bDebugShadowMap;
+
+	size_t NeedNumCommandLists = SetNextNumCommandList();
+
+	std::cout << " " << std::endl;
 }
 
 void MasterRenderGraph::appendPass(std::unique_ptr<Pass> _Pass)
@@ -341,7 +353,6 @@ void MasterRenderGraph::appendPass(std::unique_ptr<Pass> _Pass)
 
 	m_pPasses.push_back(std::move(_Pass));
 }
-
 void MasterRenderGraph::appendFullScreenDebugPass(std::unique_ptr<Pass> _Pass)
 {
 	for (const auto& p : m_pFullScreenDebugPasses)
@@ -354,7 +365,6 @@ void MasterRenderGraph::appendFullScreenDebugPass(std::unique_ptr<Pass> _Pass)
 
 	m_pFullScreenDebugPasses.push_back(std::move(_Pass));
 }
-
 void MasterRenderGraph::appendDebugPass(std::unique_ptr<Pass> _Pass)
 {
 	for (const auto& p : m_pDebugPasses)
@@ -367,7 +377,6 @@ void MasterRenderGraph::appendDebugPass(std::unique_ptr<Pass> _Pass)
 
 	m_pDebugPasses.push_back(std::move(_Pass));
 }
-
 RenderQueuePass& MasterRenderGraph::FindRenderQueuePass(const std::string& RenderQueuePassName)
 {
 	for (const auto& p : m_pPasses)
@@ -392,7 +401,6 @@ RenderQueuePass& MasterRenderGraph::FindRenderQueuePass(const std::string& Rende
 
 	return emptyPass;
 }
-
 Pass& MasterRenderGraph::FindPass(const std::string& PassName)
 {
 	const auto i = std::find_if(m_pPasses.begin(), m_pPasses.end(),
@@ -402,7 +410,6 @@ Pass& MasterRenderGraph::FindPass(const std::string& PassName)
 
 	return **i;
 }
-
 void MasterRenderGraph::finalize()
 {
 	for (const auto& p : m_pPasses)
@@ -410,7 +417,6 @@ void MasterRenderGraph::finalize()
 		p->finalize();
 	}
 }
-
 void MasterRenderGraph::RenderPassesWindow()
 {
 	ImGui::Begin("Passes");
@@ -446,12 +452,55 @@ void MasterRenderGraph::BindMainCamera(Camera* pCamera)
 	ASSERT(pCamera != nullptr);
 	m_pCurrentActiveCamera = pCamera;
 }
-
 void MasterRenderGraph::BindMainLightContainer(std::vector<MainLight>* MainLightContainer)
 {
 	ASSERT(MainLightContainer != nullptr);
 	m_pMainLights = MainLightContainer;
 }
+
+size_t MasterRenderGraph::SetNextNumCommandList()
+{
+	m_CurrentNeedCommandList = -1;
+
+	if (m_bDebugPassesMode == false)
+	{
+		m_CurrentNeedCommandList = 0;
+		size_t NumThreads = stdafx::g_NumThreads;
+
+		for (auto& e : m_pPasses)
+		{
+			RenderQueuePass* pRQP = dynamic_cast<RenderQueuePass*>(e.get());
+
+			if (pRQP != nullptr)
+			{
+				size_t StepSize = pRQP->GetJobCount();
+
+				if (m_SingleThreadingEntityThreshold < StepSize)
+				{
+					size_t NumWorkingThread = min(NumThreads, (size_t)ceilf((float)StepSize / (float)m_SingleThreadingEntityThreshold));
+					e->SetNumThread(NumWorkingThread);
+
+					// m_CurrentNeedCommandList += StepSize / NumWorkingThread; // CommandList for Worker Thread.
+					m_CurrentNeedCommandList += NumWorkingThread;
+					// m_CurrentNeedCommandList += StepSize - 1; // CommandList for Transition Resource, Clear Buffer or Async Fence Waiting.
+					m_CurrentNeedCommandList += 1; // CommandList for Transition Resource, Clear Buffer or Async Fence Waiting.
+				}
+				else
+				{
+					e->m_NumWorkingThread = 0;
+				}
+			}
+			else
+			{
+				e->m_NumWorkingThread = 0;
+			}
+		}
+	}
+
+	return m_CurrentNeedCommandList;
+}
+
+#pragma region ON/OFF
 
 void MasterRenderGraph::ToggleFullScreenDebugPasses()
 {
@@ -459,7 +508,7 @@ void MasterRenderGraph::ToggleFullScreenDebugPasses()
 }
 void MasterRenderGraph::ToggleDebugPasses()
 {
-	m_bDebugPasses = !m_bDebugPasses;
+	m_bDebugPassesMode = !m_bDebugPassesMode;
 }
 void MasterRenderGraph::ToggleDebugShadowMap()
 {
@@ -502,3 +551,5 @@ void MasterRenderGraph::disableMainRenderPass()
 {
 	m_bMainRenderPass = false;
 }
+
+#pragma endregion ON/OFF

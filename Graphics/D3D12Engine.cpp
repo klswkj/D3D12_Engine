@@ -107,6 +107,8 @@ void D3D12Engine::Render()
 
 bool D3D12Engine::Update(float DeltaTime)
 {
+	m_ObjModelManager.Submit(eObjectFilterFlag::kOpaque);
+
 	Profiling::Update();
 	windowInput::Update(DeltaTime);
 	m_CameraManager.Update(DeltaTime);
@@ -118,8 +120,6 @@ bool D3D12Engine::Update(float DeltaTime)
 	m_MainScissor.right   = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
 	m_MainScissor.bottom  = (LONG)bufferManager::g_SceneColorBuffer.GetHeight();
 
-	m_ObjModelManager.Submit(eObjectFilterFlag::kOpaque);
-	
 #ifdef _DEBUG
 	if (!(m_CurrentTick % 100ull))
 	{

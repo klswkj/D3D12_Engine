@@ -38,7 +38,7 @@ void RenderQueuePass::ExecuteWithRange(custom::CommandContext& BaseContext, size
 		else
 		{
 			ASSERT(StartStepIndex <= EndStepIndex);
-			ASSERT(EndStepIndex < JobSize);
+			ASSERT(EndStepIndex   < JobSize);
 
 			for (size_t i = StartStepIndex; i <= EndStepIndex; ++i)
 			{

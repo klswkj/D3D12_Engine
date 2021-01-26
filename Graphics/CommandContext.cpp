@@ -28,21 +28,20 @@ namespace custom
 		m_DynamicViewDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
 		m_DynamicSamplerDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER),
 		m_CPULinearAllocator(LinearAllocatorType::CPU_WRITEABLE),
-		m_GPULinearAllocator(LinearAllocatorType::GPU_WRITEABLE)
+		m_GPULinearAllocator(LinearAllocatorType::GPU_WRITEABLE),
+		m_owningManager                (nullptr),
+		m_commandList                  (nullptr),
+		m_currentCommandAllocator      (nullptr),
+		m_pCurrentGraphicsRootSignature(nullptr),
+		m_CurPipelineState             (nullptr),
+		m_pCurrentComputeRootSignature (nullptr),
+		m_numStandByBarriers(0U),
+		m_PrimitiveTopology (D3D_PRIMITIVE_TOPOLOGY_UNDEFINED),
+		m_pMainCamera           (nullptr),
+		m_pMainLightShadowCamera(nullptr)
+
 	{
-		// m_owningManager = nullptr; // Not used yet.
-		m_commandList = nullptr;
-		m_currentCommandAllocator = nullptr;
 		ZeroMemory(m_pCurrentDescriptorHeaps, sizeof(m_pCurrentDescriptorHeaps));
-
-		m_pCurrentGraphicsRootSignature = nullptr;
-		m_CurPipelineState = nullptr;
-		m_pCurrentComputeRootSignature = nullptr;
-		m_numStandByBarriers = 0;
-		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-
-		m_pMainCamera = nullptr;
-		m_pMainLightShadowCamera = nullptr;
 	}
 
 	CommandContext::~CommandContext(void)
@@ -153,6 +152,10 @@ namespace custom
 		DynamicDescriptorHeap::DestroyAll();
 		device::g_commandContextManager.DestroyAllContexts();
 	}
+
+	// 무조건 ID3D12GraphicsCommandList* m_commandList 를 Flush()나, 
+	// Finish()를 하면 무조건 execute(CommandList)
+	// 따라서, 쓰레드들이 한번에 모아서 Execute할 수 없는 구조.
 
 	uint64_t CommandContext::Flush(bool WaitForCompletion)
 	{

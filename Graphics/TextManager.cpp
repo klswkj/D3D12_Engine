@@ -75,6 +75,9 @@ namespace TextManager
             uint16_t textureHeight = header->textureHeight;
             uint16_t NumGlyphs = header->numGlyphs;
 
+            static std::mutex s_mutex;
+            std::lock_guard<std::mutex> LockGuard(s_mutex);
+
             const wchar_t* wcharList = (wchar_t*)(pBinary + sizeof(FontHeader));
             const Glyph* glyphData = (Glyph*)(wcharList + NumGlyphs);
             const void* texelData = glyphData + NumGlyphs;
@@ -177,7 +180,6 @@ namespace TextManager
 
         }
 
-
         LoadedFonts[filename].reset(newFont);
         return newFont;
     }
@@ -274,18 +276,18 @@ void TextContext::ResetSettings()
 }
 
 void  TextContext::SetLeftMargin(float x) { m_LeftMargin = x; }
-void  TextContext::SetCursorX(float x) { m_TextPosX = x; }
-void  TextContext::SetCursorY(float y) { m_TextPosY = y; }
-void  TextContext::NewLine(void) { m_TextPosX = m_LeftMargin; m_TextPosY += m_LineHeight; }
-float TextContext::GetLeftMargin(void) { return m_LeftMargin; }
-float TextContext::GetCursorX(void) { return m_TextPosX; }
-float TextContext::GetCursorY(void) { return m_TextPosY; }
+void  TextContext::SetCursorX(float x)    { m_TextPosX = x; }
+void  TextContext::SetCursorY(float y)    { m_TextPosY = y; }
+void  TextContext::NewLine()              { m_TextPosX = m_LeftMargin; m_TextPosY += m_LineHeight; }
+float TextContext::GetLeftMargin()        { return m_LeftMargin; }
+float TextContext::GetCursorX()           { return m_TextPosX; }
+float TextContext::GetCursorY()           { return m_TextPosY; }
 
 void TextContext::ResetCursor(float x, float y)
 {
     m_LeftMargin = x;
-    m_TextPosX = x;
-    m_TextPosY = y;
+    m_TextPosX   = x;
+    m_TextPosY   = y;
 }
 
 void TextContext::EnableDropShadow(bool enable)

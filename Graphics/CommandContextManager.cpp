@@ -21,9 +21,11 @@ custom::CommandContext* CommandContextManager::AllocateContext(D3D12_COMMAND_LIS
 		AvailableContexts.pop();
 		ret->Reset(ID);
 	}
-	ASSERT(ret != nullptr);
 
+	ASSERT(ret != nullptr);
 	ASSERT(ret->m_type == Type);
+
+	ret->m_owningManager = &device::g_commandQueueManager;
 
 	ret->m_Viewport    = m_Viewport;
 	ret->m_Rect        = m_Scissor;

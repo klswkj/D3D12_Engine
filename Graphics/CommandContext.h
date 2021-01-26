@@ -140,7 +140,7 @@ namespace custom
         void bindDescriptorHeaps();
 
     protected:
-        // CommandQueueManager*       m_owningManager;
+        CommandQueueManager*       m_owningManager;
         ID3D12GraphicsCommandList* m_commandList;
         ID3D12CommandAllocator*    m_currentCommandAllocator;
 
@@ -148,11 +148,11 @@ namespace custom
         ID3D12RootSignature* m_pCurrentGraphicsRootSignature;
         ID3D12RootSignature* m_pCurrentComputeRootSignature;
 
-        DynamicDescriptorHeap m_DynamicViewDescriptorHeap;        // For HEAP_TYPE_CBV_SRV_UAV
-        DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap;     // For HEAP_TYPE_SAMPLER
+        DynamicDescriptorHeap m_DynamicViewDescriptorHeap;    // For HEAP_TYPE_CBV_SRV_UAV
+        DynamicDescriptorHeap m_DynamicSamplerDescriptorHeap; // For HEAP_TYPE_SAMPLER
 
-        D3D12_RESOURCE_BARRIER m_resourceBarriers[16];
-        UINT                   m_numStandByBarriers;
+        UINT                     m_numStandByBarriers;
+        D3D12_RESOURCE_BARRIER   m_resourceBarriers[16];
         D3D12_PRIMITIVE_TOPOLOGY m_PrimitiveTopology;
 
         D3D12_VIEWPORT m_Viewport;

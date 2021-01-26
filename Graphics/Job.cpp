@@ -9,7 +9,7 @@
 void Job::Execute(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
 {
 	m_pEntity->Bind(BaseContext);
-	m_pStep->Bind(BaseContext); // RootSignature나, PSO 바인딩할 때, 최적화 확인
+	m_pStep->Bind(BaseContext); // TODO 1 : RootSignature나, PSO 바인딩할 때, 최적화 확인
 
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 

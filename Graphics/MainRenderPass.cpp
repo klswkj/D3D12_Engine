@@ -98,6 +98,30 @@ MainRenderPass::MainRenderPass(std::string Name, custom::RootSignature* pRootSig
 
 		m_bAllocatePSO = true;
 	}
+
+	size_t NumThreads = stdafx::g_NumThreads;
+
+	for (size_t i = 0; i < NumThreads; ++i)
+	{
+		m_hWorkerBeginRenderHandle[NumThreads]
+			= CreateEvent
+			(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL
+			);
+
+		m_hWorkerFinishRenderHandle[NumThreads]
+			= CreateEvent
+			(
+				NULL,
+				FALSE,
+				FALSE,
+				NULL
+			);
+	}
+
 }
 
 MainRenderPass::~MainRenderPass()
@@ -113,15 +137,28 @@ MainRenderPass::~MainRenderPass()
 		delete m_pPSO;
 		m_pPSO = nullptr;
 	}
+
+	{
+		size_t i = 0;
+		size_t NumThreads = stdafx::g_NumThreads;
+
+		for (i = 0; i < NumThreads; ++i)
+		{
+			CloseHandle(m_hWorkerBeginRenderHandle[i]);
+		}
+		for (i = 0; i < NumThreads; ++i)
+		{
+			CloseHandle(m_hWorkerFinishRenderHandle[i]);
+		}
+		for (i = 0; i < NumThreads; ++i)
+		{
+			CloseHandle(m_hThreadHandles[i]);
+		}
+	}
 }
 
 void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 {
-#ifdef _DEBUG
-	graphics::InitDebugStartTick();
-	float DeltaTime1 = graphics::GetDebugFrameTime();
-#endif
-
 	if (SSAOPass::s_pSSAOPass->m_bEnable && SSAOPass::s_pSSAOPass->m_bAsyncCompute)
 	{
 		// Flush-> Reset()
@@ -134,6 +171,29 @@ void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 		return;
 	}
 
+	BaseContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
+	BaseContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ,            false);
+	BaseContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET,          true);
+	BaseContext.SetMainCamera(*BaseContext.GetpMainCamera());
+	BaseContext.GetGraphicsContext().SetSync();
+
+	if (m_MultiThreading)
+	{
+		ExecuteWithMultiThread();
+	}
+	else
+	{
+		ExecuteWithSingleThread(BaseContext);
+	}
+}
+
+void MainRenderPass::ExecuteWithSingleThread(custom::CommandContext& BaseContext)
+{
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.PIXBeginEvent(L"7_MainRenderPass");
 
@@ -145,13 +205,9 @@ void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 		graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
-	graphicsContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
-	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ,            false);
-	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET,         true);
-
 	graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), bufferManager::g_SceneDepthBuffer.GetDSV_DepthReadOnly());
 	graphicsContext.SetDynamicDescriptors(SSAOShadowRootIndex, 0u, _countof(m_SSAOShadowSRVs), m_SSAOShadowSRVs);
-	graphicsContext.SetMainCamera(*graphicsContext.GetpMainCamera());
+
 	graphicsContext.SetVSConstantsBuffer(0u);
 	graphicsContext.SetPSConstantsBuffer(2u);
 
@@ -162,4 +218,41 @@ void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	float DeltaTime2 = graphics::GetDebugFrameTime();
 	m_DeltaTime = DeltaTime2 - DeltaTime1;
 #endif
+}
+void MainRenderPass::ExecuteWithMultiThread()
+{
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
+	size_t NumThreads = stdafx::g_NumThreads;
+
+	for (size_t i = 0; i < NumThreads; ++i)
+	{
+		SetEvent(m_hWorkerBeginRenderHandle[i]);
+	}
+
+	WaitForMultipleObjects(NumThreads, m_hWorkerFinishRenderHandle, TRUE, INFINITE);
+
+#ifdef _DEBUG
+	float DeltaTime2 = graphics::GetDebugFrameTime();
+	m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
+}
+
+void MainRenderPass::WorkThread(size_t ThreadIndex)
+{
+	while ((0 <= ThreadIndex) && (ThreadIndex < stdafx::g_NumThreads))
+	{
+		WaitForSingleObject(m_hWorkerBeginRenderHandle[ThreadIndex], INFINITE);
+
+		wchar_t AllocatorName[35];
+		swprintf(AllocatorName, _countof(AllocatorName), L"MainRender GraphicsContext - %zu", ThreadIndex);
+		custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(AllocatorName);
+
+
+
+		SetEvent(m_hWorkerFinishRenderHandle[ThreadIndex]);
+	}
 }

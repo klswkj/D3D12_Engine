@@ -9,6 +9,7 @@ CommandQueueManager::CommandQueueManager() :
     m_graphicsCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
     m_computeCommandQueue (D3D12_COMMAND_LIST_TYPE_COMPUTE),
     m_copyCommandQueue    (D3D12_COMMAND_LIST_TYPE_COPY),
+    m_pDevice(nullptr),
     m_lastSubmitFenceForSwapChain(nullptr),
     m_swapChainWaitableObject(nullptr),
     m_FenceEvent(nullptr),
@@ -27,6 +28,7 @@ void CommandQueueManager::Create(ID3D12Device* pDevice)
     m_graphicsCommandQueue.Create(pDevice);
     m_computeCommandQueue.Create(pDevice);
     m_copyCommandQueue.Create(pDevice);
+    m_customCommandQueue.Create(pDevice);
 }
 
 void CommandQueueManager::CreateNewCommandList
@@ -64,6 +66,9 @@ void CommandQueueManager::CreateNewCommandList
 
     ASSERT_HR(createCommandListHR = device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
     
+    std::wstring  UnnamedCommandList = L"Noname CommandList ";
+    static size_t NumUnnamedCommandList = 0;
+
     if (0 < ID.length())
     {
         ID += L"'s CommandList";
@@ -72,9 +77,9 @@ void CommandQueueManager::CreateNewCommandList
     }
     else
     {
-        (*List)->SetName(L"CommandList");
+        
+        (*List)->SetName((UnnamedCommandList + std::to_wstring(NumUnnamedCommandList)).c_str());
     }
-
 }
 
 void CommandQueueManager::WaitForFence(uint64_t FenceValue)
@@ -130,4 +135,9 @@ void CommandQueueManager::WaitForNextFrameResources()
     }
 
     WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
+}
+
+void /*CommandQueueManager::*/AdvanceOrderNewCommandList(size_t NumCommandLists)
+{
+
 }

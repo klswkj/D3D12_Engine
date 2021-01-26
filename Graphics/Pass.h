@@ -31,12 +31,13 @@ public:
 	virtual void Reset() DEBUG_EXCEPT;
 
 	std::string GetRegisteredName() const noexcept;
-
+	void SetNumThread(size_t NumThread) { m_NumWorkingThread = NumThread; }
 	virtual void finalize();
 
 public:
-	bool m_bActive = true;
-	uint32_t m_PassIndex;
+	bool m_bActive;
+	size_t m_PassIndex;
+	size_t m_NumWorkingThread;
 
 #ifdef _DEBUG
 	float m_DeltaTime = 0.0f;

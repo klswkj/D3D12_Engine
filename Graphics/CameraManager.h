@@ -11,7 +11,8 @@ enum class eObjectFilterFlag;
 
 class CameraManager // CameraContainer, CameraController
 {
-    class CaptureBox;
+public:
+    struct CaptureBox;
 public:
     CameraManager();
     void RenderWindows();

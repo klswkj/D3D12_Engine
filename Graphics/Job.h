@@ -15,7 +15,8 @@ public:
 	{
 	}
 	void Execute(custom::CommandContext& BaseContext) const DEBUG_EXCEPT;
+
 private:
 	const IEntity* m_pEntity;
-	const Step* m_pStep;
+	const Step*    m_pStep;
 };

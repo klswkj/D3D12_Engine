@@ -527,6 +527,9 @@
     <ClCompile Include="OutlineDrawingPass.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
     </ClCompile>
+    <ClCompile Include="CustomCommandQueue.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h">
@@ -924,6 +927,9 @@
     </ClInclude>
     <ClInclude Include="OutlineDrawingPass.h">
       <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomCommandQueue.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

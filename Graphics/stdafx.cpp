@@ -295,3 +295,36 @@ DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale)
     Matrix.r[3].m128_f32[2] *= Scale;
     return Matrix;
 }
+
+uint32_t GetNumberOfCores()
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pProcessorInformations = nullptr;
+    DWORD length = 0;
+
+    BOOL result = GetLogicalProcessorInformation(pProcessorInformations, &length);
+    if (!result)
+    {
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        {
+            pProcessorInformations = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)new BYTE[length];
+        }
+    }
+
+    result = GetLogicalProcessorInformation(pProcessorInformations, &length);
+
+    assert(result);
+
+    uint32_t NumPhysicalCore = 0;
+
+    for (size_t i = 0; i < length / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION); ++i)
+    {
+        if (pProcessorInformations[i].Relationship == RelationProcessorCore)
+        {
+            ++NumPhysicalCore;
+        }
+    }
+
+    delete[] pProcessorInformations;
+
+    return NumPhysicalCore;
+}

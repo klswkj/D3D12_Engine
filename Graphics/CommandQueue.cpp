@@ -5,7 +5,7 @@
 
 namespace custom
 {
-    CommandQueue::CommandQueue( D3D12_COMMAND_LIST_TYPE Type)
+    CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE Type)
         : 
         m_type(Type), m_allocatorPool(Type),
         m_commandQueue(nullptr), m_pFence(nullptr), 
@@ -63,6 +63,7 @@ namespace custom
 
     uint64_t CommandQueue::IncrementFence(void)
     {
+        std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
         m_commandQueue->Signal(m_pFence, m_nextFenceValue);
         return m_nextFenceValue++;
     }
@@ -141,7 +142,7 @@ namespace custom
         return m_nextFenceValue++;
     }
 
-    ID3D12CommandAllocator* CommandQueue::requestAllocator(void)
+    ID3D12CommandAllocator* CommandQueue::requestAllocator()
     {
         uint64_t CompletedFence = m_pFence->GetCompletedValue();
 
