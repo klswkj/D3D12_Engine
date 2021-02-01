@@ -243,16 +243,5 @@ void MainRenderPass::ExecuteWithMultiThread()
 
 void MainRenderPass::WorkThread(size_t ThreadIndex)
 {
-	while ((0 <= ThreadIndex) && (ThreadIndex < stdafx::g_NumThreads))
-	{
-		WaitForSingleObject(m_hWorkerBeginRenderHandle[ThreadIndex], INFINITE);
-
-		wchar_t AllocatorName[35];
-		swprintf(AllocatorName, _countof(AllocatorName), L"MainRender GraphicsContext - %zu", ThreadIndex);
-		custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(AllocatorName);
-
-
-
-		SetEvent(m_hWorkerFinishRenderHandle[ThreadIndex]);
-	}
+	
 }

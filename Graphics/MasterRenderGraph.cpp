@@ -55,20 +55,12 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/VerticalBlurCS.h"
 #endif
 
-// TODO : 
-// https://developer.nvidia.com/sites/all/modules/custom/gpugems/books/GPUGems/gpugems_ch12.html
-// https://docs.microsoft.com/en-us/windows/win32/dxtecharts/cascaded-shadow-maps
-// https://www.gamedev.net/forums/topic/657728-standard-approach-to-shadow-mapping-multiple-light-sources/
-// http://www.adriancourreges.com/blog/2016/09/09/doom-2016-graphics-study/
-// http://ivizlab.sfu.ca/papers/cgf2012.pdf
-// https://www.slideshare.net/blindrenderer/rendering-tech-of-space-marinekgc-2011?next_slideshow=1
-
 MasterRenderGraph* MasterRenderGraph::s_pMasterRenderGraph = nullptr;
 
 MasterRenderGraph::MasterRenderGraph()
 	:
 	m_SelctedPassIndex(0ul),
-	m_SingleThreadingEntityThreshold(50),
+	m_ThreadJobScale(100),
 	m_CurrentNeedCommandList(-1),
 	m_pMainLights         (nullptr),
 	m_pCurrentActiveCamera(nullptr),
@@ -475,9 +467,9 @@ size_t MasterRenderGraph::SetNextNumCommandList()
 			{
 				size_t StepSize = pRQP->GetJobCount();
 
-				if (m_SingleThreadingEntityThreshold < StepSize)
+				if (m_ThreadJobScale < StepSize)
 				{
-					size_t NumWorkingThread = min(NumThreads, (size_t)ceilf((float)StepSize / (float)m_SingleThreadingEntityThreshold));
+					size_t NumWorkingThread = min(NumThreads, (size_t)ceilf((float)StepSize / (float)m_ThreadJobScale));
 					e->SetNumThread(NumWorkingThread);
 
 					// m_CurrentNeedCommandList += StepSize / NumWorkingThread; // CommandList for Worker Thread.

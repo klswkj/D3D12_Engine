@@ -228,6 +228,9 @@
     <Filter Include="SceneGraph\Renderer\RenderGraph\OutlineDrawingPass">
       <UniqueIdentifier>{0169def9-30ef-4e5e-852f-fe72d8f5a215}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Main\ThreadPool">
+      <UniqueIdentifier>{defe4c25-e8da-436b-ae76-c824302a3bce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -529,6 +532,9 @@
     </ClCompile>
     <ClCompile Include="CustomCommandQueue.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="ThreadPool.cpp">
+      <Filter>Main\ThreadPool</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -930,6 +936,9 @@
     </ClInclude>
     <ClInclude Include="CustomCommandQueue.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="ThreadPool.h">
+      <Filter>Main\ThreadPool</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

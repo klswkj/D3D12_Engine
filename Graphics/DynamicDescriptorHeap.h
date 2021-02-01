@@ -127,7 +127,7 @@ namespace custom
 		);
 
 		// Mark all descriptors in the cache as stale and in need of re-uploading.
-		void unbindAllValid(void);
+		void unbindAllValid();
 
 	private:
 		// Static members

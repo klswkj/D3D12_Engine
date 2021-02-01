@@ -9,10 +9,12 @@ namespace custom
 		m_pDevice = pDevice;
 	}
 
+	/*
 	HRESULT CustomCommandQueue::AllocateThreadContext(size_t NumPairs)
 	{
 		ASSERT(m_pDevice != nullptr);
 
 
 	}
+	*/
 }

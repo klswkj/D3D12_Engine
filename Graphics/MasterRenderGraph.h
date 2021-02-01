@@ -70,10 +70,11 @@ private:
 
 public:
 	static MasterRenderGraph* s_pMasterRenderGraph;
+
 	std::vector<std::unique_ptr<Pass>> m_pPasses;
 	std::vector<std::unique_ptr<Pass>> m_pFullScreenDebugPasses;
 	std::vector<std::unique_ptr<Pass>> m_pDebugPasses;
-	std::vector<MainLight>* m_pMainLights;
+	std::vector<MainLight>*            m_pMainLights;
 	Camera* m_pCurrentActiveCamera;
 	
 	bool m_bFullScreenDebugPasses;
@@ -102,6 +103,6 @@ private:
 	GraphicsPSO m_MainRenderPSO;
 
 	size_t m_SelctedPassIndex;
-	size_t m_SingleThreadingEntityThreshold;
+	size_t m_ThreadJobScale;
 	size_t m_CurrentNeedCommandList;
 };

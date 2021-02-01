@@ -18,7 +18,7 @@ namespace device
     void Destroy();
 
     HRESULT queryCaps();
-    HRESULT createDeviceDependentStateInternal();
+    HRESULT CreateD3D12Devices();
 
     extern ID3D12Device* g_pDevice;
     extern CommandQueueManager   g_commandQueueManager;   // 

@@ -390,7 +390,6 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			ASSERT(false, "Invalid TextureBitMap.");
 		}
 
-
 		Phong.PushBackStep(std::move(Lambertian));
 		m_Techniques.push_back(std::move(Phong));
 	}

@@ -192,5 +192,5 @@ if (_CrtMemDifference(&s3, &s1, &s2))         \
 
 namespace stdafx
 {
-    static const UINT g_NumThreads = 4;
+    static const UINT g_NumThreads = 3;
 }

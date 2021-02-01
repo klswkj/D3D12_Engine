@@ -9,6 +9,7 @@
 #include "DescriptorHeapManager.h"
 #include "ImGuiManager.h" // For Resize
 #include "DynamicDescriptorHeap.h"
+#include "ThreadPool.h"
 
 namespace device
 {
@@ -30,40 +31,34 @@ namespace device
 		}
 	}
 
-	// Global variable declarations here.
-	ID3D12Device*         g_pDevice = nullptr;
-	ColorBuffer           g_DisplayColorBuffer[3];
-	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
-	// IDXGISwapChain2*      g_pDXGISwapChain = nullptr;
-	HANDLE                g_hSwapChainWaitableObject = nullptr; // SwapChain Ver. 2 
-	ID3D12DescriptorHeap* g_ImguiFontHeap;
+	Microsoft::WRL::ComPtr<IDXGIFactory2> s_pDXGIFactory = nullptr;
 
+	// Global variable declarations here.
+	ID3D12Device*         g_pDevice                  = nullptr;
+	HANDLE                g_hSwapChainWaitableObject = nullptr;
+	ID3D12DescriptorHeap* g_ImguiFontHeap;
+	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
+	ColorBuffer           g_DisplayColorBuffer[3];
+
+	custom::ThreadPool    g_ThreadPoolManager;
 	CommandQueueManager   g_commandQueueManager;
 	CommandContextManager g_commandContextManager;
 	DescriptorHeapManager g_descriptorHeapManager;
 
-	// DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
-	DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
 	D3D_FEATURE_LEVEL g_D3DFeatureLevel;
 	D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
 	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT g_GpuVaSupport;
 	DXGI_QUERY_VIDEO_MEMORY_INFO g_LocalVideoMemoryInfo;
 	DXGI_QUERY_VIDEO_MEMORY_INFO g_NonLocalVideoMemoryInfo;
 
-	// IDXGIFactory2* s_pDXGIFactory{ nullptr };
-	Microsoft::WRL::ComPtr<IDXGIFactory2> s_pDXGIFactory = nullptr;
-
-	bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT = false;
+	DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
+	bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT    = false;
 	bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = false;
 
 	uint32_t g_DescriptorSize[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
-#if !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-	Platform::Agile<Windows::UI::Core::CoreWindow>  g_window;
-#endif
-
 	static constexpr UINT SWAP_CHAIN_BUFFER_COUNT = 3ul;
-	const UINT            g_DisplayBufferCount    = SWAP_CHAIN_BUFFER_COUNT;
+	const            UINT g_DisplayBufferCount    = SWAP_CHAIN_BUFFER_COUNT;
 
 	// Dependent on Resize(float, float) function.
 	uint32_t g_DisplayWidth = 1920; 
@@ -92,12 +87,14 @@ namespace device
 #endif
 		ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&s_pDXGIFactory)));
 
-		createDeviceDependentStateInternal();
+		CreateD3D12Devices();
 		
 		premade::Initialize();
 		
 		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
 		// TODO : TextRender Init
+
+		g_ThreadPoolManager.Create();
 
 		return S_OK;
 	}
@@ -130,7 +127,7 @@ namespace device
 
 		// printf("Changing display resolution to %ux%u\n", width, height);
 
-		// For Zoom
+		// Buffer for Zoom.
 		// g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
 
 		for (uint32_t i = 0; i < SWAP_CHAIN_BUFFER_COUNT; ++i)
@@ -167,8 +164,6 @@ namespace device
 			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
 			g_commandQueueManager.SetSwapChainWaitableObject(&g_hSwapChainWaitableObject);
 		}
-
-
 		{
 			std::wstring DisplayBufferName = L"g_DisplayColorBuffer 0";
 
@@ -181,6 +176,7 @@ namespace device
 				++DisplayBufferName.back();
 			}
 		}
+
 		bufferManager::DestroyRenderingBuffers();
 		bufferManager::InitializeAllBuffers(width, height);
 
@@ -233,7 +229,7 @@ namespace device
 
 	HRESULT queryCaps();
 
-	HRESULT createDeviceDependentStateInternal()
+	HRESULT CreateD3D12Devices()
 	{
 		ASSERT(device::g_pDXGISwapChain == nullptr, "Graphics has already been initialized");
 
