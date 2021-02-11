@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "CommandQueue.h"
-#include "CustomCommandQueue.h"
+#include "GPUWorkManager.h"
 
 namespace custom
 {
@@ -113,10 +113,10 @@ public:
 private:
     ID3D12Device* m_pDevice; // = device::g_pDevice;
 
-    custom::CommandQueue       m_graphicsCommandQueue;
-    custom::CommandQueue       m_computeCommandQueue;
-    custom::CommandQueue       m_copyCommandQueue;
-    custom::CustomCommandQueue m_customCommandQueue;
+    custom::CommandQueue   m_graphicsCommandQueue; //  { ID3D12CommandQueue*, CommandAllocatorPool, ID3D12Fence*}
+    custom::CommandQueue   m_computeCommandQueue;
+    custom::CommandQueue   m_copyCommandQueue;
+    // custom::TaskFiberManager m_customCommandQueue;
 
     ID3D12Fence* m_lastSubmitFenceForSwapChain;
     HANDLE*      m_swapChainWaitableObject; // = device::g_hSwapChainWaitableObject

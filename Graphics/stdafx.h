@@ -1,4 +1,7 @@
 #pragma once
+
+#pragma region HEADER
+
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
 #include <cstdlib>
@@ -82,6 +85,10 @@
 #include "MathCommon.h"
 #include "MathBasic.h"
 
+#pragma endregion HEADER
+
+#pragma region CUSTOM_DEFINE
+
 #define DEBUG_EXCEPT noexcept(!_DEBUG)
 
 #define D3D11_VER
@@ -95,6 +102,20 @@
 #ifndef _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
 #define _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
 #endif
+
+#if _MSC_VER >= 1400
+#define OVERRIDE override
+#define FINAL    final
+#define SEALED   sealed
+#else
+#define OVERRIDE
+#define FINAL
+#define SEALED
+#endif
+
+#pragma endregion CUSTOM_DEFINE
+
+#pragma region CUSTOM_FUNCTION
 
 template<typename T>
 inline void SafeRelease(T*& rpInterface)
@@ -180,15 +201,8 @@ if (_CrtMemDifference(&s3, &s1, &s2))         \
 #endif
 #endif
 
-#if _MSC_VER >= 1400
-#define OVERRIDE override
-#define FINAL final
-#define SEALED sealed
-#else
-#define OVERRIDE
-#define FINAL
-#define SEALED
-#endif
+#pragma endregion CUSTOM_FUNCTION
+
 
 namespace stdafx
 {

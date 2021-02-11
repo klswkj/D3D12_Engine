@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Rendering Engine">
+      <UniqueIdentifier>{7c6d5115-e307-4a5b-9970-7859b9459322}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering Engine\Windows">
+      <UniqueIdentifier>{e414b942-1232-4809-b5be-ebee961a63da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering Engine\Windows\D3D12">
+      <UniqueIdentifier>{ea2a9dbd-a726-4e07-b2ce-ff0e2b458040}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering Engine\Windows\D3D12\Pre-Compiled Header">
+      <UniqueIdentifier>{77164552-50b2-48df-a642-1038b00b2b07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering Engine\Windows\D3D12\D3D12API">
+      <UniqueIdentifier>{9b6401e7-32d1-4654-b4cd-abeab711cbfb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Rendering Engine\Windows\D3D12\Pre-Compiled Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Rendering Engine\Windows\D3D12\Pre-Compiled Header</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

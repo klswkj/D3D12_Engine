@@ -231,6 +231,9 @@
     <Filter Include="Main\ThreadPool">
       <UniqueIdentifier>{defe4c25-e8da-436b-ae76-c824302a3bce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\GPUWorkManager">
+      <UniqueIdentifier>{2c817161-d690-4545-9a5a-d8fe2cede64c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -530,11 +533,17 @@
     <ClCompile Include="OutlineDrawingPass.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
     </ClCompile>
-    <ClCompile Include="CustomCommandQueue.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
     <ClCompile Include="ThreadPool.cpp">
       <Filter>Main\ThreadPool</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUWorkManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomCommandQALPool.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomFence.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -934,11 +943,17 @@
     <ClInclude Include="OutlineDrawingPass.h">
       <Filter>SceneGraph\Renderer\RenderGraph\OutlineDrawingPass</Filter>
     </ClInclude>
-    <ClInclude Include="CustomCommandQueue.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="ThreadPool.h">
       <Filter>Main\ThreadPool</Filter>
+    </ClInclude>
+    <ClInclude Include="GPUWorkManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomCommandQALPool.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomFence.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

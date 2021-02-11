@@ -9,9 +9,9 @@ namespace custom
         : 
         m_type(Type), m_allocatorPool(Type),
         m_commandQueue(nullptr), m_pFence(nullptr), 
-        m_fenceEventHandle(nullptr),
-        m_nextFenceValue((uint64_t)Type << 56 | 1),
-        m_lastCompletedFenceValue((uint64_t)Type << 56)
+        m_FenceEventHandle(nullptr),
+        m_CPUSideNextFenceValue((uint64_t)Type << 56 | 1),
+        m_LastCompletedFenceValue((uint64_t)Type << 56)
     {
     }
     CommandQueue::~CommandQueue()
@@ -28,7 +28,7 @@ namespace custom
 
         m_allocatorPool.~CommandAllocatorPool();
 
-        CloseHandle(m_fenceEventHandle);
+        CloseHandle(m_FenceEventHandle);
 
         SafeRelease(m_pFence);
         SafeRelease(m_commandQueue);
@@ -57,30 +57,31 @@ namespace custom
 
         m_pFence->Signal((uint64_t)m_type << 56);
 
-        m_fenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
-        ASSERT(m_fenceEventHandle != NULL);
+        m_FenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
+        ASSERT(m_FenceEventHandle != NULL);
     }
 
-    uint64_t CommandQueue::IncrementFence(void)
+    uint64_t CommandQueue::IncreaseCPUGPUFenceValue()
     {
         std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
-        m_commandQueue->Signal(m_pFence, m_nextFenceValue);
-        return m_nextFenceValue++;
-    }
-    bool CommandQueue::IsFenceComplete(uint64_t FenceValue)
-    {
-		if (m_lastCompletedFenceValue < FenceValue)
-		{
-            m_lastCompletedFenceValue = (m_pFence->GetCompletedValue() < m_lastCompletedFenceValue) ?
-                m_lastCompletedFenceValue : m_pFence->GetCompletedValue();
-		}
-        return FenceValue <= m_lastCompletedFenceValue;
+        m_commandQueue->Signal(m_pFence, m_CPUSideNextFenceValue);
+        return m_CPUSideNextFenceValue++;
     }
 
-    // TODO 3 : 혹시모를 Swapchain starvation대비해서
-    // FrameContext(Swapchain 갯수만큼), WaitForNextFrameResources 만들기
-    // 그래서 CommandContext.Finish(bool WaitForCompletion = false, bool WaitForSwapChain = false)형식으로 해서
-    
+    bool CommandQueue::IsFenceComplete(uint64_t FenceValue)
+    {
+		if (m_LastCompletedFenceValue < FenceValue)
+		{
+            m_LastCompletedFenceValue = 
+                (m_pFence->GetCompletedValue() < m_LastCompletedFenceValue) ?
+                m_LastCompletedFenceValue : 
+                m_pFence->GetCompletedValue();
+		}
+
+        return FenceValue <= m_LastCompletedFenceValue;
+    }
+
+    // GPU-Side Wait until Value.
     void CommandQueue::StallForFence(uint64_t FenceValue)
     {
         CommandQueue& Producer = device::g_commandQueueManager.GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
@@ -88,9 +89,8 @@ namespace custom
     }
     bool CommandQueue::StallForProducer(CommandQueue& Producer)
     {
-        ASSERT(0 < Producer.m_nextFenceValue);
-        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, Producer.m_nextFenceValue - 1));
-        
+        ASSERT(0 < Producer.m_CPUSideNextFenceValue);
+        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, Producer.m_CPUSideNextFenceValue - 1));
     }
     void CommandQueue::WaitForFence(uint64_t FenceValue)
     {
@@ -106,9 +106,9 @@ namespace custom
         {
             std::lock_guard<std::mutex> LockGuard(m_eventMutex);
 
-            m_pFence->SetEventOnCompletion(FenceValue, m_fenceEventHandle);
-            WaitForSingleObject(m_fenceEventHandle, INFINITE);
-            m_lastCompletedFenceValue = FenceValue;
+            m_pFence->SetEventOnCompletion(FenceValue, m_FenceEventHandle);
+            ::WaitForSingleObject(m_FenceEventHandle, INFINITE);
+            m_LastCompletedFenceValue = FenceValue;
         }
     }
 
@@ -122,7 +122,7 @@ namespace custom
         m_commandQueue->ExecuteCommandLists(1, &List);
 
 		// Signal the next fence value (with the GPU)
-		HRESULT hr = m_commandQueue->Signal(m_pFence, m_nextFenceValue);
+		HRESULT hr = m_commandQueue->Signal(m_pFence, m_CPUSideNextFenceValue);
 
         // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -139,7 +139,7 @@ namespace custom
 
         // End LRR
 
-        return m_nextFenceValue++;
+        return m_CPUSideNextFenceValue++;
     }
 
     ID3D12CommandAllocator* CommandQueue::requestAllocator()

@@ -28,7 +28,7 @@ void CommandQueueManager::Create(ID3D12Device* pDevice)
     m_graphicsCommandQueue.Create(pDevice);
     m_computeCommandQueue.Create(pDevice);
     m_copyCommandQueue.Create(pDevice);
-    m_customCommandQueue.Create(pDevice);
+    // m_customCommandQueue.Create(pDevice);
 }
 
 void CommandQueueManager::CreateNewCommandList
@@ -82,6 +82,8 @@ void CommandQueueManager::CreateNewCommandList
     }
 }
 
+// If CommandContext::Finish(true);
+// Wait CommandQueue.executeCommandList(m_commandList)
 void CommandQueueManager::WaitForFence(uint64_t FenceValue)
 {
     custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));

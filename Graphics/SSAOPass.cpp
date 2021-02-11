@@ -285,7 +285,7 @@ void SSAOPass::Execute(custom::CommandContext& BaseContext)
 		custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
 		graphicsContext.TransitionResource(MainDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-		graphicsContext.TransitionResource(SSAOTarget, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		graphicsContext.TransitionResource(SSAOTarget,      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		if (m_bAsyncCompute)
 		{

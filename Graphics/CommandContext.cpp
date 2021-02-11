@@ -80,31 +80,31 @@ namespace custom
 		ASSERT(m_currentCommandAllocator != nullptr);
 
 		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
-		uint64_t FenceValue = Queue.executeCommandList(m_commandList);
+		uint64_t LastExecuteFenceValue = Queue.executeCommandList(m_commandList);
 
 		if (RecordForSwapChainFence)
 		{
 			ASSERT(Queue.GetFence() != nullptr);
-			device::g_commandQueueManager.SetFenceValueForSwapChain(FenceValue + 1);
+			device::g_commandQueueManager.SetFenceValueForSwapChain(LastExecuteFenceValue + 1);
 			device::g_commandQueueManager.SetFenceForSwapChain(Queue.GetFence());
 		}
 
-		Queue.discardAllocator(FenceValue, m_currentCommandAllocator);
+		Queue.discardAllocator(LastExecuteFenceValue, m_currentCommandAllocator);
 		m_currentCommandAllocator = nullptr;
 
-		m_CPULinearAllocator.CleanupUsedPages(FenceValue);
-		m_GPULinearAllocator.CleanupUsedPages(FenceValue);
-		m_DynamicViewDescriptorHeap.CleanupUsedHeaps(FenceValue);
-		m_DynamicSamplerDescriptorHeap.CleanupUsedHeaps(FenceValue);
+		m_CPULinearAllocator.CleanupUsedPages(LastExecuteFenceValue);
+		m_GPULinearAllocator.CleanupUsedPages(LastExecuteFenceValue);
+		m_DynamicViewDescriptorHeap.CleanupUsedHeaps(LastExecuteFenceValue);
+		m_DynamicSamplerDescriptorHeap.CleanupUsedHeaps(LastExecuteFenceValue);
 
 		if (WaitForCompletion)
 		{
-			device::g_commandQueueManager.WaitForFence(FenceValue);
+			device::g_commandQueueManager.WaitForFence(LastExecuteFenceValue);
 		}
 
 		device::g_commandContextManager.FreeContext(this);
 
-		return FenceValue;
+		return LastExecuteFenceValue;
 	}
 
 	void CommandContext::Reset(std::wstring ID)

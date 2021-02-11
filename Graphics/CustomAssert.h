@@ -98,7 +98,7 @@ namespace AssertInternal
             AssertInternal::PrintSubMessage(__VA_ARGS__);                \
             AssertInternal::Print("\n");                                 \
             __debugbreak();                                              \
-        }
+        }                                                               
 
 #define ASSERT_HR( hr, ... ) \
         if (FAILED(hr))      \
