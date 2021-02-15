@@ -1,48 +1,47 @@
 #include "stdafx.h"
 #include "ThreadPool.h"
 
-#define STATIC
-
 namespace custom
 {
 	ThreadPool* ThreadPool::sm_pThreadPool = nullptr;
+	size_t      ThreadPool::sm_LogicalProcessors = 0;
 
 	ThreadPool::ThreadPool()
 		:
-#if defined(USE_CV)
-#else
+		m_OrderCS({}),
+		m_QueueCS({}),
 		m_hWakeUpEvent(nullptr),
 		m_hWorkFinishEvent(nullptr),
-#endif
 		m_bThreadShutdown(false),
-		m_NumPhysicalCores(0),
 		m_NumWorkingThreads(0)
 	{
 		ASSERT(sm_pThreadPool == nullptr);
 		sm_pThreadPool = this;
-		m_NumPhysicalCores = GetNumberOfCores();
-#if defined(USE_CV)
-#else
+
+		sm_LogicalProcessors = ::GetNumLogicalProcessors() - 1;
+
 		m_hWakeUpEvent     = CreateEvent(nullptr, true, false, nullptr); // ManualInit is true.
 		m_hWorkFinishEvent = CreateEvent(nullptr, false, false, nullptr);
-#endif
+
+		InitializeCriticalSection(&m_OrderCS);
+		InitializeCriticalSection(&m_QueueCS);
 	}
 	ThreadPool::~ThreadPool()
 	{
 		ThreadsShutdown();
 	}
 
-	bool ThreadPool::Create(uint32_t NumThreads)
+	bool ThreadPool::Create(uint32_t NumThreads/*= 0*/)
 	{
 		size_t NumMakeThreads = 0;
 
-		if (NumThreads == -1)
+		if (NumThreads == 0)
 		{
-			NumMakeThreads = m_NumPhysicalCores;
+			NumMakeThreads = sm_LogicalProcessors;
 		}
 		else
 		{
-			ASSERT(NumThreads < uint32_t(m_NumPhysicalCores * 2));
+			ASSERT(NumThreads < uint32_t(sm_LogicalProcessors * 2));
 			NumMakeThreads = NumThreads;
 		}
 
@@ -85,18 +84,10 @@ namespace custom
 		ASSERT(false);
 	}
 	void ThreadPool::ThreadsShutdown()
-	{
-#if defined(USE_CV)
-		std::unique_lock<std::mutex> UniqueLock(m_QueueMutex);
-		m_bThreadShutdown = true;
-		UniqueLock.unlock();
-		m_WakeUpCV.notify_all();
-
-		WaitFinishedAllThreads();
-#else		
+	{	
 		m_bThreadShutdown = true;
 		SetEvent(m_hWakeUpEvent);
-#endif
+
 		WaitFinishedAllThreads();
 		ASSERT(WorkQueueEmpty());
 		for (auto& e : m_ThreadWorkFinishEvents)
@@ -112,6 +103,8 @@ namespace custom
 		m_Threads.clear();
 		CloseHandle(m_hWakeUpEvent);
 		CloseHandle(m_hWorkFinishEvent);
+		DeleteCriticalSection(&m_OrderCS);
+		DeleteCriticalSection(&m_QueueCS);
 	}
 
 	STATIC void ThreadPool::Enqueue
@@ -121,16 +114,13 @@ namespace custom
 	)
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
-#if defined(USE_CV)
-		std::unique_lock<std::mutex> UniqueLock(pThreadPool->m_QueueMutex);
-		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, pParameter }));
-		pThreadPool->m_WakeUpCV.notify_one();
-#else
-		std::lock_guard<std::mutex> s_lockguardTriplets1(pThreadPool->m_QueueMutex);
+
+		EnterCriticalSection(&pThreadPool->m_QueueCS);
+
 		pThreadPool->m_WorkQueue.push_back({ pWork, pParameter });
-		// pThreadPool->m_WorkQueue.emplace_back((pWork, pParameter));
 		SetEvent(pThreadPool->m_hWakeUpEvent);
-#endif
+
+		LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::Enqueue
@@ -141,15 +131,12 @@ namespace custom
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 
-#if defined(USE_CV)
-		std::unique_lock<std::mutex> UniqueLock(pThreadPool->m_QueueMutex);
-		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, pParameter }));
-		pThreadPool->m_WakeUpCV.notify_one();
-#else
-		std::lock_guard<std::mutex> lockguardTwin1(pThreadPool->m_QueueMutex);
+		EnterCriticalSection(&pThreadPool->m_QueueCS);
+
 		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, pParameter }));
 		SetEvent(pThreadPool->m_hWakeUpEvent);
-#endif
+
+		LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::MultipleEnqueue
@@ -161,8 +148,7 @@ namespace custom
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 
-#if defined(USE_CV)
-		std::unique_lock<std::mutex> UniqueLock(pThreadPool->m_QueueMutex);
+		EnterCriticalSection(&pThreadPool->m_QueueCS);
 
 		if (pParameter)
 		{
@@ -178,30 +164,9 @@ namespace custom
 				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWork + i), nullptr }));
 			}
 		}
-
-		UniqueLock.unlock();
-		pThreadPool->m_WakeUpCV.notify_all();
-#else
-		pThreadPool->m_QueueMutex.lock();
-
-		if (pParameter)
-		{
-			for (size_t i = 0; i < ElementSize; ++i)
-			{
-				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWork + i), *(pParameter + i) }));
-			}
-		}
-		else
-		{
-			for (size_t i = 0; i < ElementSize; ++i)
-			{
-				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWork + i), nullptr }));
-			}
-		}
-
 		SetEvent(pThreadPool->m_hWakeUpEvent);
-		pThreadPool->m_QueueMutex.unlock();
-#endif
+
+		LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::WaitAllFinished(HANDLE hFinishEvent /*= nullptr*/)
@@ -254,10 +219,6 @@ namespace custom
 		}
 		else
 		{
-#if defined(USE_CV)
-			std::unique_lock<std::mutex> UniqueLock(pThreadPool->m_QueueMutex);
-			pThreadPool->m_WorkFinishedCV.wait(UniqueLock, [pThreadPool]() {return pThreadPool->WorkQueueEmpty() && !pThreadPool->m_NumWorkingThreads; });
-#else
 			while (1)
 			{
 				sm_pThreadPool->WaitFinishedAllThreads();
@@ -270,7 +231,6 @@ namespace custom
 					}
 				}
 			}
-#endif
 		}
 	}
 
@@ -284,55 +244,26 @@ namespace custom
 		std::function<void(void*)> Function;
 		void* Parameter;
 
-#if defined(USE_CV)
 		while (1)
 		{
-			std::unique_lock<std::mutex> UniqueLock(pThreadPool->m_QueueMutex);
-			pThreadPool->m_WakeUpCV.wait(UniqueLock, [pThreadPool]() {return pThreadPool->m_bThreadShutdown || !pThreadPool->WorkQueueEmpty(); });
-			if (!pThreadPool->WorkQueueEmpty())
-			{
-				std::pair<std::function<void(void*)>, void*>& front = pThreadPool->m_WorkQueue.front();
-				Function = front.first;
-				Parameter = front.second;
-
-				pThreadPool->m_WorkQueue.pop_front();
-				++pThreadPool->m_NumWorkingThreads;
-				UniqueLock.unlock();
-
-				Function(Parameter);
-
-				UniqueLock.lock();
-				--pThreadPool->m_NumWorkingThreads;
-				pThreadPool->m_WorkFinishedCV.notify_one();
-			}
-			else if (pThreadPool->m_bThreadShutdown)
-			{
-				SetEvent(PrivateWorkFinishEvent);
-				return 0;
-			}
-		}
-#else
-		while (1)
-		{
-			pThreadPool->m_OrderMutex.lock();
-
+			EnterCriticalSection(&pThreadPool->m_OrderCS);
 			WaitForSingleObject(sm_pThreadPool->m_hWakeUpEvent, INFINITE);
 
 			if (!sm_pThreadPool->WorkQueueEmpty())
 			{
 				{
-					std::lock_guard<std::mutex> QueueLockguard(pThreadPool->m_QueueMutex);
+					EnterCriticalSection(&pThreadPool->m_QueueCS);
 					++sm_pThreadPool->m_NumWorkingThreads;
 
 					std::pair<std::function<void(void*)>, void*>& front = pThreadPool->m_WorkQueue.front();
 					Function = front.first;
 					Parameter = front.second;
 
-					pThreadPool->m_WorkQueue.pop_front();
+					pThreadPool->m_WorkQueue.pop_front();	
+					LeaveCriticalSection(&pThreadPool->m_QueueCS);
 				}
 
-				pThreadPool->m_OrderMutex.unlock();
-
+				LeaveCriticalSection(&pThreadPool->m_OrderCS);
 				Function(Parameter);
 
 				SetEvent(PrivateWorkFinishEvent);
@@ -342,16 +273,15 @@ namespace custom
 				if (!pThreadPool->m_bThreadShutdown)
 				{
 					ResetEvent(sm_pThreadPool->m_hWakeUpEvent);
-					pThreadPool->m_OrderMutex.unlock();
-				}
+					LeaveCriticalSection(&pThreadPool->m_OrderCS);
+	            }
 				else
 				{
-					pThreadPool->m_OrderMutex.unlock();
+					LeaveCriticalSection(&pThreadPool->m_OrderCS);
 					SetEvent(PrivateWorkFinishEvent);
 					return 0;
 				}
 			}
 		}
-#endif
 	}
 }

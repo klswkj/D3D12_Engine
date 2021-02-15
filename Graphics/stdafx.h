@@ -24,6 +24,7 @@
 #include <wrl.h>
 #include <cstdint>
 #include <cstdarg>
+#include <tchar.h>
 #include <ppltasks.h>
 #include <exception>
 #include <assert.h>
@@ -85,12 +86,15 @@
 #include "MathCommon.h"
 #include "MathBasic.h"
 
+
+
 #pragma endregion HEADER
 
 #pragma region CUSTOM_DEFINE
 
 #define DEBUG_EXCEPT noexcept(!_DEBUG)
 
+#define STATIC
 #define D3D11_VER
 #define D3D12_VER
 #define FILEACCESS
@@ -99,11 +103,21 @@
 #define D3D12_GPU_VIRTUAL_ADDRESS_NULL      ((D3D12_GPU_VIRTUAL_ADDRESS)0)
 #define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN   ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
+#define InterlockedGetValue(object) InterlockedCompareExchange(object, 0, 0)
+
+#ifndef USING_THREAD_POOL
+#define USING_THREAD_POOL 1
+#endif
+
+#if USING_THREAD_POOL
+#include "ThreadPool.h"
+#endif
+
 #ifndef _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
 #define _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING
 #endif
 
-#if _MSC_VER >= 1400
+#if 1400 <= _MSC_VER
 #define OVERRIDE override
 #define FINAL    final
 #define SEALED   sealed
@@ -162,7 +176,7 @@ DirectX::XMFLOAT3 ExtractEulerAngles(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMFLOAT3 ExtractTranslation(const DirectX::XMFLOAT4X4& Matrix);
 DirectX::XMMATRIX ScaleTranslation(DirectX::XMMATRIX Matrix, float Scale);
 
-uint32_t          GetNumberOfCores();
+uint32_t          GetNumLogicalProcessors();
 
 #ifndef RELEASE
 #define SET_NAME(x) SetName(x, __FILE__, __FUNCTION__, __LINE__)
@@ -202,9 +216,3 @@ if (_CrtMemDifference(&s3, &s1, &s2))         \
 #endif
 
 #pragma endregion CUSTOM_FUNCTION
-
-
-namespace stdafx
-{
-    static const UINT g_NumThreads = 3;
-}

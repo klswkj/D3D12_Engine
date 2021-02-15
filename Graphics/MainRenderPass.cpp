@@ -85,43 +85,19 @@ MainRenderPass::MainRenderPass(std::string Name, custom::RootSignature* pRootSig
 
 		m_pPSO = new GraphicsPSO();
 
-		m_pPSO->SetRootSignature        (*m_pRootSignature);
-		m_pPSO->SetRasterizerState      (premade::g_RasterizerDefault);
-		m_pPSO->SetBlendState           (premade::g_BlendDisable);
-		m_pPSO->SetDepthStencilState    (premade::g_DepthStateTestEqual);
-		m_pPSO->SetInputLayout          (_countof(InputElements), InputElements);
+		m_pPSO->SetRootSignature(*m_pRootSignature);
+		m_pPSO->SetRasterizerState(premade::g_RasterizerDefault);
+		m_pPSO->SetBlendState(premade::g_BlendDisable);
+		m_pPSO->SetDepthStencilState(premade::g_DepthStateTestEqual);
+		m_pPSO->SetInputLayout(_countof(InputElements), InputElements);
 		m_pPSO->SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		m_pPSO->SetRenderTargetFormats  (1, &ColorFormat, DepthFormat);
-		m_pPSO->SetVertexShader         (g_pModelTest_VS, sizeof(g_pModelTest_VS));
-		m_pPSO->SetPixelShader          (g_pModelTest_DiffuseSpecularNormal_PS, sizeof(g_pModelTest_DiffuseSpecularNormal_PS));
+		m_pPSO->SetRenderTargetFormats(1, &ColorFormat, DepthFormat);
+		m_pPSO->SetVertexShader(g_pModelTest_VS, sizeof(g_pModelTest_VS));
+		m_pPSO->SetPixelShader(g_pModelTest_DiffuseSpecularNormal_PS, sizeof(g_pModelTest_DiffuseSpecularNormal_PS));
 		m_pPSO->Finalize(L"InitAtMainRenderPass");
 
 		m_bAllocatePSO = true;
 	}
-
-	size_t NumThreads = stdafx::g_NumThreads;
-
-	for (size_t i = 0; i < NumThreads; ++i)
-	{
-		m_hWorkerBeginRenderHandle[NumThreads]
-			= CreateEvent
-			(
-				NULL,
-				FALSE,
-				FALSE,
-				NULL
-			);
-
-		m_hWorkerFinishRenderHandle[NumThreads]
-			= CreateEvent
-			(
-				NULL,
-				FALSE,
-				FALSE,
-				NULL
-			);
-	}
-
 }
 
 MainRenderPass::~MainRenderPass()
@@ -136,24 +112,6 @@ MainRenderPass::~MainRenderPass()
 	{
 		delete m_pPSO;
 		m_pPSO = nullptr;
-	}
-
-	{
-		size_t i = 0;
-		size_t NumThreads = stdafx::g_NumThreads;
-
-		for (i = 0; i < NumThreads; ++i)
-		{
-			CloseHandle(m_hWorkerBeginRenderHandle[i]);
-		}
-		for (i = 0; i < NumThreads; ++i)
-		{
-			CloseHandle(m_hWorkerFinishRenderHandle[i]);
-		}
-		for (i = 0; i < NumThreads; ++i)
-		{
-			CloseHandle(m_hThreadHandles[i]);
-		}
 	}
 }
 
@@ -226,14 +184,6 @@ void MainRenderPass::ExecuteWithMultiThread()
 	float DeltaTime1 = graphics::GetDebugFrameTime();
 #endif
 
-	size_t NumThreads = stdafx::g_NumThreads;
-
-	for (size_t i = 0; i < NumThreads; ++i)
-	{
-		SetEvent(m_hWorkerBeginRenderHandle[i]);
-	}
-
-	WaitForMultipleObjects(NumThreads, m_hWorkerFinishRenderHandle, TRUE, INFINITE);
 
 #ifdef _DEBUG
 	float DeltaTime2 = graphics::GetDebugFrameTime();

@@ -457,7 +457,7 @@ size_t MasterRenderGraph::SetNextNumCommandList()
 	if (m_bDebugPassesMode == false)
 	{
 		m_CurrentNeedCommandList = 0;
-		size_t NumThreads = stdafx::g_NumThreads;
+		size_t NumThreads = custom::ThreadPool::GetLogicalProcessors();
 
 		for (auto& e : m_pPasses)
 		{

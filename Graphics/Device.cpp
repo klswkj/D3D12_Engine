@@ -9,7 +9,10 @@
 #include "DescriptorHeapManager.h"
 #include "ImGuiManager.h" // For Resize
 #include "DynamicDescriptorHeap.h"
+
+#if USING_THREAD_POOL
 #include "ThreadPool.h"
+#endif
 
 namespace device
 {
@@ -39,8 +42,9 @@ namespace device
 	ID3D12DescriptorHeap* g_ImguiFontHeap;
 	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
 	ColorBuffer           g_DisplayColorBuffer[3];
-
+#if USING_THREAD_POOL
 	custom::ThreadPool    g_ThreadPoolManager;
+#endif
 	CommandQueueManager   g_commandQueueManager;
 	CommandContextManager g_commandContextManager;
 	DescriptorHeapManager g_descriptorHeapManager;
@@ -94,8 +98,9 @@ namespace device
 		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
 		// TODO : TextRender Init
 
+#if USING_THREAD_POOL
 		g_ThreadPoolManager.Create();
-
+#endif
 		return S_OK;
 	}
 
@@ -188,16 +193,11 @@ namespace device
 		return S_OK;
 	}
 
-	void Terminate()
-	{
-		g_commandQueueManager.IdleGPU();
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-		g_pDXGISwapChain->SetFullscreenState(FALSE, nullptr);
-#endif
-	}
-
 	void Destroy()
 	{
+		g_commandQueueManager.IdleGPU();
+		g_pDXGISwapChain->SetFullscreenState(FALSE, nullptr);
+
 		SafeRelease(g_pDXGISwapChain);
 
 		custom::CommandContext::DestroyAllContexts();

@@ -28,7 +28,7 @@ void CommandQueueManager::Create(ID3D12Device* pDevice)
     m_graphicsCommandQueue.Create(pDevice);
     m_computeCommandQueue.Create(pDevice);
     m_copyCommandQueue.Create(pDevice);
-    // m_customCommandQueue.Create(pDevice);
+    m_TaskFiberManager.Create(pDevice);
 }
 
 void CommandQueueManager::CreateNewCommandList

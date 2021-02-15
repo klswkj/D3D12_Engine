@@ -5,7 +5,7 @@ namespace custom
 {
 	class CustomCommandQALPool;
 	class CustomFence;
-
+	/*
 	class CustomCommandQueue
 	{
 	public:
@@ -92,7 +92,7 @@ namespace custom
 		uint64_t m_LastFenceValue;
 		bool     m_bClosed;
 	};
-
+	*/
 	class CustomCommandQALPool
 	{
 	public:
@@ -106,26 +106,37 @@ namespace custom
 		ID3D12CommandQueue* RequestCommandQueue(UINT priority = 0);
 		void RequestCommandAllocatorsLists(size_t NumLists, ID3D12CommandAllocator*** p_pCommandAllocatorArray, ID3D12GraphicsCommandList*** p_pListArray);
 
+		std::deque<ID3D12CommandQueue*       >* GetAvailableCommandQueues()     { return &m_AvailableCommandQueues; }
+		std::deque<ID3D12CommandAllocator*   >* GetAvailableCommandAllocators() { return &m_AvailableCommandAllocators; }
+		std::deque<ID3D12GraphicsCommandList*>* GetAvailableCommandLists()      { return &m_AvailableCommandLists; }
+
+		void ReleaseCommandQueue(ID3D12CommandQueue* pCommandQueue);
+
+		void ReleaseCommandAllocator (ID3D12CommandAllocator*  pCommandAllocator);
+		void ReleaseCommandAllocators(ID3D12CommandAllocator** pCommandAllocators, uint64_t allocatorSize);
+
+		void ReleaseCommandList (ID3D12GraphicsCommandList*  pCommandList);
+		void ReleaseCommandLists(ID3D12GraphicsCommandList** pCommandLists, uint64_t listSize);
+
 	private:
 		ID3D12Device*           m_pDevice;
 		D3D12_COMMAND_LIST_TYPE m_Type;
-
-		size_t m_NumAvailableCommandQueues;
-		size_t m_NumAvaiableCommandAllocators;
-		size_t m_NumAvaiableCommandLists;
 
 		std::vector<ID3D12CommandQueue*> m_AllCommandQueues;
 		std::deque<ID3D12CommandQueue*>  m_AvailableCommandQueues;
 
 		std::vector<ID3D12CommandAllocator*> m_AllCommandAllocators;
-		std::deque<ID3D12CommandAllocator*> m_AvailableCommandAllocators;
+		std::deque<ID3D12CommandAllocator*>  m_AvailableCommandAllocators;
 
 		std::vector<ID3D12GraphicsCommandList*> m_AllCommandLists;
-		std::deque<ID3D12GraphicsCommandList*> m_AvailableCommandLists;
+		std::deque<ID3D12GraphicsCommandList*>  m_AvailableCommandLists;
 
-		std::mutex m_CommandQueueMutex;
-		std::mutex m_AllocatorMutex;
-		std::mutex m_ListMutex;
+		size_t m_NumAvailableCommandQueues;
+		size_t m_NumAvailableCommandAllocators;
+		size_t m_NumAvailableCommandLists;
+
+		CRITICAL_SECTION m_CommandQueueCS;
+		CRITICAL_SECTION m_CommandAllocatorCS;
+		CRITICAL_SECTION m_CommandListCS;
 	};
-
 }

@@ -47,12 +47,12 @@ namespace custom
         CommandAllocatorPool m_allocatorPool;
 
         // Lifetime of these objects is managed by the descriptor cache
-        ID3D12Fence* m_pFence;
-        uint64_t m_CPUSideNextFenceValue; // CPU-Side Currently will be recorded value.
-        uint64_t m_LastCompletedFenceValue;
-        HANDLE   m_FenceEventHandle;
+        ID3D12Fence*      m_pFence;
+        uint64_t volatile m_CPUSideNextFenceValue; // CPU-Side Currently will be recorded value.
+        uint64_t volatile m_LastCompletedFenceValue;
+        HANDLE            m_FenceEventHandle;
 
-        std::mutex m_fenceMutex;
-        std::mutex m_eventMutex;
+        // std::mutex m_fenceMutex;
+        // std::mutex m_eventMutex;
 	};
 }

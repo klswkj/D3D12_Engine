@@ -34,5 +34,4 @@ private:
 	bool m_bAllocateRootSignature = false;
 	bool m_bAllocatePSO           = false;
 	bool m_MultiThreading         = false;
-
 };

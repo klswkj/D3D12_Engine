@@ -36,6 +36,7 @@ public:
         m_graphicsCommandQueue.Shutdown();
         m_computeCommandQueue.Shutdown();
         m_copyCommandQueue.Shutdown();
+        m_TaskFiberManager.Shutdown();
 
         if (m_FenceEvent)
         { 
@@ -113,10 +114,10 @@ public:
 private:
     ID3D12Device* m_pDevice; // = device::g_pDevice;
 
-    custom::CommandQueue   m_graphicsCommandQueue; //  { ID3D12CommandQueue*, CommandAllocatorPool, ID3D12Fence*}
-    custom::CommandQueue   m_computeCommandQueue;
-    custom::CommandQueue   m_copyCommandQueue;
-    // custom::TaskFiberManager m_customCommandQueue;
+    custom::CommandQueue     m_graphicsCommandQueue; //  { ID3D12CommandQueue*, CommandAllocatorPool, ID3D12Fence*}
+    custom::CommandQueue     m_computeCommandQueue;
+    custom::CommandQueue     m_copyCommandQueue;
+    custom::TaskFiberManager m_TaskFiberManager;
 
     ID3D12Fence* m_lastSubmitFenceForSwapChain;
     HANDLE*      m_swapChainWaitableObject; // = device::g_hSwapChainWaitableObject

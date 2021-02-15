@@ -63,19 +63,22 @@ namespace custom
 
     uint64_t CommandQueue::IncreaseCPUGPUFenceValue()
     {
-        std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
-        m_commandQueue->Signal(m_pFence, m_CPUSideNextFenceValue);
-        return m_CPUSideNextFenceValue++;
+        // std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
+        m_commandQueue->Signal(m_pFence, InterlockedGetValue(&m_CPUSideNextFenceValue));
+        // return m_CPUSideNextFenceValue++;
+        return InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
     }
 
     bool CommandQueue::IsFenceComplete(uint64_t FenceValue)
     {
-		if (m_LastCompletedFenceValue < FenceValue)
+		if (InterlockedGetValue(&m_LastCompletedFenceValue) < FenceValue)
 		{
-            m_LastCompletedFenceValue = 
-                (m_pFence->GetCompletedValue() < m_LastCompletedFenceValue) ?
-                m_LastCompletedFenceValue : 
-                m_pFence->GetCompletedValue();
+			InterlockedExchange
+			(
+				&m_LastCompletedFenceValue,
+				(m_pFence->GetCompletedValue() < m_LastCompletedFenceValue) ?
+				m_LastCompletedFenceValue : m_pFence->GetCompletedValue()
+			);
 		}
 
         return FenceValue <= m_LastCompletedFenceValue;
@@ -89,8 +92,8 @@ namespace custom
     }
     bool CommandQueue::StallForProducer(CommandQueue& Producer)
     {
-        ASSERT(0 < Producer.m_CPUSideNextFenceValue);
-        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, Producer.m_CPUSideNextFenceValue - 1));
+        ASSERT(0 < InterlockedGetValue(&Producer.m_CPUSideNextFenceValue));
+        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, InterlockedGetValue(&Producer.m_CPUSideNextFenceValue) - 1));
     }
     void CommandQueue::WaitForFence(uint64_t FenceValue)
     {
@@ -104,17 +107,23 @@ namespace custom
         // then thread B has to wait for 100 before it knows 99 is ready.  
         // Maybe insert sequential events?
         {
-            std::lock_guard<std::mutex> LockGuard(m_eventMutex);
+            // std::lock_guard<std::mutex> LockGuard(m_eventMutex);
 
             m_pFence->SetEventOnCompletion(FenceValue, m_FenceEventHandle);
             ::WaitForSingleObject(m_FenceEventHandle, INFINITE);
-            m_LastCompletedFenceValue = FenceValue;
+            // m_LastCompletedFenceValue = FenceValue;
+            InterlockedExchange
+            (
+                &m_LastCompletedFenceValue, 
+                (FenceValue < m_LastCompletedFenceValue)?
+                m_LastCompletedFenceValue : FenceValue
+            );
         }
     }
 
     uint64_t CommandQueue::executeCommandList(ID3D12CommandList* List)
     {
-        std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
+        // std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
 
         ASSERT_HR(((ID3D12GraphicsCommandList*)List)->Close());
 
@@ -122,13 +131,16 @@ namespace custom
         m_commandQueue->ExecuteCommandLists(1, &List);
 
 		// Signal the next fence value (with the GPU)
-		HRESULT hr = m_commandQueue->Signal(m_pFence, m_CPUSideNextFenceValue);
-
+		HRESULT hr = m_commandQueue->Signal(m_pFence, InterlockedGetValue(&m_CPUSideNextFenceValue));
+        ASSERT_HR(hr);
         // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
 
         // D3D12 ERROR : ID3D12CommandQueue::ExecuteCommandLists : 
         // A command list, which writes to a swapchain back buffer, 
         // may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
+        // => 스왑체인백퍼에 쓰기를 하는 commandlist는 다음 번의 "Present()"로 불려져서 다음에 화면에 보여질 백버퍼가 될 백버퍼만 execute할 수 있습니다.
+        // => 다다음번의 Present() 될 backbuffer를 미리 쓰고 execute했다는건가...
+
         // Such a back buffer is also referred to as the "current back buffer".
 
         // Swap Chain : 0x000002BD5EDCB610 : 'Unnamed Object' 
@@ -139,7 +151,8 @@ namespace custom
 
         // End LRR
 
-        return m_CPUSideNextFenceValue++;
+        // return m_CPUSideNextFenceValue++;
+        return InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
     }
 
     ID3D12CommandAllocator* CommandQueue::requestAllocator()
