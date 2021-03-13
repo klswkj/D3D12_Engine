@@ -34,9 +34,6 @@
     <Filter Include="SceneGraph\Renderer\Pass">
       <UniqueIdentifier>{9190b773-8ad5-4eb1-940e-a6224f734356}</UniqueIdentifier>
     </Filter>
-    <Filter Include="SceneGraph\Renderer\DisplaySurface">
-      <UniqueIdentifier>{1d8dba03-a71c-496a-80bc-0e6c034d6af1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{be1de0e3-a0d0-4657-8ff6-e90a67693317}</UniqueIdentifier>
     </Filter>
@@ -101,9 +98,6 @@
     </Filter>
     <Filter Include="External Dependencies\Imgui">
       <UniqueIdentifier>{10edd79d-44e4-4a95-a4ff-3b3e8088b1f8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="External Dependencies\Imgui\Current Issue">
-      <UniqueIdentifier>{10377a6a-9b87-4bb7-8053-52a10ac307a1}</UniqueIdentifier>
     </Filter>
     <Filter Include="External Dependencies\D3DX12">
       <UniqueIdentifier>{06449f59-cf5a-458d-b14f-9ee5486a6db1}</UniqueIdentifier>
@@ -234,6 +228,18 @@
     <Filter Include="Graphics\Custom D3D12 Core Interfaces\GPUWorkManager">
       <UniqueIdentifier>{2c817161-d690-4545-9a5a-d8fe2cede64c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Context">
+      <UniqueIdentifier>{4ec0f523-a6f4-4747-9852-19729a972699}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\D3D12Command">
+      <UniqueIdentifier>{fafedce9-fa39-48ac-8d8c-a2365c3b5313}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Context\Descriptor">
+      <UniqueIdentifier>{cab28b60-25f0-4439-b3e0-c97a4dffe786}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Global Range\2D Draw">
+      <UniqueIdentifier>{63b6ffd1-9007-4ccb-924d-46090ab06bcf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -250,9 +256,6 @@
     </ClCompile>
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>External Dependencies\Imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="ImguiRenderStage.cpp">
-      <Filter>External Dependencies\Imgui\Current Issue</Filter>
     </ClCompile>
     <ClCompile Include="MyKeyboard.cpp">
       <Filter>Graphics\Global Range\Input Device</Filter>
@@ -274,27 +277,6 @@
     </ClCompile>
     <ClCompile Include="UAVBuffer.cpp">
       <Filter>Graphics\D3D12Resource\UAV</Filter>
-    </ClCompile>
-    <ClCompile Include="Color.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandAllocatorPool.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandContext.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueue.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandQueueManager.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="ComputeContext.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="DynamicDescriptorHeap.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
     <ClCompile Include="PSO.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
@@ -326,17 +308,11 @@
     <ClCompile Include="DynamicUploadBuffer.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClCompile>
-    <ClCompile Include="RenderTarget.cpp">
-      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClCompile>
     <ClCompile Include="BufferManager.cpp">
       <Filter>Graphics\D3D12Resource</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>PreCompiled Header</Filter>
-    </ClCompile>
-    <ClCompile Include="DescriptorHeapManager.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
     <ClCompile Include="PreMadePSO.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
@@ -380,9 +356,6 @@
     <ClCompile Include="Technique.cpp">
       <Filter>SceneGraph\Renderer\Component</Filter>
     </ClCompile>
-    <ClCompile Include="DepthStencil.cpp">
-      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClCompile>
     <ClCompile Include="Material.cpp">
       <Filter>SceneGraph\Model</Filter>
     </ClCompile>
@@ -398,23 +371,14 @@
     <ClCompile Include="WindowInput.cpp">
       <Filter>Graphics\Global Range\Input Device</Filter>
     </ClCompile>
-    <ClCompile Include="GraphRenderer.cpp">
-      <Filter>Graphics\Global Range</Filter>
-    </ClCompile>
     <ClCompile Include="RenderQueuePass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClCompile>
     <ClCompile Include="CommandSignature.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="CommandContextManager.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
     <ClCompile Include="ShaderConstantsTypeDefinitions.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="BindingPass.cpp">
-      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClCompile>
     <ClCompile Include="Pass.cpp">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
@@ -451,9 +415,6 @@
     </ClCompile>
     <ClCompile Include="Profiling.cpp">
       <Filter>Time</Filter>
-    </ClCompile>
-    <ClCompile Include="TextManager.cpp">
-      <Filter>Graphics\Global Range</Filter>
     </ClCompile>
     <ClCompile Include="StringHash.cpp">
       <Filter>StringHash</Filter>
@@ -545,6 +506,45 @@
     <ClCompile Include="CustomFence.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
     </ClCompile>
+    <ClCompile Include="CopyContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputeContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContextManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandContext.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClCompile>
+    <ClCompile Include="Color.cpp">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomResourceBarrier.cpp">
+      <Filter>SceneGraph\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandAllocatorPool.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueue.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClCompile>
+    <ClCompile Include="CommandQueueManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeapManager.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context\Descriptor</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicDescriptorHeap.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context\Descriptor</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphRenderer.cpp">
+      <Filter>Graphics\Global Range\2D Draw</Filter>
+    </ClCompile>
+    <ClCompile Include="TextManager.cpp">
+      <Filter>Graphics\Global Range\2D Draw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h">
@@ -573,9 +573,6 @@
     </ClInclude>
     <ClInclude Include="d3dx12.h">
       <Filter>External Dependencies\D3DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="ImguiRenderStage.h">
-      <Filter>External Dependencies\Imgui\Current Issue</Filter>
     </ClInclude>
     <ClInclude Include="MyKeyboard.h">
       <Filter>Graphics\Global Range\Input Device</Filter>
@@ -625,37 +622,7 @@
     <ClInclude Include="DepthBuffer.h">
       <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Color.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandAllocatorPool.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandContext.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandContextManager.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandQueue.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandQueueManager.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="CommandSignature.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="ComputeContext.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHandle.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorHeapManager.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="DynamicDescriptorHeap.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="IndirectParameter.h">
@@ -697,20 +664,8 @@
     <ClInclude Include="ShadowBuffer.h">
       <Filter>Graphics\D3D12Resource</Filter>
     </ClInclude>
-    <ClInclude Include="UpdateConstantBuffer.h">
-      <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
     <ClInclude Include="DynamicUploadBuffer.h">
       <Filter>SceneGraph\Renderer\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="DepthStencil.h">
-      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderTarget.h">
-      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
-    </ClInclude>
-    <ClInclude Include="IDisplaySurface.h">
-      <Filter>SceneGraph\Renderer\DisplaySurface</Filter>
     </ClInclude>
     <ClInclude Include="BufferManager.h">
       <Filter>Graphics\D3D12Resource</Filter>
@@ -808,17 +763,11 @@
     <ClInclude Include="WindowInput.h">
       <Filter>Graphics\Global Range\Input Device</Filter>
     </ClInclude>
-    <ClInclude Include="GraphRenderer.h">
-      <Filter>Graphics\Global Range</Filter>
-    </ClInclude>
     <ClInclude Include="RenderQueuePass.h">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClInclude>
     <ClInclude Include="ShaderConstantsTypeDefinitions.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="BindingPass.h">
-      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
     </ClInclude>
     <ClInclude Include="Pass.h">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
@@ -861,9 +810,6 @@
     </ClInclude>
     <ClInclude Include="Profiling.h">
       <Filter>Time</Filter>
-    </ClInclude>
-    <ClInclude Include="TextManager.h">
-      <Filter>Graphics\Global Range</Filter>
     </ClInclude>
     <ClInclude Include="..\Font Header\consola24.h">
       <Filter>Resource Files%28Icon, Shader%29\Font Header</Filter>
@@ -954,6 +900,54 @@
     </ClInclude>
     <ClInclude Include="CustomFence.h">
       <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ListEntryHelper.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomCriticalSection.h">
+      <Filter>Header Files Only</Filter>
+    </ClInclude>
+    <ClInclude Include="CopyContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputeContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContextManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandContext.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
+    </ClInclude>
+    <ClInclude Include="Color.h">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomResourceBarrier.h">
+      <Filter>SceneGraph\Model</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandAllocatorPool.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueue.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandQueueManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\D3D12Command</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHandle.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context\Descriptor</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeapManager.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context\Descriptor</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicDescriptorHeap.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context\Descriptor</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphRenderer.h">
+      <Filter>Graphics\Global Range\2D Draw</Filter>
+    </ClInclude>
+    <ClInclude Include="TextManager.h">
+      <Filter>Graphics\Global Range\2D Draw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1285,5 +1279,10 @@
     <FxCompile Include="..\Shader\OutlineWithBlur\Paper2PS.hlsl">
       <Filter>Resource Files%28Icon, Shader%29\Candidate Shader\OutlineWithBlur</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Memo.txt">
+      <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </Text>
   </ItemGroup>
 </Project>

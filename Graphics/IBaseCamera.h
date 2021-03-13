@@ -1,7 +1,4 @@
 #pragma once
-#include "MathBasic.h"
-#include "MathCommon.h"
-#include "Frustum.h"
 
 #define ShaderModelToProjection
 
@@ -42,7 +39,7 @@
 class IBaseCamera
 {
 public:
-
+    virtual ~IBaseCamera() = default;
     // Call this function once per frame and after you've changed any state.  This
     // regenerates all matrices.  Calling it more or less than once per frame will break
     // temporal effects and cause unpredictable results.

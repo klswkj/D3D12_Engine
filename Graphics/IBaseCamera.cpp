@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "IBaseCamera.h"
-#include "Quaternion.h"
 
 void IBaseCamera::Update()
 {

@@ -1,0 +1,6 @@
+1. ForwardRenderingPass, DeferredRenderingPass -> 포워드렌더링? 디퍼드 렌더링?
+2. STPass, MTPass, SequentialMTPass            -> 싱글스레드? 멀티스레드? 아니면 순차적인 멀티스레드?
+3. CopyPass, ComputePass, 3DPass               -> 뭐만 쓸꺼냐
+4. RenderQueuePass, ScreenPass                 -> Job들을 받아서 그릴꺼냐 아니면, Texture2D를 이용해서 그릴꺼냐
+5. PreProcessingPass, Main, PostProcessing     -> 이거는 그냥 분류, 하지만 필요
+6. Asynchronous, Synchronous                   -> 뒤의 GPUWork가 끝날 때까지 기다려야하나 아니면 안기다려되나

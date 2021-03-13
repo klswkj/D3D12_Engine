@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "Device.h"
 #include "GPUResource.h"
-#include "CommandContext.h"
+#include "CopyContext.h"
 const uint32_t DDS_MAGIC = 0x20534444; // "DDS "
 
 #define DDS_FOURCC      0x00000004  // DDPF_FOURCC
@@ -1126,7 +1126,7 @@ static HRESULT CreateTextureFromDDS
         if (SUCCEEDED(hr))
         {
             custom::GPUResource DestTexture(d3dDevice, *texture, D3D12_RESOURCE_STATE_COPY_DEST);
-            custom::CommandContext::InitializeTexture(DestTexture, subresourceCount, initData.get());
+            custom::CopyContext::InitializeTexture(DestTexture, subresourceCount, initData.get());
         }
     }
 

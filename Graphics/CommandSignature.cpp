@@ -83,8 +83,9 @@ namespace custom
                 IID_PPV_ARGS(&m_pCommandSignature))
         );
 
+#ifdef _DEBUG
         SET_NAME(m_pCommandSignature);
-
+#endif
         m_bFinalized = TRUE;
     }
 }

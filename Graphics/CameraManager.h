@@ -3,6 +3,7 @@
 namespace custom
 {
 	class CommandContext;
+    class GraphicsContext;
 }
 
 class Camera;
@@ -16,7 +17,7 @@ public:
 public:
     CameraManager();
     void RenderWindows();
-    void Bind(custom::CommandContext& BaseContext);
+    void Bind(custom::GraphicsContext& BaseContext);
     void AddCamera(std::shared_ptr<Camera> pCam);
     void LinkTechniques(MasterRenderGraph& rg);
     void Submit(eObjectFilterFlag Filter) const;

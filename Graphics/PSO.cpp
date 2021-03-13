@@ -3,25 +3,29 @@
 #include "PSO.h"
 // #include "RootSignature.h"
 #include "CommandContext.h"
+#include "ComputeContext.h"
 
 static std::unordered_map<size_t, ID3D12PipelineState*> s_graphicsPSOHashMap;
 static std::unordered_map<size_t, ID3D12PipelineState*> s_computePSOHashMap;
 
-void custom::PSO::DestroyAll()
+namespace custom
 {
-    for (auto& e : s_graphicsPSOHashMap)
+    void PSO::DestroyAll()
     {
-        e.second->Release();
-        e.second = nullptr;
-    }
-    for (auto& e : s_computePSOHashMap)
-    {
-        e.second->Release();
-        e.second = nullptr;
-    }
+        for (auto& e : s_graphicsPSOHashMap)
+        {
+            e.second->Release();
+            e.second = nullptr;
+        }
+        for (auto& e : s_computePSOHashMap)
+        {
+            e.second->Release();
+            e.second = nullptr;
+        }
 
-    s_graphicsPSOHashMap.clear();
-    s_computePSOHashMap.clear();
+        s_graphicsPSOHashMap.clear();
+        s_computePSOHashMap.clear();
+    }
 }
 
 GraphicsPSO::GraphicsPSO()
@@ -51,23 +55,23 @@ ComputePSO::ComputePSO()
 
 #pragma region GraphicsPSOSetter
 
-void GraphicsPSO::SetVertexShader(const void* Binary, size_t Size)
+void GraphicsPSO::SetVertexShader(const void* const Binary, const size_t Size)
 {
     m_PSODesc.VS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
 }
-void GraphicsPSO::SetPixelShader(const void* Binary, size_t Size)
+void GraphicsPSO::SetPixelShader(const void* const Binary, const size_t Size)
 {
     m_PSODesc.PS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
 }
-void GraphicsPSO::SetGeometryShader(const void* Binary, size_t Size)
+void GraphicsPSO::SetGeometryShader(const void* const Binary, const size_t Size)
 {
     m_PSODesc.GS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
 }
-void GraphicsPSO::SetHullShader(const void* Binary, size_t Size)
+void GraphicsPSO::SetHullShader(const void* const Binary, const size_t Size)
 {
     m_PSODesc.HS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
 }
-void GraphicsPSO::SetDomainShader(const void* Binary, size_t Size)
+void GraphicsPSO::SetDomainShader(const void* const Binary, const size_t Size)
 {
     m_PSODesc.DS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size);
 }
@@ -103,20 +107,20 @@ void GraphicsPSO::SetDepthStencilState(const D3D12_DEPTH_STENCIL_DESC& DepthSten
 {
     m_PSODesc.DepthStencilState = DepthStencilDesc;
 }
-void GraphicsPSO::SetSampleMask(UINT SampleMask)
+void GraphicsPSO::SetSampleMask(const UINT SampleMask)
 {
     m_PSODesc.SampleMask = SampleMask;
 }
-void GraphicsPSO::SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType)
+void GraphicsPSO::SetPrimitiveTopologyType(const D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType)
 {
     ASSERT(TopologyType != D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED, "Can't draw with undefined topology");
     m_PSODesc.PrimitiveTopologyType = TopologyType;
 }
-void GraphicsPSO::SetRenderTargetFormat(DXGI_FORMAT RTVFormat, DXGI_FORMAT DSVFormat, UINT MsaaCount /* = 1*/, UINT MsaaQuality /* = 0*/)
+void GraphicsPSO::SetRenderTargetFormat(const DXGI_FORMAT RTVFormat, const DXGI_FORMAT DSVFormat, const UINT MsaaCount /* = 1*/, const UINT MsaaQuality /* = 0*/)
 {
     SetRenderTargetFormats(1, &RTVFormat, DSVFormat, MsaaCount, MsaaQuality);
 }
-void GraphicsPSO::SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFormats, DXGI_FORMAT DSVFormat, UINT MsaaCount /* = 1*/, UINT MsaaQuality /* = 0*/)
+void GraphicsPSO::SetRenderTargetFormats(const UINT NumRTVs, const DXGI_FORMAT* const RTVFormats, const DXGI_FORMAT DSVFormat, const UINT MsaaCount /* = 1*/, const UINT MsaaQuality /* = 0*/)
 {
     ASSERT(NumRTVs == 0 || RTVFormats != nullptr, "Null format array conflicts with non-zero length");
     for (size_t i = 0; i < NumRTVs; ++i)
@@ -132,7 +136,7 @@ void GraphicsPSO::SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFor
     m_PSODesc.SampleDesc.Count   = MsaaCount;
     m_PSODesc.SampleDesc.Quality = MsaaQuality;
 }
-void GraphicsPSO::SetInputLayout(UINT NumElements, const D3D12_INPUT_ELEMENT_DESC* pInputElementDescs)
+void GraphicsPSO::SetInputLayout(const UINT NumElements, const D3D12_INPUT_ELEMENT_DESC* const pInputElementDescs)
 {
     m_PSODesc.InputLayout.NumElements = NumElements;
 
@@ -147,23 +151,22 @@ void GraphicsPSO::SetInputLayout(UINT NumElements, const D3D12_INPUT_ELEMENT_DES
 		m_inputLayouts = nullptr;
 	}
 }
-void GraphicsPSO::SetIBStripCutValue(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps)
+void GraphicsPSO::SetIBStripCutValue(const D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps)
 {
     m_PSODesc.IBStripCutValue = IBProps;
 }
 #pragma endregion GraphicsPSOSetter
 
-void GraphicsPSO::Bind(custom::CommandContext& BaseContext)
+void GraphicsPSO::Bind(custom::CommandContext& baseContext, const uint8_t commandIndex)
 {
-    BaseContext.SetPipelineState(*this);
+    baseContext.SetPipelineState(*this, commandIndex);
+}
+void ComputePSO::Bind(custom::CommandContext& baseContext, const uint8_t commandIndex)
+{
+    baseContext.SetPipelineState(*this, commandIndex);
 }
 
-void ComputePSO::Bind(custom::CommandContext& BaseContext)
-{
-    BaseContext.SetPipelineState(*this);
-}
-
-void GraphicsPSO::Finalize(const std::wstring& Name, bool ExpectedCollision)
+void GraphicsPSO::Finalize(const std::wstring& Name, const bool ExpectedCollision)
 {
     ASSERT(2 <= Name.size());
     // Make sure the root signature is finalized first
@@ -233,7 +236,6 @@ void GraphicsPSO::Finalize(const std::wstring& Name, bool ExpectedCollision)
 #endif
     }
 }
-
 void ComputePSO::Finalize(const std::wstring& Name)
 {
     ASSERT(2 <= Name.size());

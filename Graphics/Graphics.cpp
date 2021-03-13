@@ -140,7 +140,6 @@ void graphics::Initialize()
     // GraphRenderer::Initialize();
 
     GPUTime::ClockInitialize();
-    
     CPUTime::Initialize();
 }
 
@@ -174,10 +173,10 @@ void graphics::initializePresent()
 #endif
 
     // s_PresentRS.Reset(4, 2);
-    s_PresentRS.Reset(3, 2);
+    s_PresentRS.Reset(2, 2);
     s_PresentRS[0].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 2);
     s_PresentRS[1].InitAsConstants(0, 6, D3D12_SHADER_VISIBILITY_ALL);
-    s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
+    // s_PresentRS[2].InitAsBufferSRV(2, D3D12_SHADER_VISIBILITY_PIXEL);
     // s_PresentRS[3].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1); // Not set
     s_PresentRS.InitStaticSampler(0, premade::g_SamplerLinearClampDesc);
     s_PresentRS.InitStaticSampler(1, premade::g_SamplerPointClampDesc);
@@ -306,21 +305,23 @@ void graphics::ShutDown()
     // CPUTime::Shutdown(); - Not Used yet.
 }
 
-void PresentHDR()
+uint64_t PresentHDR()
 {
-    custom::GraphicsContext& Context = custom::GraphicsContext::Begin(L"Present HDR");
+    custom::GraphicsContext& Context = custom::GraphicsContext::Begin(1);
 
-    Context.PIXBeginEvent(L"Present HDR");
+    Context.PIXBeginEvent(L"Present HDR", 0u);
 
     // We're going to be reading these buffers to write to the swap chain buffer(s)
-    Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-    Context.SetRenderTarget(bufferManager::g_OverlayBuffer.GetRTV());
-    Context.ClearColor(bufferManager::g_OverlayBuffer);
-    Context.SetViewportAndScissor(0, 0, bufferManager::g_OverlayBuffer.GetWidth(), bufferManager::g_OverlayBuffer.GetHeight());
+    Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Context.SubmitResourceBarriers(0u);
+    Context.SetRenderTarget(bufferManager::g_OverlayBuffer.GetRTV(), 0u);
+    Context.ClearColor(bufferManager::g_OverlayBuffer, 0u);
+    Context.SetViewportAndScissor(0, 0, bufferManager::g_OverlayBuffer.GetWidth(), bufferManager::g_OverlayBuffer.GetHeight(), 0u);
 
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Context.SubmitResourceBarriers(0u);
 
     LONG Width = window::g_TargetWindowWidth;
     LONG Height = window::g_TargetWindowHeight;
@@ -330,14 +331,14 @@ void PresentHDR()
         device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount].GetRTV()
     };
 
-    Context.SetRootSignature(graphics::s_PresentHDR_RS);
-    Context.SetPipelineState(graphics::s_PresentHDR_PSO);
+    Context.SetRootSignature(graphics::s_PresentHDR_RS, 0u);
+    Context.SetPipelineState(graphics::s_PresentHDR_PSO, 0u);
 
-    Context.SetDynamicDescriptor(0, 0, bufferManager::g_SceneColorBuffer.GetSRV());
-    Context.SetDynamicDescriptor(0, 1, bufferManager::g_OverlayBuffer.GetSRV());
+    Context.SetDynamicDescriptor(0, 0, bufferManager::g_SceneColorBuffer.GetSRV(), 0u);
+    Context.SetDynamicDescriptor(0, 1, bufferManager::g_OverlayBuffer.GetSRV(), 0u);
 
-    Context.SetRenderTargets(_countof(RTVs), RTVs);
-    Context.SetViewportAndScissor(0, 0, Width, Height);
+    Context.SetRenderTargets(_countof(RTVs), RTVs, 0u);
+    Context.SetViewportAndScissor(0, 0, Width, Height, 0u);
     Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     struct Constants
@@ -358,88 +359,91 @@ void PresentHDR()
         graphics::g_bHDRDebugMode
     };
 
-    Context.SetConstantArray(1, sizeof(Constants) / 4, (float*)&consts);
-    Context.Draw(3);
+    Context.SetConstantArray(1, sizeof(Constants) / 4, (float*)&consts, 0u);
+    Context.Draw(3, 0U, 0u);
 
     Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_PRESENT);
-
-    Context.PIXEndEvent();
+    Context.SubmitResourceBarriers(0u);
+    Context.PIXEndEvent(0u);
 
     // Close the final context to be executed before frame present.
-    Context.Finish(true);
+    return Context.Finish(false);
 }
 
-void CompositeOverlays(custom::GraphicsContext& Context)
+void CompositeOverlays(custom::GraphicsContext& Context, const uint8_t commandIndex)
 {
     // Blend (or write) the UI overlay
-    Context.PIXBeginEvent(L"CompositeOverLays");
+    Context.PIXBeginEvent(L"CompositeOverLays", commandIndex);
 
-    Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+    Context.TransitionResource(bufferManager::g_OverlayBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    Context.SubmitResourceBarriers(commandIndex);
 
-    Context.SetPipelineState(graphics::s_BlendUIPSO);
+    Context.SetPipelineState(graphics::s_BlendUIPSO, commandIndex);
 
-    Context.SetDynamicDescriptor(0, 0, bufferManager::g_OverlayBuffer.GetSRV());
-    Context.SetConstants(1, 1.0f / window::g_TargetWindowWidth, 1.0f / window::g_TargetWindowHeight);
-    Context.Draw(3);
+    Context.SetDynamicDescriptor(0, 0, bufferManager::g_OverlayBuffer.GetSRV(), commandIndex);
+    Context.SetConstants(1, 1.0f / window::g_TargetWindowWidth, 1.0f / window::g_TargetWindowHeight, commandIndex);
+    Context.Draw(3U, 0U, commandIndex);
 
-    Context.PIXEndEvent();
+    Context.PIXEndEvent(commandIndex);
 }
 
 void PresentLDR()
 {
-    custom::GraphicsContext& Context = custom::GraphicsContext::Begin(L"Present LDR");
-    Context.PIXBeginEvent(L"Present LDR");
-    Context.PIXBeginEvent(L"Present LDR 2");
-    Context.PIXEndEvent();
+    custom::GraphicsContext& Context = custom::GraphicsContext::Begin(1);
+    Context.PIXBeginEvent(L"Present LDR", 0u);
 
-    Context.SetRootSignature(graphics::s_PresentRS);
-    Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    Context.SetRootSignature(graphics::s_PresentRS, 0u);
+    Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST, true);
 
     // Copy (and convert) the LDR buffer to the back buffer
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    Context.SetDynamicDescriptor(0, 0, bufferManager::g_SceneColorBuffer.GetSRV());
-
+    Context.SubmitResourceBarriers(0u);
+    Context.SetDynamicDescriptor(0U, 0U, bufferManager::g_SceneColorBuffer.GetSRV(), 0u);
     ColorBuffer& UpsampleDest = device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount];
 
     if (window::g_TargetWindowWidth == device::g_DisplayWidth && window::g_TargetWindowHeight == device::g_DisplayHeight)
     {
-        Context.PIXBeginEvent(L"Present Normal");
-        Context.SetPipelineState(graphics::s_PresentSDR_PSO);
+        Context.PIXBeginEvent(L"Present Normal", 0u);
+        Context.SetPipelineState(graphics::s_PresentSDR_PSO, 0u);
         Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        Context.SetRenderTarget(UpsampleDest.GetRTV());
-        Context.SetViewportAndScissor(0, 0, device::g_DisplayWidth, device::g_DisplayHeight);
-        Context.Draw(3);
-        Context.PIXEndEvent();
+        Context.SubmitResourceBarriers(0u);
+        Context.SetRenderTarget(UpsampleDest.GetRTV(), 0u);
+        Context.SetViewportAndScissor(0L, 0L, (LONG)device::g_DisplayWidth, (LONG)device::g_DisplayHeight, 0u);
+        Context.Draw(3U, 0U, 0u);
+        Context.PIXEndEvent(0u);
     }
     else if (graphics::g_UpsampleFilter == graphics::UpsampleFilter::kBicubic)
     {
-        Context.PIXBeginEvent(L"Bicubic Filter");
+        Context.PIXBeginEvent(L"Bicubic Filter", 0u);
         Context.TransitionResource(bufferManager::g_HorizontalBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        Context.SetRenderTarget(bufferManager::g_HorizontalBuffer.GetRTV());
-        Context.SetViewportAndScissor(0, 0, device::g_DisplayWidth, window::g_TargetWindowHeight);
-        Context.SetPipelineState(graphics::s_BicubicHorizontalUpsamplePSO);
-        Context.SetConstants(1, (float)window::g_TargetWindowWidth, (float)window::g_TargetWindowHeight, graphics::g_BicubicUpsampleWeight);
-        Context.Draw(3);
+        Context.SubmitResourceBarriers(0u);
+        Context.SetRenderTarget(bufferManager::g_HorizontalBuffer.GetRTV(), 0u);
+        Context.SetViewportAndScissor(0U, 0U, (LONG)device::g_DisplayWidth, (LONG)window::g_TargetWindowHeight, 0u);
+        Context.SetPipelineState(graphics::s_BicubicHorizontalUpsamplePSO, 0u);
+        Context.SetConstants(1U, (float)window::g_TargetWindowWidth, (float)window::g_TargetWindowHeight, (float)graphics::g_BicubicUpsampleWeight, 0u);
+        Context.Draw(3U, 0U, 0u);
 
         Context.TransitionResource(bufferManager::g_HorizontalBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-        Context.SetRenderTarget(UpsampleDest.GetRTV());
-        Context.ClearColor(UpsampleDest);
-        Context.SetViewportAndScissor(0, 0, device::g_DisplayWidth, device::g_DisplayHeight);
-        Context.SetPipelineState(graphics::s_BicubicVerticalUpsamplePSO);
-        Context.SetDynamicDescriptor(0, 0, bufferManager::g_HorizontalBuffer.GetSRV());
-        Context.SetConstants(1, (float)device::g_DisplayWidth, (float)window::g_TargetWindowHeight, graphics::g_BicubicUpsampleWeight);
-        Context.Draw(3);
-        Context.PIXEndEvent();
+        Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        Context.SubmitResourceBarriers(0u);
+        Context.SetRenderTarget(UpsampleDest.GetRTV(), 0u);
+        Context.ClearColor(UpsampleDest, 0u);
+        Context.SetViewportAndScissor(0L, 0L, (LONG)device::g_DisplayWidth, (LONG)device::g_DisplayHeight, 0u);
+        Context.SetPipelineState(graphics::s_BicubicVerticalUpsamplePSO, 0u);
+        Context.SetDynamicDescriptor(0U, 0U, bufferManager::g_HorizontalBuffer.GetSRV(), 0u);
+        Context.SetConstants(1U, (float)device::g_DisplayWidth, (float)window::g_TargetWindowHeight, (float)graphics::g_BicubicUpsampleWeight, 0u);
+        Context.Draw(3U, 0U, 0u);
+        Context.PIXEndEvent(0u);
     }
     else if (graphics::g_UpsampleFilter == graphics::UpsampleFilter::kSharpening)
     {
-        Context.PIXBeginEvent(L"Sharpening Filter");
-        Context.SetPipelineState(graphics::s_SharpeningUpsamplePSO);
-        Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-        Context.SetRenderTarget(UpsampleDest.GetRTV());
-        Context.ClearColor(UpsampleDest);
-        Context.SetViewportAndScissor(0, 0, device::g_DisplayWidth, device::g_DisplayHeight);
+        Context.PIXBeginEvent(L"Sharpening Filter", 0u);
+        Context.SetPipelineState(graphics::s_SharpeningUpsamplePSO, 0u);
+        Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        Context.SubmitResourceBarriers(0u);
+        Context.SetRenderTarget(UpsampleDest.GetRTV(), 0u);
+        Context.ClearColor(UpsampleDest, 0u);
+        Context.SetViewportAndScissor(0L, 0L, (LONG)device::g_DisplayWidth, (LONG)device::g_DisplayHeight, 0u);
         float TexelWidth  = 1.0f / window::g_TargetWindowWidth;
         float TexelHeight = 1.0f / window::g_TargetWindowHeight;
         float X = std::cos(graphics::g_SharpeningRotation / 180.0f * 3.14159f) * graphics::g_SharpeningSpread;
@@ -447,30 +451,34 @@ void PresentLDR()
         const float WA = graphics::g_SharpeningStrength;
         const float WB = 1.0f + 4.0f * WA;
         float Constants[6] = { X * TexelWidth, Y * TexelHeight, Y * TexelWidth, -X * TexelHeight, WA, WB };
-        Context.SetConstantArray(1, _countof(Constants), Constants);
-        Context.Draw(3);
-        Context.PIXEndEvent();
+        Context.SetConstantArray(1U, (UINT)_countof(Constants), (void*)Constants, 0u);
+        // Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        Context.Draw(3U, 0U, 0u);
+        Context.PIXEndEvent(0u);
     }
     else if (graphics::g_UpsampleFilter == graphics::UpsampleFilter::kBilinear)
     {
-        Context.PIXBeginEvent(L"Bilinear Filter");
-        Context.SetPipelineState(graphics::s_BilinearUpsamplePSO);
+        Context.PIXBeginEvent(L"Bilinear Filter", 0u);
+        Context.SetPipelineState(graphics::s_BilinearUpsamplePSO, 0u);
         Context.TransitionResource(UpsampleDest, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        Context.SetRenderTarget(UpsampleDest.GetRTV());
-        Context.SetViewportAndScissor(0, 0, device::g_DisplayWidth, device::g_DisplayHeight);
-        Context.Draw(3);
-        Context.PIXEndEvent();
+        Context.SubmitResourceBarriers(0u);
+        Context.SetRenderTarget(UpsampleDest.GetRTV(), 0u);
+        Context.SetViewportAndScissor(0L, 0L, (LONG)device::g_DisplayWidth, (LONG)device::g_DisplayHeight, 0u);
+        Context.Draw(3U, 0U, 0u);
+        Context.PIXEndEvent(0u);
     }
 
-    CompositeOverlays(Context);
+    Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    CompositeOverlays(Context, 0u);
 
     Context.TransitionResource(device::g_DisplayColorBuffer[graphics::g_CurrentBufferIndex % device::g_DisplayBufferCount], D3D12_RESOURCE_STATE_PRESENT);
     Context.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Context.SubmitResourceBarriers(0u);
 
-    Context.PIXEndEvent();
+    Context.PIXEndEvent(0u);
 
     // Close the final context to be executed before frame present.
-    Context.Finish(false, true);
+    Context.Finish(false);
 }
 
 void graphics::Present()
@@ -504,8 +512,6 @@ void graphics::Present()
 
     // HANDLE waitableObjests[2] = { device::g_hSwapChainWaitableObject, nullptr };
 
-    device::g_commandQueueManager.WaitForNextFrameResources();
-
 #undef max
     UINT PresentInterval = s_EnableVSync ? std::max(4, (int)Math::Round(s_FrameTime * 60.0f)) : 0;
 
@@ -519,7 +525,8 @@ void graphics::Present()
         device::g_pDXGISwapChain->GetDevice(IID_PPV_ARGS(&pTempDevice));
 
         swapchainResult = pTempDevice->GetDeviceRemovedReason();
- 
+
+        SafeRelease(pTempDevice);
         ASSERT_HR(swapchainResult);
     }
 
@@ -542,6 +549,11 @@ void graphics::Present()
     s_FrameStartTick = CurrentTick;
 
     ++s_FrameIndex;
+}
+
+void graphics::SetFrameCountZero()
+{
+    s_FrameIndex = 0ull;
 }
 
 uint64_t graphics::GetFrameCount()

@@ -8,21 +8,24 @@
 // Descriptor table pointer = 1 DWORD
 // Static samplers = 0 DWORDS (compiled into shader)
 
-#define DESCRIPTOR_TABLE_SIZE 16
-
 #define _SHARED_PTR 1
 // #define _RAW_PTR 0
+
+constexpr size_t DESCRIPTOR_TABLE_SIZE = 16ul;
 
 namespace custom
 {
 	class CommandContext;
+	class GraphicsContext;
 
-	class RootSignature : public RenderingResource
+	class RootSignature final : public RenderingResource
 	{
 		friend class DynamicDescriptorHeap;
 	public:
-		RootSignature(UINT NumRootParams = 0, UINT NumStaticSamplers = 0)
-			: m_finalized(FALSE), m_numRootParameters(NumRootParams)
+		RootSignature(const UINT NumRootParams = 0, const UINT NumStaticSamplers = 0)
+			: 
+			m_finalized(FALSE), 
+			m_numRootParameters(NumRootParams)
 		{
 			Reset(NumRootParams, NumStaticSamplers);
 			m_firstCompiled = false;
@@ -98,7 +101,7 @@ namespace custom
 		}
 #endif
 
-		void Reset(uint32_t NumRootParams, uint32_t NumStaticSamplers = 0)
+		void Reset(const uint32_t NumRootParams, const uint32_t NumStaticSamplers = 0)
 		{
 			if (0 < NumRootParams)
 			{
@@ -168,11 +171,11 @@ namespace custom
 
 		void InitStaticSampler
 		(
-			uint32_t Register, const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
-			D3D12_SHADER_VISIBILITY Visibility = D3D12_SHADER_VISIBILITY_ALL
-			);
+			const uint32_t Register, const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
+			const D3D12_SHADER_VISIBILITY Visibility = D3D12_SHADER_VISIBILITY_ALL
+		);
 
-		void Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+		void Finalize(const std::wstring& name, const D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
 		ID3D12RootSignature* GetSignature() const 
 		{ 
@@ -182,7 +185,7 @@ namespace custom
 
 		static void DestroyAll();
 
-		void Bind(CommandContext& BaseContext) DEBUG_EXCEPT override;
+		void Bind(CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT final;
 	public:
 		BOOL     m_finalized;
 		uint32_t m_numRootParameters;

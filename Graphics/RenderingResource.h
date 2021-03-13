@@ -8,15 +8,16 @@ class MaterialWindow;
 namespace custom
 {
 	class CommandContext;
+	class GraphicsContext;
 }
 
 class RenderingResource
 {
 public:
 	virtual ~RenderingResource() = default;
-	virtual void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT = 0;
+	virtual void Bind(custom::CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT = 0;
 	virtual void InitializeParentReference(const IEntity&) noexcept {}
-	virtual void RenderingWindow(IWindow& _IWindow) {}
+	virtual void RenderingWindow(const IWindow& _IWindow) {}
 };
 
 class CloningPtr : public RenderingResource

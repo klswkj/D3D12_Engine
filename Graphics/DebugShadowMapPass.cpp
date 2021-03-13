@@ -14,7 +14,7 @@
 DebugShadowMapPass* DebugShadowMapPass::s_pDebugWireFramePass = nullptr;
 
 DebugShadowMapPass::DebugShadowMapPass(std::string Name)
-	: Pass(Name)
+	: D3D12Pass(Name)
 {
 	ASSERT(s_pDebugWireFramePass == nullptr);
 	s_pDebugWireFramePass = this;
@@ -49,19 +49,21 @@ DebugShadowMapPass::~DebugShadowMapPass()
 {
 }
 
-void DebugShadowMapPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void DebugShadowMapPass::ExecutePass() DEBUG_EXCEPT
 {
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(1);
 	
 	// RenderTarget  : ColorBuffer
 	// Drawing Stuff : ShadowBuffer
-	graphicsContext.PIXBeginEvent(L"DebugShadowMapPass");
-	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
-	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET,         false);
-	graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV());
-	graphicsContext.SetRootSignature(m_RootSignature);
-	graphicsContext.SetPipelineState(m_PSO);
-	graphicsContext.SetDynamicDescriptor(0, 0, bufferManager::g_ShadowBuffer.GetSRV());
-	graphicsContext.Draw(6);
-	graphicsContext.PIXEndEvent();
+	graphicsContext.PIXBeginEvent(L"DebugShadowMapPass", 0u);
+	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SubmitResourceBarriers(0u);
+	graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), 0u);
+	graphicsContext.SetRootSignature(m_RootSignature, 0u);
+	graphicsContext.SetPipelineState(m_PSO, 0u);
+	graphicsContext.SetDynamicDescriptor(0, 0, bufferManager::g_ShadowBuffer.GetSRV(), 0u);
+	graphicsContext.Draw(6, 0u);
+	graphicsContext.PIXEndEvent(0u);
+	graphicsContext.Finish(false);
 }

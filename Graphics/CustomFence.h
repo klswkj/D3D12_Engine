@@ -11,14 +11,14 @@ namespace custom
 		~CustomFence();
 		void Destroy();
 
-		ID3D12Device*       GetDevice() const          { ID3D12Device* pDevice = nullptr; ASSERT_HR(m_prFence->GetDevice(IID_PPV_ARGS(&pDevice))); return pDevice; }
+		ID3D12Device*       GetShouldReleaseDevice() const { ID3D12Device* pDevice = nullptr; ASSERT_HR(m_prFence->GetDevice(IID_PPV_ARGS(&pDevice))); return pDevice; }
 		ID3D12Fence*        GetFence() const           { ASSERT(m_prFence); return m_prFence; }
 		ID3D12CommandQueue* GetCommandQueue() const     { ASSERT(m_pCommandQueue); return m_pCommandQueue; }
 		HANDLE              GetCompletionEvent() const  { ASSERT(m_hCompleteEvent); return m_hCompleteEvent; }
 
 		uint64_t GetCPUSideNextFenceValue(D3D12_COMMAND_LIST_TYPE expectedtype);
 		uint64_t GetGPUCompletedValue(D3D12_COMMAND_LIST_TYPE expectedtype);
-		uint64_t GetLastExecuteFenceValue() { return m_LastExecuteFenceValue; }
+		uint64_t GetLastExecuteFenceValue() const { return m_LastExecuteFenceValue; }
 
 		void SetCommandQueue(ID3D12CommandQueue* pCommandQueue);
 		void SetLastExecuteFenceValue(uint64_t fenceValue);

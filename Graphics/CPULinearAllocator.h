@@ -70,7 +70,7 @@ public:
 
         std::queue<CPULinearAllocationPage*> m_availablePages;
         std::queue<CPULinearAllocationPage*> m_retiredPages;
-        std::queue<CPULinearAllocationPage*> m_deletionQueue;
+        std::queue<CPULinearAllocationPage*> m_deferredDeletionQueue;
 
         std::mutex m_Mutex;
     }; // class LinearAllocationPageManager

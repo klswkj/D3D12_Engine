@@ -11,12 +11,14 @@ namespace custom
 	{
     public:
         CommandSignature(UINT NumParams = 0) 
-            : m_bFinalized(FALSE), m_numParameters(NumParams)
+            : 
+            m_bFinalized(false), 
+            m_numParameters(NumParams)
         {
             Reset(NumParams);
         }
 
-        void Destroy(void)
+        void Destroy()
         {
             SafeRelease(m_pCommandSignature);
             m_pIndirectParameters = nullptr;

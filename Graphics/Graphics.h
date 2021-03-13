@@ -18,6 +18,7 @@ namespace graphics
     uint64_t GetFrameCount();
     float GetFrameTime();
     float GetFrameRate();
+    void SetFrameCountZero();
 
     void InitDebugStartTick();
     float GetDebugFrameTime();

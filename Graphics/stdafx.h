@@ -79,14 +79,14 @@
 #include "resource.h" // Icon File
 
 #include "Hash.h"
+#include "ListEntryHelper.h"
 // #include "WinDefine.h"
 #include "TypeDefine.h"
 #include "CustomAssert.h"
 
 #include "MathCommon.h"
 #include "MathBasic.h"
-
-
+#include "Frustum.h"
 
 #pragma endregion HEADER
 
@@ -127,20 +127,40 @@
 #define SEALED
 #endif
 
+#ifndef CHECK_TYPE
+#define CHECK_TYPE(Type, FenceValue) (FenceValue >> 56) == (uint64_t)(Type)
+#endif
+#ifndef CHECK_VALID_FENCE_VALUE
+#define CHECK_VALID_FENCE_VALUE(Type, FenceValue) (((uint64_t)Type << 56) <= FenceValue) && \
+                                                  (FenceValue < ((uint64_t)(Type + 1ull) << 56))
+#endif
+#ifndef CHECK_VALID_TYPE
+#define CHECK_VALID_TYPE(Type) (Type == D3D12_COMMAND_LIST_TYPE_DIRECT || \
+                               Type == D3D12_COMMAND_LIST_TYPE_COMPUTE || \
+                               Type == D3D12_COMMAND_LIST_TYPE_COPY)
+#endif
+
+
+#ifndef TYPE_TO_INDEX
+#define TYPE_TO_INDEX(Type) ((uint64_t)Type + 1ull) / 2ull
+#endif
+
 #pragma endregion CUSTOM_DEFINE
 
 #pragma region CUSTOM_FUNCTION
 
 template<typename T>
-inline void SafeRelease(T*& rpInterface)
+inline ULONG SafeRelease(T*& rpInterface)
 {
     T* pInterface = rpInterface;
-
+    ULONG ReturnValue = 0ul;
     if (pInterface)
     {
-        pInterface->Release();
+        ReturnValue = pInterface->Release();
         rpInterface = nullptr;
     }
+
+    return ReturnValue;
 }
 
 template<typename T>
@@ -154,6 +174,16 @@ inline void SafeDelete(T*& rpObject)
         rpObject = nullptr;
     }
 }
+
+#if defined(_DEBUG)
+#define CHECK_IUNKOWN_REF_COUNT_DEBUG(x) \
+if(x)                                    \
+{                                        \
+__debugbreak();                          \
+}
+#elif
+#define CHECK_IUNKOWN_REF_COUNT_DEBUG(x) (x)
+#endif
 
 // Insecure Function.
 // 

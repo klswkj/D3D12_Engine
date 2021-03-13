@@ -1,24 +1,25 @@
 #pragma once
 #include "stdafx.h"
 #include "Pass.h"
-#include "UpdateConstantBuffer.h"
 
+#include "UAVBuffer.h"
 #include "RootSignature.h"
 #include "PSO.h"
 
-class DOFPass : public Pass
+class DOFPass final : public D3D12Pass
 {
 public:
 	DOFPass(std::string name);
 	~DOFPass();
 
-	void Execute(custom::CommandContext& BaseContext, float NearClipDist, float FarClipDist) DEBUG_EXCEPT;
-	void RenderSubWindow();
+	void ExecutePass() DEBUG_EXCEPT final;
+	void RenderWindow() DEBUG_EXCEPT final;
 
-	// 여기서 SpawnControlWidgets으로 Imgui Rendering하는것 보다는, 
-	// 모든 Pass를 모아서 한꺼번에 관리하는 창을 만드는게 더 좋을 거 같다.
-	// 위의 같은 방식으로 풀어가고, 한 컨테이너에 모든 패스를 집어넣고, 
-	// Pass포인터로만 SpawnControlWidgets()를 호출하는 방식으로.
+	inline void SetClipDist(const float nearClipDist, const float farClipDist) 
+	{
+		m_NearClipDist = nearClipDist;
+		m_FarClipDist  = farClipDist;
+	}
 
 private:
 	custom::IndirectArgsBuffer m_IndirectArgument;
@@ -45,6 +46,9 @@ private:
 	uint32_t m_bMedianAlpha     = true;
 	uint32_t m_bDebugMode       = true;
 	uint32_t m_bDebugTile       = true;
+
+	float m_NearClipDist;
+	float m_FarClipDist;
 
 	float m_FocalDepth        = 0.1f;
 	float m_FocalRange        = 0.1f;

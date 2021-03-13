@@ -87,7 +87,7 @@ namespace TextManager
 				m_Dictionary[wcharList[i]] = glyphData[i];
 			}
 
-            m_Texture.Create(textureWidth, textureHeight, DXGI_FORMAT_R8_SNORM, texelData);
+            m_Texture.CreateCommittedTexture(textureWidth, textureHeight, DXGI_FORMAT_R8_SNORM, texelData);
 
             printf("Loaded SDF font:  %ls (ver. %d.%d)", fontName, header->majorVersion, header->minorVersion);
         }
@@ -187,8 +187,6 @@ namespace TextManager
     custom::RootSignature s_RootSignature;
     GraphicsPSO s_TextPSO[2];    // 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
     GraphicsPSO s_ShadowPSO[2];  // 0: R8G8B8A8_UNORM   1: R11G11B10_FLOAT
-
-
 } // namespace TextRenderer
 
 void TextManager::Initialize()
@@ -236,8 +234,11 @@ void TextManager::Shutdown()
     LoadedFonts.clear();
 }
 
-TextContext::TextContext(custom::GraphicsContext& CmdContext, float ViewWidth, float ViewHeight)
-    : m_Context(CmdContext)
+TextContext::TextContext(custom::GraphicsContext* const pGraphicsContext, const uint8_t commandIndex, float ViewWidth, float ViewHeight)
+    :
+    m_pGraphicsContext(pGraphicsContext),
+    m_CommandIndex(commandIndex),
+    m_CS({})
 {
     m_HDR = FALSE;
     m_CurrentFont = nullptr;
@@ -275,22 +276,7 @@ void TextContext::ResetSettings()
     SetFont(L"default", 24.0f);
 }
 
-void  TextContext::SetLeftMargin(float x) { m_LeftMargin = x; }
-void  TextContext::SetCursorX(float x)    { m_TextPosX = x; }
-void  TextContext::SetCursorY(float y)    { m_TextPosY = y; }
-void  TextContext::NewLine()              { m_TextPosX = m_LeftMargin; m_TextPosY += m_LineHeight; }
-float TextContext::GetLeftMargin()        { return m_LeftMargin; }
-float TextContext::GetCursorX()           { return m_TextPosX; }
-float TextContext::GetCursorY()           { return m_TextPosY; }
-
-void TextContext::ResetCursor(float x, float y)
-{
-    m_LeftMargin = x;
-    m_TextPosX   = x;
-    m_TextPosY   = y;
-}
-
-void TextContext::EnableDropShadow(bool enable)
+void TextContext::EnableDropShadow(const bool enable)
 {
 	if (m_EnableShadow == enable)
 	{
@@ -299,10 +285,10 @@ void TextContext::EnableDropShadow(bool enable)
 
     m_EnableShadow = enable;
 
-    m_Context.SetPipelineState(m_EnableShadow ? TextManager::s_ShadowPSO[m_HDR] : TextManager::s_TextPSO[m_HDR]);
+    m_pGraphicsContext->SetPipelineState(m_EnableShadow ? TextManager::s_ShadowPSO[m_HDR] : TextManager::s_TextPSO[m_HDR], m_CommandIndex);
 }
 
-void TextContext::SetShadowOffset(float xPercent, float yPercent)
+void TextContext::SetShadowOffset(const float xPercent, const float yPercent)
 {
     m_ShadowOffsetX = xPercent;
     m_ShadowOffsetY = yPercent;
@@ -311,14 +297,14 @@ void TextContext::SetShadowOffset(float xPercent, float yPercent)
     m_PSConstantBufferIsStale = true;
 }
 
-void TextContext::SetShadowParams(float Opacity, float Width)
+void TextContext::SetShadowParams(const float Opacity, const float Width)
 {
     m_PSParams.ShadowHardness = 1.0f / Width;
     m_PSParams.ShadowOpacity = Opacity;
     m_PSConstantBufferIsStale = true;
 }
 
-void TextContext::SetColor(custom::Color _Color)
+void TextContext::SetColor(const custom::Color& _Color)
 {
     m_PSParams.TextColor = _Color;
     m_PSConstantBufferIsStale = true;
@@ -329,18 +315,18 @@ float TextContext::GetVerticalSpacing()
     return m_LineHeight;
 }
 
-void TextContext::Begin(bool EnableHDR /*= false*/)
+void TextContext::Begin(const bool EnableHDR /*= false*/)
 {
     ResetSettings();
 
     m_HDR = (BOOL)EnableHDR;
 
-    m_Context.SetRootSignature(TextManager::s_RootSignature);
-    m_Context.SetPipelineState(TextManager::s_ShadowPSO[m_HDR]);
-    m_Context.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_pGraphicsContext->SetRootSignature(TextManager::s_RootSignature, m_CommandIndex);
+    m_pGraphicsContext->SetPipelineState(TextManager::s_ShadowPSO[m_HDR], m_CommandIndex);
+    m_pGraphicsContext->SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP); // ERROR
 }
 
-void TextContext::SetFont(const std::wstring& fontName, float size)
+void TextContext::SetFont(const std::wstring& fontName, const float size)
 {
     // If that font is already set or doesn't exist, return.
     const TextManager::Font* NextFont = TextManager::GetOrLoadFont(fontName);
@@ -378,7 +364,7 @@ void TextContext::SetFont(const std::wstring& fontName, float size)
     m_TextureIsStale = true;
 }
 
-void TextContext::SetTextSize(float size)
+void TextContext::SetTextSize(const float size)
 {
     if (m_VSParams.TextSize == size)
 	{
@@ -402,7 +388,7 @@ void TextContext::SetTextSize(float size)
 	}
 }
 
-void TextContext::SetViewSize(float ViewWidth, float ViewHeight)
+void TextContext::SetViewSize(const float ViewWidth, const float ViewHeight)
 {
     m_ViewWidth = ViewWidth;
     m_ViewHeight = ViewHeight;
@@ -417,38 +403,38 @@ void TextContext::SetViewSize(float ViewWidth, float ViewHeight)
     m_VSConstantBufferIsStale = true;
 }
 
-void TextContext::End(void)
+void TextContext::End()
 {
     m_VSConstantBufferIsStale = true;
     m_PSConstantBufferIsStale = true;
     m_TextureIsStale          = true;
 }
 
-void TextContext::SetRenderState(void)
+void TextContext::SetRenderState()
 {
      ASSERT(nullptr != m_CurrentFont, "Attempted to draw text without a font");
 
     if (m_VSConstantBufferIsStale)
     {
-        m_Context.SetDynamicConstantBufferView(0, sizeof(m_VSParams), &m_VSParams);
+        m_pGraphicsContext->SetDynamicConstantBufferView(0, sizeof(m_VSParams), &m_VSParams, m_CommandIndex);
         m_VSConstantBufferIsStale = false;
     }
 
     if (m_PSConstantBufferIsStale)
     {
-        m_Context.SetDynamicConstantBufferView(1, sizeof(m_PSParams), &m_PSParams);
+        m_pGraphicsContext->SetDynamicConstantBufferView(1, sizeof(m_PSParams), &m_PSParams, m_CommandIndex);
         m_PSConstantBufferIsStale = false;
     }
 
     if (m_TextureIsStale)
     {
-        m_Context.SetDynamicDescriptors(2, 0, 1, &m_CurrentFont->GetTexture().GetSRV());
+        m_pGraphicsContext->SetDynamicDescriptors(2, 0, 1, &m_CurrentFont->GetTexture().GetSRV(), m_CommandIndex);
         m_TextureIsStale = false;
     }
 }
 
 // These are made with templates to handle char and wchar_t simultaneously.
-UINT TextContext::FillVertexBuffer(TextVert volatile* verts, const char* str, size_t stride, size_t slen)
+UINT TextContext::FillVertexBuffer(TextVert volatile* verts, const char* str, const size_t stride, const size_t sLength)
 {
     UINT charsDrawn = 0;
 
@@ -460,7 +446,7 @@ UINT TextContext::FillVertexBuffer(TextVert volatile* verts, const char* str, si
     const uint16_t texelHeight = m_CurrentFont->GetHeight();
 
     const char* iter = str;
-    for (size_t i = 0; i < slen; ++i)
+    for (size_t i = 0; i < sLength; ++i)
     {
         wchar_t wc = (stride == 2 ? *(wchar_t*)iter : *iter);
         iter += stride;
@@ -517,8 +503,8 @@ void TextContext::DrawString(const std::wstring& str)
 
     if (0 < primCount)
     {
-        m_Context.SetDynamicVB(0, primCount, sizeof(TextVert), vbPtr);
-        m_Context.DrawInstanced(4, primCount);
+        m_pGraphicsContext->SetDynamicVB(0, primCount, sizeof(TextVert), vbPtr, m_CommandIndex);
+        m_pGraphicsContext->DrawInstanced(4, primCount, 0U, 0U, m_CommandIndex);
     }
 
     _freea(pStackMem);
@@ -534,8 +520,8 @@ void TextContext::DrawString(const std::string& str)
 
     if (0 < primCount)
     {
-        m_Context.SetDynamicVB(0, primCount, sizeof(TextVert), vbPtr);
-        m_Context.DrawInstanced(4, primCount);
+        m_pGraphicsContext->SetDynamicVB(0, primCount, sizeof(TextVert), vbPtr, m_CommandIndex);
+        m_pGraphicsContext->DrawInstanced(4, primCount, 0U, 0U, m_CommandIndex);
     }
 
     _freea(pStackMem);

@@ -8,6 +8,7 @@
 namespace custom
 {
 	class CommandContext;
+	class GraphicsContext;
 }
 
 class D3D12Engine
@@ -23,16 +24,17 @@ public:
 	void HandleInput();
 private:
 	void BeginFrame();
-	void EndFrame(custom::CommandContext& BaseContext);
+	void EndFrame();
 
 private:
 	CameraManager     m_CameraManager;
 	ObjModelManager   m_ObjModelManager;
+	// CameraManager + ObjModelManager + (KD-Tree) => CameraRasterizer?
 	MainLightManager  m_MainLightManager;
 	MasterRenderGraph m_MasterRenderGraph;
 
 	D3D12_VIEWPORT m_MainViewport;
-	D3D12_RECT m_MainScissor;
+	D3D12_RECT     m_MainScissor;
 
 	BOOL m_bEnableImgui = true;
 #ifdef _DEBUG

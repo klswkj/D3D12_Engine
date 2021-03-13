@@ -31,52 +31,53 @@ namespace custom
 
 		// Create a buffer. 
 		// If initial data is provided, it will be copied into the buffer using the default command context.
-		void Create
+		void CreateUAVCommitted
 		(
-			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
+			const std::wstring& name, const uint32_t numElements, const uint32_t elementSize,
 			const void* initialData = nullptr
 		);
 
-		// Sub-Allocate a buffer out of a pre-allocated heap.  If initial data is provided, it will be copied into the buffer using the default command context.
+		// Sub-Allocate a buffer out of a pre-allocated heap.  
+		// If initial data is provided, it will be copied into the buffer using the default command context.
 		void CreatePlaced
 		(
-			const std::wstring& name, ID3D12Heap* pBackingHeap, 
-			uint32_t HeapOffset, uint32_t NumElements, uint32_t ElementSize,
-			const void* initialData = nullptr
+			const std::wstring& name, ID3D12Heap* const pBackingHeap,
+			const uint32_t heapOffset, const uint32_t numElements, const uint32_t elementSize,
+			const void* pInitialData = nullptr
 		);
 
-		D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView(void) const 
+		D3D12_GPU_VIRTUAL_ADDRESS RootConstantBufferView() const 
 		{ 
 			return m_GPUVirtualAddress; 
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE CreateConstantBufferView(uint32_t Offset, uint32_t Size) const;
+		D3D12_CPU_DESCRIPTOR_HANDLE CreateConstantBufferView(const uint32_t offset, const uint32_t size) const;
 
-		D3D12_VERTEX_BUFFER_VIEW VertexBufferView(size_t Offset, uint32_t Size, uint32_t Stride) const
+		D3D12_VERTEX_BUFFER_VIEW VertexBufferView(const size_t offset, const uint32_t size, const uint32_t stride) const
 		{
 			D3D12_VERTEX_BUFFER_VIEW VBView;
-			VBView.BufferLocation = m_GPUVirtualAddress + Offset;
-			VBView.SizeInBytes = Size;
-			VBView.StrideInBytes = Stride;
+			VBView.BufferLocation = m_GPUVirtualAddress + offset;
+			VBView.SizeInBytes = size;
+			VBView.StrideInBytes = stride;
 			return VBView;
 		}
-		D3D12_VERTEX_BUFFER_VIEW VertexBufferView(size_t BaseVertexIndex = 0) const
+		D3D12_VERTEX_BUFFER_VIEW VertexBufferView(const size_t baseVertexIndex = 0) const
 		{
-			size_t Offset = BaseVertexIndex * m_elementSize;
+			size_t Offset = baseVertexIndex * m_elementSize;
 			return VertexBufferView(Offset, (uint32_t)(m_bufferSize - Offset), m_elementSize);
 		}
 
-		D3D12_INDEX_BUFFER_VIEW IndexBufferView(size_t Offset, uint32_t Size, bool b32Bit = false) const
+		D3D12_INDEX_BUFFER_VIEW IndexBufferView(const size_t offset, const uint32_t size, const bool b32Bit = false) const
 		{
 			D3D12_INDEX_BUFFER_VIEW IBView;
-			IBView.BufferLocation = m_GPUVirtualAddress + Offset;
+			IBView.BufferLocation = m_GPUVirtualAddress + offset;
 			IBView.Format = b32Bit ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
-			IBView.SizeInBytes = Size;
+			IBView.SizeInBytes = size;
 			return IBView;
 		}
-		D3D12_INDEX_BUFFER_VIEW IndexBufferView(size_t StartIndex = 0) const
+		D3D12_INDEX_BUFFER_VIEW IndexBufferView(const size_t startIndex = 0) const
 		{
-			size_t Offset = StartIndex * m_elementSize;
+			size_t Offset = startIndex * m_elementSize;
 			return IndexBufferView(Offset, (uint32_t)(m_bufferSize - Offset), m_elementSize == 4);
 		}
 
@@ -103,14 +104,17 @@ namespace custom
 
 	protected:
 		UAVBuffer()
-			: m_bufferSize(0), m_elementCount(0), m_elementSize(0)
+			: 
+			m_bufferSize(0),
+			m_elementCount(0),
+			m_elementSize(0)
 		{
 			m_resourceFlags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 			m_UAV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
 			m_SRV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
 		}
 
-		virtual void CreateUAV(std::wstring Name) = 0;
+		virtual void CreateUAV(std::wstring name) = 0;
 		D3D12_RESOURCE_DESC resourceDescriptor();
 
 	protected:
@@ -129,11 +133,11 @@ namespace custom
 	class ByteAddressBuffer : public UAVBuffer
 	{
 	public:
-		~ByteAddressBuffer()
+		virtual ~ByteAddressBuffer()
 		{
 			Destroy();
 		}
-		virtual void CreateUAV(std::wstring Name = L"") override;
+		virtual void CreateUAV(std::wstring name = L"") final;
 
 		static ByteAddressBuffer* CreateIndexBuffer
 		(
@@ -148,25 +152,25 @@ namespace custom
 		static void DestroyIndexAllBuffer();
 	};
 
-	class StructuredBuffer : public UAVBuffer
+	class StructuredBuffer final : public UAVBuffer
 	{
 	public:
 		~StructuredBuffer()
 		{
 		 	Destroy();
 		}
-		virtual void CreateUAV(std::wstring Name = L"") override;
+		virtual void CreateUAV(std::wstring name = L"") final;
 
 		static StructuredBuffer* CreateVertexBuffer
 		(
-			const std::wstring& name, uint32_t NumElements, uint32_t ElementSize,
-			const void* initialData
+			const std::wstring& name, uint32_t numElements, uint32_t elementSize,
+			const void* pInitialData
 		);
 
 		static void DestroyAllVertexBuffer();
 
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterSRV(CommandContext& Context);
-		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterUAV(CommandContext& Context);
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterSRV(CommandContext& context, const uint8_t commandIndex);
+		const D3D12_CPU_DESCRIPTOR_HANDLE& GetCounterUAV(CommandContext& context, const uint8_t commandIndex);
 
 		ByteAddressBuffer& GetCounterBuffer() 
 		{ 
@@ -184,7 +188,7 @@ namespace custom
 	};
 
 	// // For Dispatch Indirect
-	class IndirectArgsBuffer : public ByteAddressBuffer
+	class IndirectArgsBuffer final : public ByteAddressBuffer
 	{
 	public:
 		IndirectArgsBuffer()
@@ -192,17 +196,16 @@ namespace custom
 		}
 	};
 
-	class TypedBuffer : public UAVBuffer
+	class TypedBuffer final : public UAVBuffer
 	{
 	public:
-		TypedBuffer(DXGI_FORMAT Format) 
-			: m_DataFormat(Format) 
+		TypedBuffer(const DXGI_FORMAT format)
+			: m_DataFormat(format) 
 		{
 		}
-		virtual void CreateUAV(std::wstring Name = L"") override;
+		virtual void CreateUAV(std::wstring Name = L"") final;
 
 	protected:
 		DXGI_FORMAT m_DataFormat;
 	};
-
 }

@@ -20,8 +20,11 @@
 
 FillLightGridPass* FillLightGridPass::s_pFillLightGridPass = nullptr;
 
-FillLightGridPass::FillLightGridPass(std::string pName)
-    : Pass(pName)
+FillLightGridPass::FillLightGridPass(std::string name)
+    : 
+    ID3D12ScreenPass(name),
+    m_kMinWorkGroupSize(8u),
+    m_WorkGroupSize(16u)
 {
     ASSERT(s_pFillLightGridPass == nullptr);
 
@@ -75,7 +78,7 @@ void FillLightGridPass::RenderWindow()
     ImGui::EndChild();
 }
 
-void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
+void FillLightGridPass::ExecutePass()
 {
 #ifdef _DEBUG
     graphics::InitDebugStartTick();
@@ -91,17 +94,17 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
         return;
     }
 
-    custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
+    custom::ComputeContext& computeContext = custom::ComputeContext::Begin(1);
 
-    computeContext.PIXBeginEvent(L"5_FillLightPass");
-    computeContext.SetRootSignature(m_FillLightRootSignature);
+    computeContext.PIXBeginEvent(L"5_FillLightPass", 0u);
+    computeContext.SetRootSignature(m_FillLightRootSignature, 0u);
 
     switch (m_WorkGroupSize)
     {
-    case  8: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8);  break;
-    case 16: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_16); break;
-    case 24: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_24); break;
-    case 32: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_32); break;
+    case  8: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8, 0u);  break;
+    case 16: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_16, 0u); break;
+    case 24: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_24, 0u); break;
+    case 32: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_32, 0u); break;
     default: ASSERT(false);
         break;
     }
@@ -114,17 +117,18 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
     computeContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     computeContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    computeContext.SubmitResourceBarriers(0u);
 
-    computeContext.SetDynamicDescriptor(1, 0, bufferManager::g_LightBuffer.GetSRV());
-    computeContext.SetDynamicDescriptor(1, 1, LinearDepth.GetSRV());
-    computeContext.SetDynamicDescriptor(2, 0, bufferManager::g_LightGrid.GetUAV());
-    computeContext.SetDynamicDescriptor(2, 1, bufferManager::g_LightGridBitMask.GetUAV());
+    computeContext.SetDynamicDescriptor(1, 0, bufferManager::g_LightBuffer.GetSRV(), 0u);
+    computeContext.SetDynamicDescriptor(1, 1, LinearDepth.GetSRV(), 0u);
+    computeContext.SetDynamicDescriptor(2, 0, bufferManager::g_LightGrid.GetUAV(), 0u);
+    computeContext.SetDynamicDescriptor(2, 1, bufferManager::g_LightGridBitMask.GetUAV(), 0u);
 
     // todo: assumes 1920x1080 resolution
     uint32_t tileCountX = Math::DivideByMultiple(bufferManager::g_SceneColorBuffer.GetWidth(), m_WorkGroupSize);
     uint32_t tileCountY = Math::DivideByMultiple(bufferManager::g_SceneColorBuffer.GetHeight(), m_WorkGroupSize);
 
-    Camera* pMainCamera = BaseContext.GetpMainCamera();
+    Camera* pMainCamera = computeContext.GetpMainCamera();
 
     float RcpZMagic;
 	{
@@ -142,13 +146,11 @@ void FillLightGridPass::Execute(custom::CommandContext& BaseContext)
     csConstants.TileCount = tileCountX;
     csConstants.ViewProjMatrix = pMainCamera->GetViewProjMatrix();
 
-    computeContext.SetDynamicConstantBufferView(0, sizeof(CSConstants), &csConstants);
+    computeContext.SetDynamicConstantBufferView(0, sizeof(CSConstants), &csConstants, 0u);
+    computeContext.Dispatch(tileCountX, tileCountY, 1, 0u);
+    computeContext.PIXEndEvent(0u); // End FillLightGridPass
+    computeContext.Finish(false);
 
-    computeContext.Dispatch(tileCountX, tileCountY, 1);
-
-    computeContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    computeContext.PIXEndEvent();
 #ifdef _DEBUG
     float DeltaTime2 = graphics::GetDebugFrameTime();
     m_DeltaTime = DeltaTime2 - DeltaTime1;

@@ -1,4 +1,5 @@
 #pragma once
+#include "CustomCriticalSection.h"
 
 namespace custom
 {
@@ -17,7 +18,7 @@ namespace custom
 		void AddThreads(uint32_t NumAddThreads);
 		void Resize(uint32_t NumNewThreads);
 		void ThreadsShutdown();
-		bool WorkQueueEmpty() { return m_WorkQueue.empty(); }
+		bool WorkQueueEmpty() { Scoped_CS Scoped(m_QueueCS); return m_WorkQueue.empty(); }
 
 	public:
 		static void Enqueue
@@ -32,35 +33,83 @@ namespace custom
 			_In_opt_ void*&& pParameter = nullptr
 		);
 
+		static void EnqueueVariadic(_In_ std::function<void(void*)>&& pWork, int NumParam, ...);
+
 		static void MultipleEnqueue
 		(
-			_In_ std::function<void(void*)> pWork[],
-			_In_ size_t ElementSize,
-			_In_opt_ void* pParameter[] = nullptr
+			_In_ std::function<void(void*)> pWorks[],
+			_In_ size_t numElements,
+			_In_opt_ void* pParameters[] = nullptr,
+			_In_opt_ size_t ElementSize = 0ull
 		);
 
+		static void MultipleEnqueue
+		(
+			_In_ std::function<void(void*)> pWork,
+			_In_ size_t numElements,
+			_In_opt_ void* pParameters[] = nullptr,
+			_In_opt_ size_t ElementSize = 0ull
+		);
+
+		// 버그 : WorkThread한테 모두 일을 줘야지 나올수가 있음...
 		static void   WaitAllFinished(_In_opt_ HANDLE hFinishEvent = nullptr);
 		static size_t GetLogicalProcessors() { return ThreadPool::sm_LogicalProcessors; }
 
 	private:
 		void WaitFinishedAllThreads()
 		{
-			DWORD Result = WaitForMultipleObjects((DWORD)m_ThreadWorkFinishEvents.size(), m_ThreadWorkFinishEvents.data(), true, INFINITE);
-
-			if (Result == WAIT_OBJECT_0)
+#ifdef _DEBUG
+			uint64_t WaitFailed = 0ull;
+#endif
+			while (1)
 			{
-				return;
+				if (WAIT_TIMEOUT == WaitForMultipleObjects((DWORD)m_ThreadWorkFinishEvents.size(), m_ThreadWorkFinishEvents.data(), false, 0))
+				{
+					break;
+				}
+#ifdef _DEBUG
+				else
+				{
+					++WaitFailed;
+				}
+#endif
 			}
-			else
+
+#ifdef _DEBUG
+			printf("Thread Pool's First Wait Failed : #%d\n", WaitFailed);
+#endif
+
+			uint32_t NumRemaindWorkingThread = InterlockedGetValue(&m_NumWorkingThreads);
+			DWORD WaitingResult = WAIT_OBJECT_0;
+
+			while (NumRemaindWorkingThread)
 			{
-				DWORD LastError = GetLastError();
-				ASSERT(!LastError);
+				WaitingResult = ::WaitForMultipleObjects((DWORD)m_ThreadWorkFinishEvents.size(), m_ThreadWorkFinishEvents.data(), false, INFINITE);
+				if (WaitingResult < 0x80L)
+				{
+					--NumRemaindWorkingThread;
+				}
+#ifdef _DEBUG
+				else
+				{
+					++WaitFailed;
+				}
+#endif
+			}
+
+#ifdef _DEBUG
+			printf("Thread Pool's Last Wait Failed : #%d\n", WaitFailed);
+			printf("m_NumWorkingThreads : %d\n", InterlockedGetValue(&m_NumWorkingThreads));
+#endif
+			if (InterlockedGetValue(&m_NumWorkingThreads))
+			{
+				WaitFinishedAllThreads();
 			}
 		}
 
 	private:
 		static ThreadPool* sm_pThreadPool;
-		static size_t sm_LogicalProcessors;
+		static size_t      sm_LogicalProcessors;
 
 		std::vector<HANDLE> m_Threads;
 		std::vector<HANDLE> m_ThreadWorkFinishEvents;
@@ -68,12 +117,30 @@ namespace custom
 
 		CRITICAL_SECTION m_QueueCS;
 		CRITICAL_SECTION m_OrderCS;
-		HANDLE     m_hWakeUpEvent;
-		HANDLE     m_hWorkFinishEvent;
+		HANDLE m_hWakeUpEvent;
+		HANDLE m_hWorkFinishEvent;
 
-		BOOL       m_bThreadShutdown;
-		uint32_t   m_NumWorkingThreads;
+		BOOL m_bThreadShutdown;
+
+		// TODO 1: 메모리 버스 많이 잠겨서 SRWLock으로 바꿔야함.
+		uint32_t volatile m_NumWorkingThreads;
 
 		static unsigned int WINAPI sm_WorkerProcess(LPVOID pThreadPool);
 	};
 }
+
+
+/*
+void WaitFinishedAllThreads()
+		{
+while (WAIT_OBJECT_0 != ::WaitForSingleObject(m_hWorkFinishEvent, 0))
+			{
+				if (!InterlockedGetValue(&m_NumWorkingThreads))
+				{
+					break;
+				}
+			}
+
+			::ResetEvent(m_hWorkFinishEvent);
+		}
+*/

@@ -21,7 +21,12 @@
 Z_PrePass* Z_PrePass::s_pZ_PrePass = nullptr;
 
 Z_PrePass::Z_PrePass(std::string pName, custom::RootSignature* pRootSignature/* = nullptr*/, GraphicsPSO* pDepthPSO/* = nullptr*/)
-	: RenderQueuePass(pName), m_pRootSignature(pRootSignature), m_pDepthPSO(pDepthPSO)
+	: 
+	ID3D12RenderQueuePass(pName, JobFactorization::ByNone),
+	m_pRootSignature(pRootSignature), 
+	m_pDepthPSO(pDepthPSO),
+	m_bAllocateRootSignature(false),
+	m_bAllocatePSO(false)
 {
 	ASSERT(s_pZ_PrePass == nullptr);
 	s_pZ_PrePass = this;
@@ -85,34 +90,46 @@ Z_PrePass::~Z_PrePass()
 	}
 }
 
-void Z_PrePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void Z_PrePass::ExecutePass() DEBUG_EXCEPT
 {
 #ifdef _DEBUG
 	graphics::InitDebugStartTick();
 	float DeltaTime1 = graphics::GetDebugFrameTime();
 #endif
 
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
+	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::GetRecentContext();
 
-	graphicsContext.PIXBeginEvent(L"3_Z_PrePass");
+	uint8_t StartJobIndex = 0u;
+	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
 
-	graphicsContext.SetRootSignature(*m_pRootSignature);
-	graphicsContext.SetPipelineState(*m_pDepthPSO);
+	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
+	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4u, this, &graphicsContext, 0u, MaxCommandIndex);
 
-	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-	graphicsContext.ClearDepthAndStencil(bufferManager::g_SceneDepthBuffer);
-	graphicsContext.SetOnlyDepthStencil(bufferManager::g_SceneDepthBuffer.GetDSV());
-	graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
+	graphicsContext.PIXBeginEvent(L"3_Z_PrePass", 0u);
+	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	graphicsContext.SubmitResourceBarriers(0);
+	graphicsContext.ClearDepthAndStencil(bufferManager::g_SceneDepthBuffer, 0);
+	graphicsContext.SetMainCamera(*graphicsContext.GetpMainCamera());
 
-	{
-		graphicsContext.SetMainCamera(*graphicsContext.GetpMainCamera());
-		// graphicsContext.SetModelToShadow(MasterRenderGraph::s_pMasterRenderGraph->m_pMainLights->begin()->GetShadowMatrix()); // TODO : Edit the Code.
-		graphicsContext.SetVSConstantsBuffer(0u);
-		// graphicsContext.SetPSConstantsBuffer(2u); // 1u -> 2u
-	}
-	RenderQueuePass::Execute(BaseContext);
+	graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetPipelineStateRange(*m_pDepthPSO, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetOnlyDepthStencilRange(bufferManager::g_SceneDepthBuffer.GetDSV(), StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetViewportAndScissorRange(bufferManager::g_SceneColorBuffer, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetVSConstantsBufferRange(0u, StartJobIndex, MaxCommandIndex);
 
-	graphicsContext.PIXEndEvent();
+	// custom::ThreadPool::WaitAllFinished(); // Wait Set Params.
+
+	custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint8_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
+	ContextWorkerThread(&m_Params[0]);
+
+	custom::ThreadPool::WaitAllFinished(); // 여기서부터 기다리는 시간이 너무 아깝다.
+	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	graphicsContext.SubmitResourceBarriers(MaxCommandIndex);
+	graphicsContext.PIXEndEvent(MaxCommandIndex);
+	graphicsContext.ExecuteCommands(MaxCommandIndex, false, true);
+	graphicsContext.PauseRecording();
+
 #ifdef _DEBUG
 	float DeltaTime2 = graphics::GetDebugFrameTime();
 	m_DeltaTime = DeltaTime2 - DeltaTime1;

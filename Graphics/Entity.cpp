@@ -6,9 +6,11 @@
 #include "FundamentalVertexIndex.h"
 
 IEntity::IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName)
+	:
 #if defined(_DEBUG)
-	: m_name(MeshName)
+	m_name(MeshName),
 #endif
+	m_Topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 {
 	ASSERT(Input.BaseVertexLocation != -1);
 	ASSERT(Input.IndexCount         != -1);
@@ -35,20 +37,20 @@ void IEntity::AddTechnique(Technique _Technique) noexcept
 	m_Techniques.push_back(std::move(_Technique));
 }
 
-void IEntity::Submit(eObjectFilterFlag Filter) const noexcept
+void IEntity::Submit(eObjectFilterFlag Filter) noexcept
 {
-	for (const std::vector<Technique>::iterator::value_type& Tech : m_Techniques)
+	for (std::vector<Technique>::iterator::value_type& Tech : m_Techniques)
 	{
 		Tech.Submit(*this, Filter);
 	}
 }
 
-void IEntity::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
+void IEntity::Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) const DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetVertexBuffer(0, m_VertexBufferView);
-	graphicsContext.SetIndexBuffer(m_IndexBufferView);
-	graphicsContext.SetPrimitiveTopology(m_Topology);
+	graphicsContext.SetVertexBuffer(0, m_VertexBufferView, commandIndex);
+	graphicsContext.SetIndexBuffer(m_IndexBufferView, commandIndex);
+	// graphicsContext.SetPrimitiveTopology(m_Topology);
 }
 
 void IEntity::Accept(IWindow& window)
@@ -59,7 +61,7 @@ void IEntity::Accept(IWindow& window)
 	}
 }
 
-void IEntity::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
+void IEntity::LinkTechniques(const MasterRenderGraph& _MasterRenderGraph)
 {
 	for (auto& tech : m_Techniques)
 	{

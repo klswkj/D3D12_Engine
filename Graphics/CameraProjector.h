@@ -10,17 +10,17 @@ enum class eObjectFilterFlag;
 class CameraProjector
 {
 public:
-	CameraProjector(Camera* pParent, float VerticalFOV, float AspectHeightOverWidth, float NearZClip, float FarZClip);
+	CameraProjector(Camera& rParent, const float verticalFOV, const float aspectHeightOverWidth, const float nearZClip, const float farZClip);
 	DirectX::XMMATRIX GetProjectionMatrix() const;
 	void RenderWidgets();
 	
-	void SetPosition(Math::Vector3& Position);
-	void SetPosition(DirectX::XMFLOAT3& Position);
+	void SetPosition(const Math::Vector3& position);
+	void SetPosition(const DirectX::XMFLOAT3& position);
 
-	void SetRotation(const DirectX::XMFLOAT3& RollPitchYaw);
+	void SetRotation(const DirectX::XMFLOAT3& rollPitchYaw);
 
-	void Submit(eObjectFilterFlag Filter) const;
-	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
+	void Submit(const eObjectFilterFlag filter);
+	void LinkTechniques(const MasterRenderGraph& masterRG);
 	void Reset();
 private:
 	float m_aspectHeightOverWidth;
@@ -33,20 +33,20 @@ private:
 	float m_initNearZClip;
 	float m_initFarZClip;
 	CameraFrustum m_CameraFrustum;
-	Camera* m_pParentCamera;
+	Camera* const m_pParentCamera;
 };
 
-inline void CameraProjector::SetPosition(Math::Vector3& Position)
+inline void CameraProjector::SetPosition(const Math::Vector3& position)
 {
-	m_CameraFrustum.SetPosition(Position);
+	m_CameraFrustum.SetPosition(position);
 }
 
-inline void CameraProjector::SetPosition(DirectX::XMFLOAT3& Position)
+inline void CameraProjector::SetPosition(const DirectX::XMFLOAT3& position)
 {
-	m_CameraFrustum.SetPosition(Position);
+	m_CameraFrustum.SetPosition(position);
 }
 
-inline void CameraProjector::SetRotation(const DirectX::XMFLOAT3& RollPitchYaw)
+inline void CameraProjector::SetRotation(const DirectX::XMFLOAT3& rollPitchYaw)
 {
-	m_CameraFrustum.SetRotation(RollPitchYaw);
+	m_CameraFrustum.SetRotation(rollPitchYaw);
 }

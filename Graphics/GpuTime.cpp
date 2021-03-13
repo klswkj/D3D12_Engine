@@ -8,15 +8,15 @@
 
 namespace GPUTime
 {
-    ID3D12QueryHeap* sm_QueryHeap     = nullptr;
-    ID3D12Resource* sm_ReadBackBuffer = nullptr;
-    uint64_t* sm_TimeStampBuffer      = nullptr; // will be mapped
-    uint64_t sm_Fence = 0;
-    uint32_t sm_MaxNumTimers = 0;
-    uint32_t sm_NumTimers = 1;
-    uint64_t sm_ValidTimeStart = 0;
-    uint64_t sm_ValidTimeEnd = 0;
-    double sm_GpuTickDelta = 0.0f;
+    ID3D12QueryHeap* sm_pQueryHeap      = nullptr;
+    ID3D12Resource*  sm_pReadBackBuffer = nullptr;
+    float* sm_pTimeStampBuffer          = nullptr; // will be mapped
+    uint64_t sm_Fence        = 0ull;
+    uint32_t sm_MaxNumTimers = 0u;
+    uint32_t sm_NumTimers    = 1u;
+    float sm_ValidTimeStart = 0.0f;
+    float sm_ValidTimeEnd   = 0.0f;
+    double sm_GpuTickDelta  = 0.0f;
 }
 
 void GPUTime::ClockInitialize(uint32_t MaxNumTimers/*= 4096*/)
@@ -46,33 +46,24 @@ void GPUTime::ClockInitialize(uint32_t MaxNumTimers/*= 4096*/)
     BufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
     ASSERT_HR(device::g_pDevice->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE, &BufferDesc,
-        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&sm_ReadBackBuffer)));
+        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&sm_pReadBackBuffer)));
 
-    sm_ReadBackBuffer->SetName(L"GpuTimeStamp Buffer");
+    sm_pReadBackBuffer->SetName(L"GpuTimeStamp Buffer");
 
     D3D12_QUERY_HEAP_DESC QueryHeapDesc;
     QueryHeapDesc.Count = MaxNumTimers * 2;
     QueryHeapDesc.NodeMask = 1;
     QueryHeapDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-    ASSERT_HR(device::g_pDevice->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(&sm_QueryHeap)));
-    sm_QueryHeap->SetName(L"GpuTimeStamp QueryHeap");
+    ASSERT_HR(device::g_pDevice->CreateQueryHeap(&QueryHeapDesc, IID_PPV_ARGS(&sm_pQueryHeap)));
+    sm_pQueryHeap->SetName(L"GpuTimeStamp QueryHeap");
 
     sm_MaxNumTimers = (uint32_t)MaxNumTimers;
 }
 
 void GPUTime::Shutdown()
 {
-    if (sm_ReadBackBuffer != nullptr)
-    {
-        sm_ReadBackBuffer->Release();
-        sm_ReadBackBuffer = nullptr;
-    }
-
-    if (sm_QueryHeap != nullptr)
-    {
-        sm_QueryHeap->Release();
-        sm_ReadBackBuffer = nullptr;
-    }
+    SafeRelease(sm_pReadBackBuffer);
+    SafeRelease(sm_pQueryHeap);
 }
 
 uint32_t GPUTime::NewTimer()
@@ -80,59 +71,61 @@ uint32_t GPUTime::NewTimer()
     return sm_NumTimers++;
 }
 
-void GPUTime::StartTimer(custom::CommandContext& Context, uint32_t TimerIdx)
+void GPUTime::StartTimer(const custom::CommandContext& Context, const uint8_t commandIndex, const uint32_t TimerIdx)
 {
-    Context.InsertTimeStamp(sm_QueryHeap, TimerIdx * 2);
+    Context.InsertTimeStamp(sm_pQueryHeap, TimerIdx * 2, commandIndex);
 }
 
-void GPUTime::StopTimer(custom::CommandContext& Context, uint32_t TimerIdx)
+void GPUTime::StopTimer(const custom::CommandContext& Context, const uint8_t commandIndex, const uint32_t TimerIdx)
 {
-    Context.InsertTimeStamp(sm_QueryHeap, TimerIdx * 2 + 1);
+    Context.InsertTimeStamp(sm_pQueryHeap, TimerIdx * 2 + 1, commandIndex);
 }
 
-void GPUTime::BeginReadBack(void)
+void GPUTime::BeginReadBack()
 {
-    device::g_commandQueueManager.WaitForFence(sm_Fence);
+    device::g_commandQueueManager.WaitFenceValueCPUSide(sm_Fence);
 
     D3D12_RANGE Range;
     Range.Begin = 0;
-    Range.End = (sm_NumTimers * 2) * sizeof(uint64_t);
-    ASSERT_HR(sm_ReadBackBuffer->Map(0, &Range, reinterpret_cast<void**>(&sm_TimeStampBuffer)));
+    Range.End   = ((size_t)sm_NumTimers * 2ul) * sizeof(uint64_t);
+    ASSERT_HR(sm_pReadBackBuffer->Map(0, &Range, reinterpret_cast<void**>(&sm_pTimeStampBuffer)));
 
-    sm_ValidTimeStart = sm_TimeStampBuffer[0];
-    sm_ValidTimeEnd = sm_TimeStampBuffer[1];
+    sm_ValidTimeStart = sm_pTimeStampBuffer[0];
+    sm_ValidTimeEnd   = sm_pTimeStampBuffer[1];
 
     // On the first frame, with random values in the timestamp query heap, we can avoid a misstart.
     if (sm_ValidTimeEnd < sm_ValidTimeStart)
     {
         sm_ValidTimeStart = 0ull;
-        sm_ValidTimeEnd = 0ull;
+        sm_ValidTimeEnd   = 0ull;
     }
 }
 
-void GPUTime::EndReadBack(void)
+void GPUTime::EndReadBack()
 {
     // Unmap with an empty range to indicate nothing was written by the CPU
     D3D12_RANGE EmptyRange = {};
-    sm_ReadBackBuffer->Unmap(0, &EmptyRange);
-    sm_TimeStampBuffer = nullptr;
+    sm_pReadBackBuffer->Unmap(0, &EmptyRange);
+    sm_pTimeStampBuffer = nullptr;
 
-    custom::CommandContext& Context = custom::CommandContext::Begin();
-    Context.InsertTimeStamp(sm_QueryHeap, 1);
-    Context.ResolveTimeStamps(sm_ReadBackBuffer, sm_QueryHeap, sm_NumTimers * 2);
-    Context.InsertTimeStamp(sm_QueryHeap, 0);
+    custom::CommandContext& Context = custom::CommandContext::Begin(D3D12_COMMAND_LIST_TYPE_DIRECT, 1);
+    Context.InsertTimeStamp(sm_pQueryHeap, 1, 0u);
+    Context.ResolveTimeStamps(sm_pReadBackBuffer, sm_pQueryHeap, sm_NumTimers * 2, 0u);
+    Context.InsertTimeStamp(sm_pQueryHeap, 0, 0u);
     sm_Fence = Context.Finish();
 }
 
 float GPUTime::GetTime(uint32_t TimerIdx)
 {
-    ASSERT(sm_TimeStampBuffer != nullptr, "Time stamp readback buffer is not mapped.");
+    ASSERT(sm_pTimeStampBuffer != nullptr, "Time stamp readback buffer is not mapped.");
     ASSERT(TimerIdx < sm_NumTimers, "Invalid GPU timer index.");
 
-    uint64_t TimeStamp1 = sm_TimeStampBuffer[TimerIdx * 2];
-    uint64_t TimeStamp2 = sm_TimeStampBuffer[TimerIdx * 2 + 1];
+    uint64_t TimeStamp1 = (uint64_t)sm_pTimeStampBuffer[TimerIdx * 2];
+    uint64_t TimeStamp2 = (uint64_t)sm_pTimeStampBuffer[TimerIdx * 2 + 1];
 
-    if ((TimeStamp1 < sm_ValidTimeStart) || (sm_ValidTimeEnd < TimeStamp2) || (TimeStamp2 <= TimeStamp1))
+    if ((TimeStamp1 < sm_ValidTimeStart) || 
+        (sm_ValidTimeEnd < TimeStamp2)   || 
+        (TimeStamp2 <= TimeStamp1))
     {
         return 0.0f;
     }

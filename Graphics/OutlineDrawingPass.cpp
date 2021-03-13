@@ -1,10 +1,11 @@
 #include "stdafx.h"
+#include "Device.h"
+#include "CommandQueue.h"
+#include "CommandQueueManager.h"
 #include "OutlineDrawingPass.h"
 #include "CommandContext.h"
 #include "ComputeContext.h"
-#include "BindingPass.h"
 #include "RenderQueuePass.h"
-#include "RenderTarget.h"
 #include "BufferManager.h"
 #include "PremadePSO.h"
 #include "CustomImgui.h"
@@ -12,9 +13,7 @@
 #if defined(_DEBUG) | !defined(NDEBUG)
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_VS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Flat_PS.h"
-
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/GaussianBlurCS.h"
-
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Paper2VS.h"
 #include "../x64/Debug/Graphics(.lib)/CompiledShaders/Paper2PS.h"
 
@@ -37,17 +36,17 @@
 
 OutlineDrawingPass* OutlineDrawingPass::s_pOutlineDrawingPass = nullptr;
 
-
 OutlineDrawingPass::OutlineDrawingPass
 (
 	std::string Name,
 	custom::RootSignature* pRootSignature,
 	GraphicsPSO* pOutlineMaskPSO,
 	GraphicsPSO* pOutlineDrawPSO
-) : RenderQueuePass(Name),
-m_pRootSignature(pRootSignature),
-m_pOutlineMaskPSO(pOutlineMaskPSO),
-m_pOutlineDrawPSO(pOutlineDrawPSO)
+) :
+	ID3D12RenderQueuePass(Name, JobFactorization::ByStep),
+	m_pRootSignature(pRootSignature),
+	m_pOutlineMaskPSO(pOutlineMaskPSO),
+	m_pOutlineDrawPSO(pOutlineDrawPSO)
 {
 	ASSERT(s_pOutlineDrawingPass == nullptr);
 	s_pOutlineDrawingPass = this;
@@ -185,36 +184,53 @@ OutlineDrawingPass::~OutlineDrawingPass()
 	}
 }
 
-void OutlineDrawingPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void OutlineDrawingPass::ExecutePass() DEBUG_EXCEPT
 {
 	if (!GetJobCount())
 	{
-		BaseContext.PIXBeginEvent(L"OutlineDrawingPass - Has No Job");
-		BaseContext.PIXSetMarker(L"Test");
-		BaseContext.PIXEndEvent();
 		return;
 	}
 
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.PIXBeginEvent(L"OutlineDrawingPass");
+	// m_bUseComputeShaderVersion 키고 끄고할 때의 확인할 수 있는거
+	// CommandList, CommandAllocator 줄이고 늘릴 때 Begin()부터 디버깅 가능.
+	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(5 - m_bUseComputeShaderVersion);
+	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
 
-	ExecuteStencilMasking   (BaseContext, bufferManager::g_SceneDepthBuffer);
-	ExecuteDrawColor        (BaseContext, bufferManager::g_OutlineBuffer   );
+	custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4, this, &graphicsContext, 1, MaxCommandIndex);
+
+	custom::CommandQueue& ComputeQueue = device::g_commandQueueManager.GetComputeQueue();
+	custom::CommandQueue& GraphicsQueue = device::g_commandQueueManager.GetGraphicsQueue();
+
+	graphicsContext.PIXBeginEvent(L"OutlineDrawingPass", 0);
+
+	ExecuteStencilMasking(graphicsContext, bufferManager::g_SceneDepthBuffer, 1); // Stage 1
+	ExecuteDrawColor     (graphicsContext, bufferManager::g_OutlineBuffer, 2);    // Stage 2
+	graphicsContext.ExecuteCommands(2u, true, true);
 
 	if (m_bUseComputeShaderVersion)
 	{
-		ExecuteBlurOutlineBuffer(BaseContext, bufferManager::g_OutlineBuffer,    bufferManager::g_OutlineHelpBuffer);
-		ExecutePaperOutline     (BaseContext, bufferManager::g_SceneColorBuffer, bufferManager::g_SceneDepthBuffer, bufferManager::g_OutlineBuffer);
+		// Stage 3, 4
+		custom::ComputeContext ComputeContext = custom::ComputeContext::Begin(1);
+		ExecuteBlurOutlineBuffer(ComputeContext, bufferManager::g_OutlineBuffer, bufferManager::g_OutlineHelpBuffer, 0);
+
+		ASSERT(ComputeQueue.WaitCommandQueueCompletedGPUSide(GraphicsQueue));
+		ComputeContext.Finish(false);
+		
+		ASSERT(GraphicsQueue.WaitCommandQueueCompletedGPUSide(ComputeQueue)); // TODO 1 : 여기 Wait 지워도 볼것.
+		
+		ExecutePaperOutline(graphicsContext, bufferManager::g_SceneColorBuffer, bufferManager::g_SceneDepthBuffer, bufferManager::g_OutlineBuffer, 3);
+		graphicsContext.PIXEndEvent(MaxCommandIndex); // End OutlineDrawingPass
+		graphicsContext.Finish(false);
 	}
 	else
 	{
-		ExecuteHorizontalBlur      (BaseContext, bufferManager::g_OutlineBuffer,    bufferManager::g_OutlineHelpBuffer);
-		ExecuteVerticalBlurAndPaper(BaseContext, bufferManager::g_SceneColorBuffer, bufferManager::g_SceneDepthBuffer, bufferManager::g_OutlineHelpBuffer);
+		// Stage 3, 4
+		ExecuteHorizontalBlur      (graphicsContext, bufferManager::g_OutlineBuffer,    bufferManager::g_OutlineHelpBuffer, 3);
+		ExecuteVerticalBlurAndPaper(graphicsContext, bufferManager::g_SceneColorBuffer, bufferManager::g_SceneDepthBuffer, bufferManager::g_OutlineHelpBuffer, 4);
+
+		graphicsContext.PIXEndEvent(MaxCommandIndex); // End OutlineDrawingPass
+		graphicsContext.Finish(false);
 	}
-
-	graphicsContext.Flush(false);
-
-	graphicsContext.PIXEndEvent(); // End OutlineDrawingPass
 }
 
 void OutlineDrawingPass::RenderWindow()
@@ -272,44 +288,54 @@ void OutlineDrawingPass::RenderWindow()
 	ImGui::EndChild();
 }
 
-void OutlineDrawingPass::ExecuteStencilMasking(custom::CommandContext& BaseContext, DepthBuffer& TargetBuffer)
+// Stage 1
+void OutlineDrawingPass::ExecuteStencilMasking(custom::GraphicsContext& graphicsContext, DepthBuffer& TargetBuffer, uint8_t commandIndex)
 {
 	// Stencil Mask 
 	// Target : g_SceneDepthBuffer-Stencil
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 
-	graphicsContext.PIXBeginEvent(L"Outline Masking");
-	graphicsContext.SetViewportAndScissor(TargetBuffer);
-	graphicsContext.SetRootSignature(*m_pRootSignature);
-	graphicsContext.SetPipelineState(*m_pOutlineMaskPSO);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-	graphicsContext.ClearDepth(TargetBuffer);
-	graphicsContext.SetOnlyDepthStencil(TargetBuffer.GetDSV());
-	graphicsContext.SetStencilRef(0xff);
-	RenderQueuePass::ExecuteWithRange(BaseContext, OutlineMaskStepIndex, OutlineMaskStepIndex);
+	graphicsContext.PIXBeginEvent(L"Outline Masking", commandIndex);
 
-	graphicsContext.PIXEndEvent(); // End Outline Masking
+	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
+	graphicsContext.SetRootSignature(*m_pRootSignature, commandIndex);
+	graphicsContext.SetPipelineState(*m_pOutlineMaskPSO, commandIndex);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	graphicsContext.SubmitResourceBarriers(commandIndex);
+	graphicsContext.ClearDepth(TargetBuffer, commandIndex);
+	graphicsContext.SetOnlyDepthStencil(TargetBuffer.GetDSV(), commandIndex);
+	graphicsContext.SetStencilRef(0xff, commandIndex);
+
+	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, OutlineMaskStepIndex, OutlineMaskStepIndex);
+
+	graphicsContext.PIXEndEvent(commandIndex); // End Outline Masking
 }
 
-void OutlineDrawingPass::ExecuteDrawColor(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer)
+// Stage 2.
+void OutlineDrawingPass::ExecuteDrawColor(custom::GraphicsContext& graphicsContext, ColorBuffer& TargetBuffer, uint8_t commandIndex)
 {
 	// Draw
 	// Target : g_OutlineBuffer
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	
-	graphicsContext.PIXBeginEvent(L"Outline Drawing");
-	graphicsContext.SetViewportAndScissor(TargetBuffer);
-	graphicsContext.SetRootSignature(*m_pRootSignature);
-	graphicsContext.SetPipelineState(*m_pOutlineDrawPSO);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-	graphicsContext.ClearColor(TargetBuffer);
-	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV());
-	RenderQueuePass::ExecuteWithRange(BaseContext, OutlineDrawStepIndex, OutlineDrawStepIndex);
+	graphicsContext.PIXBeginEvent(L"Outline Drawing", commandIndex);
+	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
+	graphicsContext.SetRootSignature(*m_pRootSignature, commandIndex);
+	graphicsContext.SetPipelineState(*m_pOutlineDrawPSO, commandIndex);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SubmitResourceBarriers(commandIndex);
+	graphicsContext.ClearColor(TargetBuffer, commandIndex);
+	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), commandIndex);
+	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, OutlineDrawStepIndex, OutlineDrawStepIndex);
 
-	graphicsContext.PIXEndEvent(); // End Outline Drawing
+	graphicsContext.PIXEndEvent(commandIndex); // End Outline Drawing
 }
 
-void OutlineDrawingPass::ExecuteBlurOutlineBuffer(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer, ColorBuffer& HelpBuffer)
+// Stage 3. (ComputeContext)
+void OutlineDrawingPass::ExecuteBlurOutlineBuffer
+(
+	custom::ComputeContext& computeContext, 
+	ColorBuffer& TargetBuffer, 
+	ColorBuffer& HelpBuffer, 
+	uint8_t commandIndex
+)
 {
 	uint32_t TargetBufferHeight = TargetBuffer.GetHeight();
 	uint32_t TargetBufferWidth  = TargetBuffer.GetWidth();
@@ -323,14 +349,13 @@ void OutlineDrawingPass::ExecuteBlurOutlineBuffer(custom::CommandContext& BaseCo
 		(TargetBufferWidth  == HelpBufferWidth)
 	);
 
-	custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
-
-	computeContext.PIXBeginEvent(L"GaussianBlur");
-	computeContext.SetRootSignature(m_BlurRootSignature);
-	computeContext.SetPipelineState(m_GaussBlurPSO);
+	computeContext.PIXBeginEvent(L"GaussianBlur", commandIndex);
+	computeContext.SetRootSignature(m_BlurRootSignature, commandIndex);
+	computeContext.SetPipelineState(m_GaussBlurPSO, commandIndex);
 	computeContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	computeContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
-	computeContext.SetDynamicConstantBufferView(0, sizeof(m_BlurConstants), &m_BlurConstants);
+	computeContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	computeContext.SubmitResourceBarriers(commandIndex);
+	computeContext.SetDynamicConstantBufferView(0, sizeof(m_BlurConstants), &m_BlurConstants, commandIndex);
 	
 	D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
 	{
@@ -338,7 +363,7 @@ void OutlineDrawingPass::ExecuteBlurOutlineBuffer(custom::CommandContext& BaseCo
 		HelpBuffer.GetUAV()
 	};
 
-	computeContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs);
+	computeContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs, commandIndex);
 
 	UINT numThreadsGroupX;
 	UINT numThreadsGroupY;
@@ -355,82 +380,26 @@ void OutlineDrawingPass::ExecuteBlurOutlineBuffer(custom::CommandContext& BaseCo
 		numThreadsGroupY = TargetBufferHeight;
 	}
 
-	computeContext.ClearUAV(HelpBuffer);
-	computeContext.Dispatch2D(numThreadsGroupX, numThreadsGroupY, 1U, 1U);
-	computeContext.PIXEndEvent(); // End GaussianBlur
+	computeContext.ClearUAV(HelpBuffer, commandIndex);
+	computeContext.Dispatch2D(numThreadsGroupX, numThreadsGroupY, 1U, 1U, commandIndex);
+	computeContext.PIXEndEvent(commandIndex); // End GaussianBlur
 }
 
-void OutlineDrawingPass::ExecuteHorizontalBlur(custom::CommandContext& BaseContext, ColorBuffer& OutlineBuffer, ColorBuffer& HelpBuffer)
-{
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.PIXBeginEvent(L"Horizontal Blur");
-	graphicsContext.SetRootSignature(m_BlurRootSignature);
-	graphicsContext.SetPipelineState(m_HorizontalOutlineBlurPSO);
-	graphicsContext.TransitionResource(OutlineBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-	graphicsContext.ClearColor(HelpBuffer);
-	graphicsContext.SetRenderTarget(HelpBuffer.GetRTV());
-	graphicsContext.SetViewportAndScissor(HelpBuffer);
-
-	{
-		m_BlurConstants2.BlurDirection = 1;
-		graphicsContext.SetDynamicConstantBufferView(0u, sizeof(m_BlurConstants2), &m_BlurConstants2);
-		graphicsContext.SetDynamicDescriptor(2, 0, OutlineBuffer.GetSRV());
-
-		D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
-		{
-			OutlineBuffer.GetUAV(),
-			HelpBuffer.GetUAV()
-		};
-
-		graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs);
-	}
-
-	graphicsContext.Draw(6u);
-	graphicsContext.PIXEndEvent(); // End Horizontal Blur
-}
-void OutlineDrawingPass::ExecuteVerticalBlurAndPaper(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& HelpBuffer)
-{
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.PIXBeginEvent(L"VerticalBlur And Paper");
-	graphicsContext.SetViewportAndScissor(TargetBuffer);
-	graphicsContext.SetRootSignature(m_BlurRootSignature);
-	graphicsContext.SetPipelineState(m_VerticalOutlineBlurPSO);
-	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly());
-	{
-		m_BlurConstants2.BlurDirection = 0;
-		graphicsContext.SetDynamicConstantBufferView(0u, sizeof(m_BlurConstants2), &m_BlurConstants2);
-		graphicsContext.SetDynamicDescriptor(2, 0, HelpBuffer.GetSRV());
-
-		D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
-		{
-			TargetBuffer.GetUAV(),
-			HelpBuffer.GetUAV()
-		};
-
-		graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs);
-	}
-	graphicsContext.Draw(6u);
-	graphicsContext.PIXEndEvent(); // End Horizontal Blur
-}
-
-
+// Step4 (After ComputeShader Ver.)
 void OutlineDrawingPass::ExecutePaperOutline
 (
-	custom::CommandContext& BaseContext, 
-	ColorBuffer& TargetBuffer, 
-	DepthBuffer& DepthStencilBuffer, 
-	ColorBuffer& SrcBuffer
+	custom::GraphicsContext& graphicsContext,
+	ColorBuffer& TargetBuffer,
+	DepthBuffer& DepthStencilBuffer,
+	ColorBuffer& SrcBuffer,
+	uint8_t commandIndex
 )
 {
 	uint32_t TargetBufferHeight = TargetBuffer.GetHeight();
-	uint32_t TargetBufferWidth  = TargetBuffer.GetWidth();
+	uint32_t TargetBufferWidth = TargetBuffer.GetWidth();
 
 	uint32_t HelpBufferHeight = SrcBuffer.GetHeight();
-	uint32_t HelpBufferWidth  = SrcBuffer.GetWidth();
+	uint32_t HelpBufferWidth = SrcBuffer.GetWidth();
 
 	ASSERT
 	(
@@ -438,27 +407,88 @@ void OutlineDrawingPass::ExecutePaperOutline
 		(TargetBufferWidth - (HelpBufferWidth << 1)) <= 1
 	);
 
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.PIXBeginEvent(L"PaperOutline");
+	graphicsContext.PIXBeginEvent(L"PaperOutline", commandIndex);
 
-	graphicsContext.SetRootSignature(m_BlurRootSignature);
-	graphicsContext.SetPipelineState(m_PaperOutlinePSO);
-	graphicsContext.SetViewportAndScissor(TargetBuffer);
-	graphicsContext.TransitionResource(TargetBuffer,       D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
+	graphicsContext.SetPipelineState(m_PaperOutlinePSO, commandIndex);
+	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.TransitionResource(SrcBuffer,          D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly());
-	graphicsContext.SetStencilRef(0xff);
+	graphicsContext.TransitionResource(SrcBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.SubmitResourceBarriers(commandIndex);
+	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly(), commandIndex);
+	graphicsContext.SetStencilRef(0xff, commandIndex);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
 	{
 		TargetBuffer.GetUAV(),
 		SrcBuffer.GetUAV()
 	};
-	graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs);
-	graphicsContext.SetDynamicDescriptor(2, 0, SrcBuffer.GetSRV());
-	graphicsContext.Draw(6);
+	graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs, commandIndex);
+	graphicsContext.SetDynamicDescriptor(2, 0, SrcBuffer.GetSRV(), commandIndex);
+	graphicsContext.Draw(6, commandIndex);
 
-	graphicsContext.PIXEndEvent(); // End PaperOutline;
+	graphicsContext.PIXEndEvent(commandIndex); // End PaperOutline;
 }
+
+// Stage 3. (GraphicsContext)
+void OutlineDrawingPass::ExecuteHorizontalBlur(custom::GraphicsContext& graphicsContext, ColorBuffer& OutlineBuffer, ColorBuffer& HelpBuffer, uint8_t commandIndex)
+{
+	graphicsContext.PIXBeginEvent(L"Horizontal Blur", commandIndex);
+	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
+	graphicsContext.SetPipelineState(m_HorizontalOutlineBlurPSO, commandIndex);
+	graphicsContext.TransitionResource(OutlineBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SubmitResourceBarriers(commandIndex);
+	graphicsContext.ClearColor(HelpBuffer, commandIndex);
+	graphicsContext.SetRenderTarget(HelpBuffer.GetRTV(), commandIndex);
+	graphicsContext.SetViewportAndScissor(HelpBuffer, commandIndex);
+
+	{
+		m_BlurConstants2.BlurDirection = 1;
+		graphicsContext.SetDynamicConstantBufferView(0u, sizeof(m_BlurConstants2), &m_BlurConstants2, commandIndex);
+		graphicsContext.SetDynamicDescriptor(2, 0, OutlineBuffer.GetSRV(), commandIndex);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
+		{
+			OutlineBuffer.GetUAV(),
+			HelpBuffer.GetUAV()
+		};
+
+		graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs, commandIndex);
+	}
+
+	graphicsContext.Draw(6u, commandIndex);
+	graphicsContext.PIXEndEvent(commandIndex); // End Horizontal Blur
+}
+
+// Step4 (GraphicsContext Ver.)
+void OutlineDrawingPass::ExecuteVerticalBlurAndPaper(custom::GraphicsContext& graphicsContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& HelpBuffer, uint8_t commandIndex)
+{
+	graphicsContext.PIXBeginEvent(L"VerticalBlur And Paper", commandIndex);
+	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
+	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
+	graphicsContext.SetPipelineState(m_VerticalOutlineBlurPSO, commandIndex);
+	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
+	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SubmitResourceBarriers(commandIndex);
+	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly(), commandIndex);
+	{
+		m_BlurConstants2.BlurDirection = 0;
+		graphicsContext.SetDynamicConstantBufferView(0u, sizeof(m_BlurConstants2), &m_BlurConstants2, commandIndex);
+		graphicsContext.SetDynamicDescriptor(2, 0, HelpBuffer.GetSRV(), commandIndex);
+
+		D3D12_CPU_DESCRIPTOR_HANDLE UAVs[2] =
+		{
+			TargetBuffer.GetUAV(),
+			HelpBuffer.GetUAV()
+		};
+
+		graphicsContext.SetDynamicDescriptors(1, 0, _countof(UAVs), UAVs, commandIndex);
+	}
+	graphicsContext.Draw(6u, commandIndex);
+	graphicsContext.PIXEndEvent(commandIndex); // End Horizontal Blur
+}
+
 

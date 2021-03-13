@@ -32,15 +32,17 @@ public:
 
     void BeginRendering(custom::GraphicsContext& Context)
     {
-        Context.TransitionResource(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
-        Context.ClearDepth(*this);
-        Context.SetOnlyDepthStencil(GetDSV());
-        Context.SetViewportAndScissor(m_Viewport, m_Scissor);
+        ASSERT(false);
+        // Context.TransitionResource(*this, D3D12_RESOURCE_STATE_DEPTH_WRITE, true);
+        // Context.ClearDepth(*this);
+        // Context.SetOnlyDepthStencil(GetDSV());
+        // Context.SetViewportAndScissor(m_Viewport, m_Scissor);
     }
 
     void EndRendering(custom::GraphicsContext& Context)
     {
-        Context.TransitionResource(*this, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
+        ASSERT(false);
+        // Context.TransitionResource(*this, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, true);
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetSRV() const

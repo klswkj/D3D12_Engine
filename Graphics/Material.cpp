@@ -49,8 +49,6 @@
 
 #endif
 
-std::mutex Material::sm_mutex;
-
 // WaveFront Objfile Syntax
 // 
 // Ns - Shininess of the _aiMaterial (exponent).
@@ -153,7 +151,7 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 
 		FundamentalTexture temp(path.c_str(), RootIndex, Offset, tempTexture->GetSRV());
 
-		std::lock_guard<std::mutex> LockGuard(sm_mutex);
+		// æµ≤®∏È _Step¿« Private CriticalSection
 		_Step.PushBack(std::make_shared<FundamentalTexture>(temp));
 	};
 
@@ -164,24 +162,29 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 	aiString LightMapFileName; // Not Used.
 	aiString ReflectionFileName; // Not Used.
 
-	BOOL bHasTexture    = false;
+	BOOL bHasTexture = false;
 	BOOL bHasGlossAlpha = false;
-	
-	Technique PrePass("PrePass");
-	Step _ShadowPrePass("ShadowPrePass");
-	Step _Z_PrePass("Z_PrePass");
 
-	Technique _ShadowPass("ShadowPass");
-	Step _ShadowMappingPass("ShadowMappingPass");
+	// Technique PrePass("PrePass");
+	Technique __ShadowPrePass("ShadowPrePass");
+	Step _ShadowPrePass("Shadowing");
+
+	Technique __Z_PrePass("Z_PrePass");
+	Step _Z_PrePass("Z_Calculating");
+
+	Technique _ShadowPass("ShadowMappingPass");
+	Step _ShadowMappingPass("ShadowMapping");
 
 	_ShadowPrePass.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 	_Z_PrePass.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 	_ShadowMappingPass.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 
-	PrePass.PushBackStep(std::move(_ShadowPrePass));
-	PrePass.PushBackStep(std::move(_Z_PrePass));
+	__ShadowPrePass.PushBackStep(std::move(_ShadowPrePass));
+	__Z_PrePass.PushBackStep(std::move(_Z_PrePass));
 	_ShadowPass.PushBackStep(std::move(_ShadowMappingPass));
-	m_Techniques.push_back(std::move(PrePass));
+
+	m_Techniques.push_back(std::move(__ShadowPrePass));
+	m_Techniques.push_back(std::move(__Z_PrePass));
 	m_Techniques.push_back(std::move(_ShadowPass));
 
 	DXGI_FORMAT ColorFormat   = bufferManager::g_SceneColorBuffer.GetFormat();
@@ -189,8 +192,8 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 	DXGI_FORMAT DepthFormat   = bufferManager::g_SceneDepthBuffer.GetFormat();
 
 	{
-		Technique Phong("Phong");
-		Step Lambertian("MainRenderPass");
+		Technique Phong("MainRenderPass");
+		Step Lambertian("Phong");
 
 		unsigned long TextureBitMap = 0;
 
@@ -233,7 +236,7 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			}
 
 		} // End Select out Material
-		
+
 		Lambertian.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
 
 		custom::RootSignature MainRootSignature;
@@ -244,7 +247,7 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		MainRootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b1)
 		MainRootSignature[2].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)
 		MainRootSignature[3].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b1)
-		MainRootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0,  6, D3D12_SHADER_VISIBILITY_PIXEL); 
+		MainRootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);
 		// Texture2D<float3> texDiffuse     : register(t0);
 		// Texture2D<float3> texSpecular    : register(t1);
 		// Texture2D<float4> texEmissive    : register(t2);
@@ -263,17 +266,17 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		Lambertian.PushBack(std::make_shared<custom::RootSignature>(MainRootSignature));
 
 		GraphicsPSO MainPSO;
-		MainPSO.SetRootSignature        (MainRootSignature);
-		MainPSO.SetRasterizerState      (premade::g_RasterizerDefault);
+		MainPSO.SetRootSignature(MainRootSignature);
+		MainPSO.SetRasterizerState(premade::g_RasterizerDefault);
 		// MainPSO.SetBlendState           (premade::g_BlendNoColorWrite);
 		// MainPSO.SetDepthStencilState    (premade::g_DepthStateReadWrite);
 		// MainPSO.SetRenderTargetFormats  (0, nullptr, DepthFormat);
-		MainPSO.SetInputLayout          (5, premade::g_InputElements);
+		MainPSO.SetInputLayout(5, premade::g_InputElements);
 		MainPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		MainPSO.SetBlendState           (premade::g_BlendDisable);
-		MainPSO.SetDepthStencilState    (premade::g_DepthStateTestEqual);
-		MainPSO.SetRenderTargetFormats  (1, &ColorFormat, DepthFormat);
-		MainPSO.SetVertexShader         (g_pModelTest_VS, sizeof(g_pModelTest_VS));
+		MainPSO.SetBlendState(premade::g_BlendDisable);
+		MainPSO.SetDepthStencilState(premade::g_DepthStateTestEqual);
+		MainPSO.SetRenderTargetFormats(1, &ColorFormat, DepthFormat);
+		MainPSO.SetVertexShader(g_pModelTest_VS, sizeof(g_pModelTest_VS));
 
 		aiColor4D TempDiffuseColor;
 		aiColor4D TempSpecularColor;
@@ -289,9 +292,9 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			MainPSO.Finalize(PSOWName.c_str());
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE,  TempDiffuseColor));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE, TempDiffuseColor));
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			Lambertian.PushBack(std::make_shared<ControllerConstants0>(*reinterpret_cast<Math::Vector3*>(&TempDiffuseColor), *reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
 		case 1:
@@ -302,7 +305,7 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(), Lambertian, MaterialRootIndex, 0u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants1>(*reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
@@ -313,9 +316,9 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			MainPSO.Finalize(PSOWName.c_str());
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE,  TempDiffuseColor));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE, TempDiffuseColor));
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			pfnPushBackTexture(rootPath + SpecularFileName.C_Str(), Lambertian, MaterialRootIndex, 1u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants2>(*reinterpret_cast<Math::Vector3*>(&TempDiffuseColor), *reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
@@ -327,8 +330,8 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
-			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(),  Lambertian, MaterialRootIndex, 0u);
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
+			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(), Lambertian, MaterialRootIndex, 0u);
 			pfnPushBackTexture(rootPath + SpecularFileName.C_Str(), Lambertian, MaterialRootIndex, 1u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants3>(*reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
@@ -339,9 +342,9 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			MainPSO.Finalize(PSOWName.c_str());
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE,  TempDiffuseColor));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE, TempDiffuseColor));
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			pfnPushBackTexture(rootPath + NormalFileName.C_Str(), Lambertian, MaterialRootIndex, 3u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants4>(*reinterpret_cast<Math::Vector3*>(&TempDiffuseColor), *reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
@@ -353,9 +356,9 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(), Lambertian, MaterialRootIndex, 0u);
-			pfnPushBackTexture(rootPath + NormalFileName.C_Str(),  Lambertian, MaterialRootIndex, 3u);
+			pfnPushBackTexture(rootPath + NormalFileName.C_Str(), Lambertian, MaterialRootIndex, 3u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants5>(*reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
 		case 6:
@@ -365,11 +368,11 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			MainPSO.Finalize(PSOWName.c_str());
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE,  TempDiffuseColor));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_DIFFUSE, TempDiffuseColor));
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
 			pfnPushBackTexture(rootPath + SpecularFileName.C_Str(), Lambertian, MaterialRootIndex, 1u);
-			pfnPushBackTexture(rootPath + NormalFileName.C_Str(),   Lambertian, MaterialRootIndex, 3u);
+			pfnPushBackTexture(rootPath + NormalFileName.C_Str(), Lambertian, MaterialRootIndex, 3u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants6>(*reinterpret_cast<Math::Vector3*>(&TempDiffuseColor), *reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
 		case 7:
@@ -380,10 +383,10 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 			Lambertian.PushBack(std::make_shared<GraphicsPSO>(MainPSO));
 
 			ASSERT(!_aiMaterial.Get(AI_MATKEY_COLOR_SPECULAR, TempSpecularColor));
-			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS,      TempSpecularGloss));
-			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(),  Lambertian, MaterialRootIndex, 0u);
+			ASSERT(!_aiMaterial.Get(AI_MATKEY_SHININESS, TempSpecularGloss));
+			pfnPushBackTexture(rootPath + DiffuseFileName.C_Str(), Lambertian, MaterialRootIndex, 0u);
 			pfnPushBackTexture(rootPath + SpecularFileName.C_Str(), Lambertian, MaterialRootIndex, 1u);
-			pfnPushBackTexture(rootPath + NormalFileName.C_Str(),   Lambertian, MaterialRootIndex, 3u);
+			pfnPushBackTexture(rootPath + NormalFileName.C_Str(), Lambertian, MaterialRootIndex, 3u);
 			Lambertian.PushBack(std::make_shared<ControllerConstants7>(*reinterpret_cast<Math::Vector3*>(&TempSpecularColor), TempSpecularGloss));
 			break;
 		default:
@@ -393,75 +396,75 @@ Material::Material(aiMaterial& _aiMaterial, const std::filesystem::path& path) D
 		Phong.PushBackStep(std::move(Lambertian));
 		m_Techniques.push_back(std::move(Phong));
 	}
-	
-    {
-	Technique Outline("Outline", eObjectFilterFlag::kOpaque, false);
-	Step OutlineMaskStep("OutlineDrawingPass");
-	Step OutlineDraw("OutlineDrawingPass");
-
-	custom::RootSignature OutlineRootSignature;
-	OutlineRootSignature.Reset(6, 2);
-	OutlineRootSignature.InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
-	OutlineRootSignature.InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
-	OutlineRootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b0)
-	OutlineRootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b1)
-	OutlineRootSignature[2].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)
-	OutlineRootSignature[3].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b1)
-	OutlineRootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);
-	OutlineRootSignature[5].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL);
-	OutlineRootSignature.Finalize(L"OutlineRS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-	OutlineMaskStep.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
-	OutlineDraw.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
 
 	{
-		GraphicsPSO OutlineMaskPSO;
-		OutlineMaskPSO.SetRootSignature        (OutlineRootSignature);
-		OutlineMaskPSO.SetRasterizerState      (premade::g_RasterizerBackSided);
-		OutlineMaskPSO.SetDepthStencilState    (premade::g_DepthStencilWrite);
-		OutlineMaskPSO.SetRenderTargetFormats  (0, nullptr, DepthFormat);
-		OutlineMaskPSO.SetBlendState           (premade::g_BlendDisable);
-		OutlineMaskPSO.SetInputLayout          (5, premade::g_InputElements);
-		OutlineMaskPSO.SetVertexShader         (g_pFlat_VS, sizeof(g_pFlat_VS));
-		OutlineMaskPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		OutlineMaskPSO.Finalize(L"OutlineMaskPSO");
+		Technique Outline("OutlineDrawingPass", eObjectFilterFlag::kOpaque, false);
+		Step OutlineMaskStep(" OutlineMasking");
+		Step OutlineDraw("OutlineDraw");
 
-		OutlineMaskStep.PushBack(std::make_shared<GraphicsPSO>(OutlineMaskPSO));
-		OutlineMaskStep.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
-		
-		Outline.PushBackStep(OutlineMaskStep);
+		custom::RootSignature OutlineRootSignature;
+		OutlineRootSignature.Reset(6, 2);
+		OutlineRootSignature.InitStaticSampler(0, premade::g_DefaultSamplerDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+		OutlineRootSignature.InitStaticSampler(1, premade::g_SamplerShadowDesc, D3D12_SHADER_VISIBILITY_PIXEL);
+		OutlineRootSignature[0].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b0)
+		OutlineRootSignature[1].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_VERTEX); // vsConstants(b1)
+		OutlineRootSignature[2].InitAsConstantBuffer(0, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b0)
+		OutlineRootSignature[3].InitAsConstantBuffer(1, D3D12_SHADER_VISIBILITY_PIXEL);  // psConstants(b1)
+		OutlineRootSignature[4].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 6, D3D12_SHADER_VISIBILITY_PIXEL);
+		OutlineRootSignature[5].InitAsDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 64, 6, D3D12_SHADER_VISIBILITY_PIXEL);
+		OutlineRootSignature.Finalize(L"OutlineRS", D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+		OutlineMaskStep.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
+		OutlineDraw.PushBack(std::make_shared<custom::RootSignature>(OutlineRootSignature));
+
+		{
+			GraphicsPSO OutlineMaskPSO;
+			OutlineMaskPSO.SetRootSignature(OutlineRootSignature);
+			OutlineMaskPSO.SetRasterizerState(premade::g_RasterizerBackSided);
+			OutlineMaskPSO.SetDepthStencilState(premade::g_DepthStencilWrite);
+			OutlineMaskPSO.SetRenderTargetFormats(0, nullptr, DepthFormat);
+			OutlineMaskPSO.SetBlendState(premade::g_BlendDisable);
+			OutlineMaskPSO.SetInputLayout(5, premade::g_InputElements);
+			OutlineMaskPSO.SetVertexShader(g_pFlat_VS, sizeof(g_pFlat_VS));
+			OutlineMaskPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+			OutlineMaskPSO.Finalize(L"OutlineMaskPSO");
+
+			OutlineMaskStep.PushBack(std::make_shared<GraphicsPSO>(OutlineMaskPSO));
+			OutlineMaskStep.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
+
+			Outline.PushBackStep(OutlineMaskStep);
+		}
+		{
+			GraphicsPSO OutlineDrawPSO;
+			OutlineDrawPSO.SetRootSignature(OutlineRootSignature);
+			OutlineDrawPSO.SetRasterizerState(premade::g_RasterizerBackSided);
+			OutlineDrawPSO.SetDepthStencilState(premade::g_DepthStencilMask);
+			OutlineDrawPSO.SetRenderTargetFormat(StencilFormat, DXGI_FORMAT_UNKNOWN);
+			OutlineDrawPSO.SetBlendState(premade::g_BlendOutlineDrawing);
+			OutlineDrawPSO.SetInputLayout(5, premade::g_InputElements);
+			OutlineDrawPSO.SetVertexShader(g_pFlat_VS, sizeof(g_pFlat_VS));
+			OutlineDrawPSO.SetPixelShader(g_pFlat_PS, sizeof(g_pFlat_PS));
+			OutlineDrawPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+			OutlineDrawPSO.Finalize(L"OutlineDrawPSO");
+
+			OutlineDraw.PushBack(std::make_shared<GraphicsPSO>(OutlineDrawPSO));
+			// OutlineDraw.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
+
+			// TODO : ColorConstants
+			// Color3Buffer ColorBuffer;
+			// OutlineDraw.PushBack(std::make_shared<Color3Buffer>(ColorBuffer));
+			OutlineDraw.PushBack(std::make_shared<Color3Buffer>(Color3RootIndex));
+
+			Outline.PushBackStep(OutlineDraw);
+		}
+		m_Techniques.push_back(std::move(Outline));
 	}
+
+	// TestPass
 	{
-		GraphicsPSO OutlineDrawPSO;
-		OutlineDrawPSO.SetRootSignature        (OutlineRootSignature);
-		OutlineDrawPSO.SetRasterizerState      (premade::g_RasterizerBackSided);
-		OutlineDrawPSO.SetDepthStencilState    (premade::g_DepthStencilMask);
-		OutlineDrawPSO.SetRenderTargetFormat   (StencilFormat, DXGI_FORMAT_UNKNOWN);
-		OutlineDrawPSO.SetBlendState           (premade::g_BlendOutlineDrawing);
-		OutlineDrawPSO.SetInputLayout          (5, premade::g_InputElements);
-		OutlineDrawPSO.SetVertexShader         (g_pFlat_VS, sizeof(g_pFlat_VS));
-		OutlineDrawPSO.SetPixelShader          (g_pFlat_PS, sizeof(g_pFlat_PS));
-		OutlineDrawPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-		OutlineDrawPSO.Finalize(L"OutlineDrawPSO");
-
-		OutlineDraw.PushBack(std::make_shared<GraphicsPSO>(OutlineDrawPSO));
-		// OutlineDraw.PushBack(std::make_shared<TransformConstants>(TransformRootIndex));
-
-		// TODO : ColorConstants
-		// Color3Buffer ColorBuffer;
-		// OutlineDraw.PushBack(std::make_shared<Color3Buffer>(ColorBuffer));
-		OutlineDraw.PushBack(std::make_shared<Color3Buffer>(Color3RootIndex));
-
-		Outline.PushBackStep(OutlineDraw);
+		Technique Debug_Technique("DebugWireFramePass");
+		Step Debug_Step("Debug");
+		Debug_Technique.PushBackStep(std::move(Debug_Step));
+		m_Techniques.push_back(std::move(Debug_Technique));
 	}
-	m_Techniques.push_back(std::move(Outline));
-    }
-
-    // TestPass
-    {
-	    Technique Debug_Technique("Debug");
-	    Step Debug_Step("DebugWireFramePass");
-	    Debug_Technique.PushBackStep(std::move(Debug_Step));
-	    m_Techniques.push_back(std::move(Debug_Technique));
-    }
 }

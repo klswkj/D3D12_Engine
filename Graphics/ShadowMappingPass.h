@@ -1,12 +1,7 @@
 #pragma once
-#include "stdafx.h"
 #include "RenderQueuePass.h"
 
 #include "ShadowCamera.h"
-#include "Vector.h"
-
-#include "RenderTarget.h"
-#include "DepthStencil.h"
 
 class GraphicsPSO;
 
@@ -16,20 +11,21 @@ namespace custom
 	class RootSignature;
 }
 
-class ShadowMappingPass : public RenderQueuePass
+class ShadowMappingPass final : public ID3D12RenderQueuePass
 {
 public:
 	ShadowMappingPass(std::string pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pShadowPSO = nullptr);
 	~ShadowMappingPass();
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+	void ExecutePass() DEBUG_EXCEPT final;
 
 private:
 	static ShadowMappingPass* s_pShadowMappingPass;
 
+private:
 	custom::RootSignature* m_pRootSignature;
 	GraphicsPSO* m_pShadowPSO;
 	ShadowCamera m_ShadowCamera; // For Calculation.
 
-	bool m_bAllocateRootSignature = false;
-	bool m_bAllocatePSO = false;
+	bool m_bAllocateRootSignature;
+	bool m_bAllocatePSO;
 };

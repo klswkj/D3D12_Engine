@@ -3,32 +3,33 @@
 
 static size_t passIndex = 0;
 
-Pass::Pass(std::string Name) noexcept
-	: m_Name(Name),
+D3D12Pass::D3D12Pass(std::string Name) DEBUG_EXCEPT
+	: 
+	m_Name(Name),
 	m_bActive(true),
-	m_PassIndex(passIndex++),
-	m_NumWorkingThread(0)
+	m_PassIndex(passIndex++)
+{
+	m_AttributeFlags =
+	{
+		ePassShadingTechniqueFlags::eForwardRenderingPass,
+		ePassGPUAsyncFlags::eSingleGPUAsync,
+		ePassStageFlags::eMainProcessing
+	};
+}
+
+D3D12Pass::~D3D12Pass()
 {
 }
 
-Pass::~Pass()
+void D3D12Pass::Reset() DEBUG_EXCEPT
 {
 }
 
-void Pass::Reset() DEBUG_EXCEPT
+void D3D12Pass::RenderWindow() DEBUG_EXCEPT
 {
 }
 
-void Pass::RenderWindow() DEBUG_EXCEPT
-{
-}
-
-std::string Pass::GetRegisteredName() const noexcept
+std::string D3D12Pass::GetRegisteredName() const DEBUG_EXCEPT
 {
 	return m_Name;
-}
-
-void Pass::finalize()
-{
-	// Still Empty.
 }

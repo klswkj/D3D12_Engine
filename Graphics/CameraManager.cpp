@@ -299,7 +299,7 @@ void CameraManager::RenderWindows()
 	ImGui::End();
 }
 
-void CameraManager::Bind(custom::CommandContext& BaseContext)
+void CameraManager::Bind(custom::GraphicsContext& BaseContext)
 {
 	BaseContext.SetMainCamera(*GetControlledCamera());
 }

@@ -5,51 +5,51 @@
 // #define FLOAT_COLOR3_ROOT_INDEX 3u
 // #define FLOAT_COLOR4_ROOT_INDEX 3u
 
-Color3Buffer::Color3Buffer(UINT RootIndex, DirectX::XMFLOAT3 InputColor)
+Color3Buffer::Color3Buffer(const UINT RootIndex, const DirectX::XMFLOAT3 InputColor)
 {
 	m_RootIndex = RootIndex;
 	Color       = InputColor;
 }
-void Color3Buffer::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void Color3Buffer::Bind(custom::CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(DirectX::XMFLOAT3), (void*)&Color);
+	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(DirectX::XMFLOAT3), (void*)&Color, commandIndex);
 }
-void Color3Buffer::RenderingWindow(IWindow& _IWindow)
+void Color3Buffer::RenderingWindow(const IWindow& _IWindow)
 {
 	ImGui::ColorPicker3("Color3", (float*)&Color);
 }
 
-void Color3Buffer::SetColor(DirectX::XMFLOAT3 InputColor)
+void Color3Buffer::SetColor(const DirectX::XMFLOAT3& InputColor)
 {
 	Color = InputColor;
 }
-void Color3Buffer::SetColorByComponent(float R, float G, float B)
+void Color3Buffer::SetColorByComponent(const float R, const float G, const float B)
 {
 	Color.x = R;
 	Color.y = G;
 	Color.z = B;
 }
 
-Color4Buffer::Color4Buffer(UINT RootIndex, DirectX::XMFLOAT4 InputColor)
+Color4Buffer::Color4Buffer(const UINT RootIndex, const DirectX::XMFLOAT4 InputColor)
 {
 	m_RootIndex = RootIndex;
 	Color       = InputColor;
 }
-void Color4Buffer::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void Color4Buffer::Bind(custom::CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT
 {
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(DirectX::XMFLOAT4), (void*)&Color);
+	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(DirectX::XMFLOAT4), (void*)&Color, commandIndex);
 }
-void Color4Buffer::RenderingWindow(IWindow& _IWindow)
+void Color4Buffer::RenderingWindow(const IWindow& _IWindow)
 {
 	ImGui::ColorPicker4("Color4", (float*)&Color);
 }
-void Color4Buffer::SetColor(DirectX::XMFLOAT4 InputColor)
+void Color4Buffer::SetColor(const DirectX::XMFLOAT4& InputColor)
 {
 	Color = InputColor;
 }
-void Color4Buffer::SetColorByComponent(float R, float G, float B, float A)
+void Color4Buffer::SetColorByComponent(const float R, const float G, const float B, const float A)
 {
 	Color.x = R;
 	Color.y = G;

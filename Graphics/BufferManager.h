@@ -86,7 +86,7 @@ namespace bufferManager
     extern custom::ByteAddressBuffer  g_LightGrid;        // lightGrid           : register(t68);
     extern custom::ByteAddressBuffer  g_LightGridBitMask; // lightGridBitMask    : register(t69);
 
-    void InitializeAllBuffers(uint32_t Width, uint32_t Height);
+    void InitializeAllBuffers(const uint32_t width, const uint32_t height);
     void InitializeLightBuffers();
     void DestroyLightBuffers();
     void DestroyRenderingBuffers();

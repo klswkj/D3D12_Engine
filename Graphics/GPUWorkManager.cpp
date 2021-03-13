@@ -1,23 +1,6 @@
 #include "stdafx.h"
 #include "GPUWorkManager.h"
 
-#ifndef CHECK_TYPE
-#define CHECK_TYPE(Type, FenceValue) (FenceValue >> 56) == (uint64_t)(Type)
-#endif
-#ifndef CHECK_VALID_FENCE_VALUE
-#define CHECK_VALID_FENCE_VALUE(Type, FenceValue) (((uint64_t)Type << 56) <= FenceValue) && \
-                                                  (FenceValue < ((uint64_t)(Type + 1ull) << 56))
-#endif
-#ifndef CHECK_VALID_TYPE
-#define CHECK_VALID_TYPE(Type) Type == D3D12_COMMAND_LIST_TYPE_DIRECT || \
-                               Type == D3D12_COMMAND_LIST_TYPE_COPY   || \
-                               Type == D3D12_COMMAND_LIST_TYPE_COMPUTE
-#endif
-
-#ifndef TYPE_TO_INDEX
-#define TYPE_TO_INDEX(Type) ((uint64_t)Type + 1ull) / 2ull
-#endif
-
 namespace custom
 {
 	TaskFiber::TaskFiber(CustomCommandQALPool* pPool, ID3D12CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE type)
@@ -35,15 +18,7 @@ namespace custom
 
 	TaskFiber::~TaskFiber()
 	{
-		bool bSafe = IsCompletedTask();
-		if (bSafe)
-		{
-			return;
-		}
-		else
-		{
-			m_CustomFence.CPUSideWait(m_CustomFence);
-		}
+		TaskFiberManager::Release(this);
 	}
 
 	bool TaskFiber::IsCompletedTask(uint64_t fenceValue /*= 0*/)
@@ -203,12 +178,12 @@ namespace custom
 		}
 	}
 
-	TaskFiber* TaskFiberManager::RequestWorkSubmission(size_t numPairs, D3D12_COMMAND_LIST_TYPE type, uint64_t completedFenceValue /*= 0*/)
+	STATIC TaskFiber* TaskFiberManager::RequestWorkSubmission(size_t numPairs, D3D12_COMMAND_LIST_TYPE type, uint64_t completedFenceValue /*= 0*/)
 	{
 		ASSERT(CHECK_VALID_TYPE(type));
 
 		TaskFiber* pTaskFiber = nullptr;
-		std::vector<TaskFiber*>& ProcessingTasks = m_ProcessingTask[TYPE_TO_INDEX(type)];
+		std::vector<TaskFiber*>& ProcessingTasks = s_pTaskFiberManager->m_ProcessingTask[TYPE_TO_INDEX(type)];
 
 		size_t NumCommandAllocators = 0ul;
 		size_t NumCommandLists      = 0ul;
@@ -233,12 +208,10 @@ namespace custom
 					ID3D12CommandAllocator** pAllocatorArray = (ID3D12CommandAllocator**)malloc(sizeof(ID3D12CommandAllocator*) * NeedNumPairs);
 					ID3D12GraphicsCommandList** pListArray = (ID3D12GraphicsCommandList**)malloc(sizeof(ID3D12GraphicsCommandList*) * NeedNumPairs);
 
-					RequestCommandAllocatorsLists(type, NeedNumPairs, &pAllocatorArray, &pListArray);
+					s_pTaskFiberManager->RequestCommandAllocatorsLists(type, NeedNumPairs, &pAllocatorArray, &pListArray);
 
 					e->PushbackAllocatorLists(NeedNumPairs, pAllocatorArray, pListArray, type);
 
-					// delete[] pAllocatorArray;
-			        // delete[] pListArray;
 					free(pAllocatorArray);
 					free(pListArray);
 				}
@@ -249,19 +222,17 @@ namespace custom
 
 		if (pTaskFiber == nullptr)
 		{
-			CustomCommandQALPool* pPool = GetQALPool(type);
+			CustomCommandQALPool* pPool = s_pTaskFiberManager->GetQALPool(type);
 
 			pTaskFiber = new TaskFiber(pPool, pPool->RequestCommandQueue(), type);
 			
-			ID3D12CommandAllocator** pAllocatorArray = (ID3D12CommandAllocator**)malloc(sizeof(ID3D12CommandAllocator*) * numPairs);
-			ID3D12GraphicsCommandList** pListArray = (ID3D12GraphicsCommandList**)malloc(sizeof(ID3D12GraphicsCommandList*) * numPairs);
+			ID3D12CommandAllocator**    pAllocatorArray = (ID3D12CommandAllocator**)   malloc(sizeof(ID3D12CommandAllocator*)    * numPairs);
+			ID3D12GraphicsCommandList** pListArray      = (ID3D12GraphicsCommandList**)malloc(sizeof(ID3D12GraphicsCommandList*) * numPairs);
 
-			RequestCommandAllocatorsLists(type, numPairs, &pAllocatorArray, &pListArray);
+			s_pTaskFiberManager->RequestCommandAllocatorsLists(type, numPairs, &pAllocatorArray, &pListArray);
 
-			m_ProcessingTask[TYPE_TO_INDEX(type)].push_back(pTaskFiber);
+			s_pTaskFiberManager->m_ProcessingTask[TYPE_TO_INDEX(type)].push_back(pTaskFiber);
 
-			// delete[] pAllocatorArray;
-			// delete[] pListArray;
 			free(pAllocatorArray);
 			free(pListArray);
 		}
@@ -269,15 +240,16 @@ namespace custom
 		return pTaskFiber;
 	}
 
-	void TaskFiberManager::Release(TaskFiber* pWorkSubmission)
+	STATIC void TaskFiberManager::Release(TaskFiber* pWorkSubmission)
 	{
+		// ÀÏ´Ü CPUWAIT°³³äÀº ¾È ÀÒ´Â°É·Î.
 		ASSERT(pWorkSubmission->IsCompletedTask());
 
 		D3D12_COMMAND_LIST_TYPE Type = pWorkSubmission->GetCommandType();
 
-		m_QALPool[Type].ReleaseCommandQueue(pWorkSubmission->GetCommandQueue());
-		m_QALPool[Type].ReleaseCommandAllocators(pWorkSubmission->m_CommandAllocators.data(), pWorkSubmission->GetNumCommandAllocators());
-		m_QALPool[Type].ReleaseCommandLists(pWorkSubmission->m_CommandLists.data(), pWorkSubmission->GetNumCommandLists());
+		s_pTaskFiberManager->m_QALPool[Type].ReleaseCommandQueue(pWorkSubmission->GetCommandQueue());
+		s_pTaskFiberManager->m_QALPool[Type].ReleaseCommandAllocators(pWorkSubmission->m_CommandAllocators.data(), pWorkSubmission->GetNumCommandAllocators());
+		s_pTaskFiberManager->m_QALPool[Type].ReleaseCommandLists(pWorkSubmission->m_CommandLists.data(), pWorkSubmission->GetNumCommandLists());
 
 		pWorkSubmission->m_pCommandQueue = nullptr;
 		pWorkSubmission->m_CommandAllocators.clear();

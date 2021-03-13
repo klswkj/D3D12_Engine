@@ -6,38 +6,58 @@
 #include "ComputeContext.h"
 #include "PSO.h"
 
-void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, uint32_t ArraySize, uint32_t NumMips)
+void ColorBuffer::createResourceViews(ID3D12Device* const pDevice, const DXGI_FORMAT format, const uint32_t arraySize, const uint32_t numMips, const bool bRenderTarget)
 {
-    ASSERT(ArraySize == 1 || NumMips == 1, "We don't support auto-mips on texture arrays");
+    ASSERT(arraySize == 1 || numMips == 1, "We don't support auto-mips on texture arrays");
 
-    m_numMipMaps = NumMips - 1;
+    m_numMipMaps = numMips - 1;
 
-    D3D12_RENDER_TARGET_VIEW_DESC RTVDesc = {};
+    // ASSERT(false);
+    // TODO 0 : Make CBV
+    // Lightbuffer : LightPrePass
+    // FXAA Work Counters
+    // DoF Work Queue
+    // DoF Work Queue_StructuredBuffer::Counter
+    // DoF Fast Queue
+    // DoF Fast Queue_StructuredBuffer::Counter
+    // DoF Fixup Queue
+    // DoF Fixup Queue_structuredBUffer::Counter
+    // Histogram
+    // Camera_Entity_VB
+    // Camera_Entity_VB_StructuredBuffer::Counter
+    // Camera_Frustum_VB2
+    // Camera_Frustum_VB2_StructuredBuffer::Counter
+    // Camera_Frustum_IB
+    // Sponza's_VB_StructuredBuffer::Counter
+    // g_LightBuffer_StructuredBuffer::Counter
+    // D3D12_CONSTANT_BUFFER_VIEW_DESC  CBVDesc = {};
+
+    D3D12_RENDER_TARGET_VIEW_DESC    RTVDesc = {};
     D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-    D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+    D3D12_SHADER_RESOURCE_VIEW_DESC  SRVDesc = {};
 
-    RTVDesc.Format = Format;
-    UAVDesc.Format = GetUAVFormat(Format);
-    SRVDesc.Format = Format;
+    RTVDesc.Format = format;
+    UAVDesc.Format = GetUAVFormat(format);
+    SRVDesc.Format = format;
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-    if (1 < ArraySize)
+    if (1 < arraySize)
     {
         RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
         RTVDesc.Texture2DArray.MipSlice = 0;
         RTVDesc.Texture2DArray.FirstArraySlice = 0;
-        RTVDesc.Texture2DArray.ArraySize = (UINT)ArraySize;
+        RTVDesc.Texture2DArray.ArraySize = (UINT)arraySize;
 
         UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
         UAVDesc.Texture2DArray.MipSlice = 0;
         UAVDesc.Texture2DArray.FirstArraySlice = 0;
-        UAVDesc.Texture2DArray.ArraySize = (UINT)ArraySize;
+        UAVDesc.Texture2DArray.ArraySize = (UINT)arraySize;
 
         SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-        SRVDesc.Texture2DArray.MipLevels = NumMips;
+        SRVDesc.Texture2DArray.MipLevels = numMips;
         SRVDesc.Texture2DArray.MostDetailedMip = 0;
         SRVDesc.Texture2DArray.FirstArraySlice = 0;
-        SRVDesc.Texture2DArray.ArraySize = (UINT)ArraySize;
+        SRVDesc.Texture2DArray.ArraySize = (UINT)arraySize;
     }
     else if (1 < m_fragmentCount)
     {
@@ -53,7 +73,7 @@ void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, 
         UAVDesc.Texture2D.MipSlice = 0;
 
         SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        SRVDesc.Texture2D.MipLevels = NumMips;
+        SRVDesc.Texture2D.MipLevels = numMips;
         SRVDesc.Texture2D.MostDetailedMip = 0;
     }
 
@@ -66,23 +86,33 @@ void ColorBuffer::createResourceViews(ID3D12Device* Device, DXGI_FORMAT Format, 
     ID3D12Resource* Resource = m_pResource;
 
     // Create the render target view
-    Device->CreateRenderTargetView(Resource, &RTVDesc, m_RTVHandle);
+    // D3D12 ERROR : ID3D12Device::CreateRenderTargetView : 
+    // A RenderTargetView cannot be created of a Resource that did not specify the RENDER_TARGET MiscFlag.
+    // [STATE_CREATION ERROR #42: CREATERENDERTARGETVIEW_INVALIDRESOURCE]
+    // D3D12 : **BREAK** enabled for the previous message, which was : 
+    // [ERROR STATE_CREATION #42: CREATERENDERTARGETVIEW_INVALIDRESOURCE]
+	if (bRenderTarget)
+	{
+		pDevice->CreateRenderTargetView(Resource, &RTVDesc, m_RTVHandle);
+	}
 
     // Create the shader resource view
-    Device->CreateShaderResourceView(Resource, &SRVDesc, m_SRVHandle);
+    pDevice->CreateShaderResourceView(Resource, &SRVDesc, m_SRVHandle);
 
-    if (m_fragmentCount > 1)
+    if (1 < m_fragmentCount)
+    {
         return;
+    }
 
     // Create the UAVs for each mip level (RWTexture2D)
-    for (uint32_t i = 0; i < NumMips; ++i)
+    for (uint32_t i = 0; i < numMips; ++i)
     {
 		if (m_UAVHandle[i].ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
 			m_UAVHandle[i] = graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 
-        Device->CreateUnorderedAccessView(Resource, nullptr, &UAVDesc, m_UAVHandle[i]);
+        pDevice->CreateUnorderedAccessView(Resource, nullptr, &UAVDesc, m_UAVHandle[i]);
 
         ++UAVDesc.Texture2D.MipSlice;
     }
@@ -99,63 +129,66 @@ void ColorBuffer::CreateFromSwapChain(const std::wstring& Name, ID3D12Resource* 
     device::g_pDevice->CreateRenderTargetView(m_pResource, nullptr, m_RTVHandle);
 }
 
-void ColorBuffer::Create
+void ColorBuffer::CreateCommitted
 (
-    const std::wstring& Name, uint32_t Width, uint32_t Height, 
-    uint32_t NumMips, DXGI_FORMAT Format
+    const std::wstring& wName, const uint32_t width, const uint32_t height,
+    uint32_t numMips, const DXGI_FORMAT format, bool bRenderTarget
 )
 {
-    NumMips = (NumMips == 0 ? ComputeNumMips(Width, Height) : NumMips);
-    D3D12_RESOURCE_FLAGS Flags = CombineResourceFlags();
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(Width, Height, 1, NumMips, Format, Flags);
+    numMips                          = (numMips == 0 ? ComputeNumMips(width, height) : numMips);
+    D3D12_RESOURCE_FLAGS Flags       = CombineResourceFlags(bRenderTarget);
+    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1, numMips, format, Flags);
 
-    ResourceDesc.SampleDesc.Count = m_fragmentCount;
+    ResourceDesc.SampleDesc.Count   = m_fragmentCount;
     ResourceDesc.SampleDesc.Quality = 0;
 
     D3D12_CLEAR_VALUE ClearValue = {};
-    ClearValue.Format = Format;
+    ClearValue.Format   = format;
     ClearValue.Color[0] = m_clearColor.R();
     ClearValue.Color[1] = m_clearColor.G();
     ClearValue.Color[2] = m_clearColor.B();
     ClearValue.Color[3] = m_clearColor.A();
-
-    CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    createResourceViews(device::g_pDevice, Format, 1, NumMips);
+    
+    /*
+D3D12 ERROR: ID3D12Device::CreateCommittedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags. [ STATE_CREATION ERROR #815: CREATERESOURCE_INVALIDCLEARVALUE]
+D3D12: **BREAK** enabled for the previous message, which was: [ ERROR STATE_CREATION #815: CREATERESOURCE_INVALIDCLEARVALUE ]
+    */
+    CreateTextureCommittedResource(device::g_pDevice, wName, ResourceDesc, bRenderTarget? &ClearValue : nullptr); // 
+    createResourceViews(device::g_pDevice, format, 1, numMips, bRenderTarget);
 }
 
-void ColorBuffer::CreateArray
+void ColorBuffer::CreateCommittedArray
 (
-    const std::wstring& Name, uint32_t Width, uint32_t Height, 
-    uint32_t ArrayCount, DXGI_FORMAT Format
+    const std::wstring& wName, const uint32_t width, const uint32_t height,
+    const uint32_t arrayCount, const DXGI_FORMAT format, const bool bRenderTarget
 )
 {
-    D3D12_RESOURCE_FLAGS Flags = CombineResourceFlags();
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(Width, Height, ArrayCount, 1, Format, Flags);
+    D3D12_RESOURCE_FLAGS Flags = CombineResourceFlags(bRenderTarget);
+    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, arrayCount, 1, format, Flags);
 
     D3D12_CLEAR_VALUE ClearValue = {};
-    ClearValue.Format = Format;
+    ClearValue.Format = format;
     ClearValue.Color[0] = m_clearColor.R();
     ClearValue.Color[1] = m_clearColor.G();
     ClearValue.Color[2] = m_clearColor.B();
     ClearValue.Color[3] = m_clearColor.A();
 
-    CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    createResourceViews(device::g_pDevice, Format, ArrayCount, 1);
+    CreateTextureCommittedResource(device::g_pDevice, wName, ResourceDesc, bRenderTarget? &ClearValue : nullptr);
+    createResourceViews(device::g_pDevice, format, arrayCount, 1U, bRenderTarget);
 }
 
-void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
+void ColorBuffer::GenerateMipMaps(custom::ComputeContext& computeContext, const uint8_t commandIndex)
 {
     if (m_numMipMaps == 0)
 	{
 		return;
 	}
 
-    custom::ComputeContext& Context = BaseContext.GetComputeContext();
+    computeContext.SetRootSignature(graphics::g_GenerateMipsRootSignature, commandIndex);
 
-    Context.SetRootSignature(graphics::g_GenerateMipsRootSignature);
-
-    Context.TransitionResource(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    Context.SetDynamicDescriptor(1, 0, m_SRVHandle);
+    computeContext.TransitionResource(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    computeContext.SubmitResourceBarriers(0);
+    computeContext.SetDynamicDescriptor(1, 0, m_SRVHandle, commandIndex);
 
     for (uint32_t TopMip = 0; TopMip < m_numMipMaps;)
     {
@@ -167,14 +200,16 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
         // Determine if the first downsample is more than 2:1.  This happens whenever
         // the source width or height is odd.
         uint32_t NonPowerOfTwo = (SrcWidth & 1) | (SrcHeight & 1) << 1;
+
         if (m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)
         {
-            Context.SetPipelineState(graphics::g_GenerateMipsGammaComputePSO[NonPowerOfTwo]);
+            computeContext.SetPipelineState(graphics::g_GenerateMipsGammaComputePSO[NonPowerOfTwo], commandIndex);
         }
         else
         {
-            Context.SetPipelineState(graphics::g_GenerateMipsLinearComputePSO[NonPowerOfTwo]);
+            computeContext.SetPipelineState(graphics::g_GenerateMipsLinearComputePSO[NonPowerOfTwo], commandIndex);
         }
+
         // We can downsample up to four times, but if the ratio between levels is not
         // exactly 2:1, we have to shift our blend weights, which gets complicated or
         // expensive.  Maybe we can update the code later to compute sample weights for
@@ -208,18 +243,21 @@ void ColorBuffer::GenerateMipMaps(custom::CommandContext& BaseContext)
         float temp1 = 1.0f / DstWidth;
         float temp2 = 1.0f / DstHeight;
 
-        Context.SetConstants(0, TopMip, NumMips, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2));
-        Context.SetDynamicDescriptors(2, 0, NumMips, m_UAVHandle + TopMip + 1);
-        Context.Dispatch2D(DstWidth, DstHeight);
+        computeContext.SetConstants(0, TopMip, NumMips, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2), commandIndex);
+        computeContext.SetDynamicDescriptors(2, 0, NumMips, m_UAVHandle + TopMip + 1, commandIndex);
+        computeContext.Dispatch2D(DstWidth, DstHeight, commandIndex);
 
-        Context.InsertUAVBarrier(*this);
+        computeContext.InsertUAVBarrier(*this);
+        computeContext.SubmitResourceBarriers(0);
 
         TopMip += NumMips;
     }
 
-    Context.TransitionResource
+    computeContext.TransitionResource
     (
         *this, 
         D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
     );
+
+    computeContext.SubmitResourceBarriers(0);
 }

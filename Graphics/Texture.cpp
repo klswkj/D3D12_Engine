@@ -2,7 +2,7 @@
 #include "Texture.h"
 #include "Device.h"
 #include "Graphics.h"
-#include "CommandContext.h"
+#include "CopyContext.h"
 #include "DDSTextureLoader.cpp" // D3D12
 #include "WICTextureLoader.h"   // D3D12
 
@@ -13,7 +13,11 @@ namespace custom
         return (UINT)::BitsPerPixel(Format) / 8;
     };
 
-    void Texture::Create(size_t Pitch, size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitialData)
+    void Texture::CreateCommittedTexturePrivate
+    (
+        const size_t Pitch, const size_t Width, const size_t Height, 
+        const DXGI_FORMAT Format, const void* const InitialData
+    )
     {
         m_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
 
@@ -52,7 +56,7 @@ namespace custom
         texResource.RowPitch = Pitch * custom::BytesPerPixel(Format);
         texResource.SlicePitch = texResource.RowPitch * Height;
 
-        CommandContext::InitializeTexture(*this, 1, &texResource);
+        CopyContext::InitializeTexture(*this, 1, &texResource);
 
 		if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
@@ -61,61 +65,62 @@ namespace custom
         device::g_pDevice->CreateShaderResourceView(m_pResource, nullptr, m_hCpuDescriptorHandle);
     }
 
-    void Texture::CreateTGAFromMemory(const void* _filePtr, size_t, bool bStandardRGB)
+    void Texture::CreateTGAFromMemory(const void* const pFile, size_t, const bool bStandardRGB)
     {
-        const uint8_t* filePtr = (const uint8_t*)_filePtr;
+        const uint8_t* FilePtr = (const uint8_t*)pFile;
 
 		{
 			// Skip first two bytes
-			filePtr += 2;
+			FilePtr += 2;
 
 			/*uint8_t imageTypeCode =*/
-			*filePtr++;
+			*FilePtr++;
 
 			// Ignore another 9 bytes
-			filePtr += 9;
+			FilePtr += 9;
 		}
-        uint16_t imageWidth = *(uint16_t*)filePtr;
-        filePtr += sizeof(uint16_t);
-        uint16_t imageHeight = *(uint16_t*)filePtr;
-        filePtr += sizeof(uint16_t);
-        uint8_t bitCount = *filePtr++;
+
+        uint16_t ImageWidth = *(uint16_t*)FilePtr;
+        FilePtr += sizeof(uint16_t);
+        uint16_t ImageHeight = *(uint16_t*)FilePtr;
+        FilePtr += sizeof(uint16_t);
+        uint8_t BitCount = *FilePtr++;
 
         // Ignore another byte
-        ++filePtr;
+        ++FilePtr;
 
-        uint32_t* formattedData = new uint32_t[imageWidth * imageHeight];
-        uint32_t* iter = formattedData;
+        uint32_t* pFormattedData = new uint32_t[(uint64_t)ImageWidth * (uint64_t)ImageHeight];
+        uint32_t* pIter = pFormattedData;
 
-        uint8_t numChannels = bitCount / 8;
-        uint32_t numBytes = imageWidth * imageHeight * numChannels;
+        uint8_t NumChannels = BitCount / 8u;
+        uint32_t NumBytes = ImageWidth * ImageHeight * NumChannels;
 
-        switch (numChannels)
+        switch (NumChannels)
         {
         case 3:
-            for (uint32_t byteIdx = 0; byteIdx < numBytes; byteIdx += 3)
+            for (uint32_t byteIdx = 0u; byteIdx < NumBytes; byteIdx += 3u)
             {
-                *iter++ = 0xff000000 | filePtr[0] << 16 | filePtr[1] << 8 | filePtr[2];
-                filePtr += 3;
+                *pIter++ = 0xff000000 | FilePtr[0] << 16 | FilePtr[1] << 8 | FilePtr[2];
+                FilePtr += 3;
             }
             break;
         case 4:
-            for (uint32_t byteIdx = 0; byteIdx < numBytes; byteIdx += 4)
+            for (uint32_t byteIdx = 0u; byteIdx < NumBytes; byteIdx += 4u)
             {
-                *iter++ = filePtr[3] << 24 | filePtr[0] << 16 | filePtr[1] << 8 | filePtr[2];
-                filePtr += 4;
+                *pIter++ = FilePtr[3] << 24 | FilePtr[0] << 16 | FilePtr[1] << 8 | FilePtr[2];
+                FilePtr += 4;
             }
             break;
         default:
-            ASSERT(numChannels == 3 || numChannels == 4, "Invalid Channel.");
+            ASSERT(NumChannels == 3 || NumChannels == 4, "Invalid Channel.");
         }
 
-        Create(imageWidth, imageHeight, bStandardRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM, formattedData);
+        CreateCommittedTexture(ImageWidth, ImageHeight, bStandardRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM, pFormattedData);
 
-        delete[] formattedData;
+        delete[] pFormattedData;
     }
 
-    bool Texture::CreateDDSFromMemory(const void* filePtr, size_t fileSize, bool bStandardRGB)
+    bool Texture::CreateDDSFromMemory(const void* const pFile, const size_t fileSize, const bool bStandardRGB)
     {
 		if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
@@ -125,7 +130,7 @@ namespace custom
         HRESULT hr = CreateDDSTextureFromMemory
         (
             device::g_pDevice,
-            (const uint8_t*)filePtr, fileSize, 0, bStandardRGB, &m_pResource, m_hCpuDescriptorHandle, nullptr
+            (const uint8_t*)pFile, fileSize, 0, bStandardRGB, &m_pResource, m_hCpuDescriptorHandle, nullptr
         );
 
         ASSERT_HR(hr);
@@ -133,7 +138,7 @@ namespace custom
         return SUCCEEDED(hr);
     }
 
-    void Texture::CreatePIXImageFromMemory(const void* memBuffer, size_t fileSize)
+    void Texture::CreatePIXImageFromMemory(const void* const pMemBuffer, const size_t fileSize)
     {
         struct Header
         {
@@ -142,15 +147,15 @@ namespace custom
             uint32_t Width;
             uint32_t Height;
         };
-        const Header& header = *(Header*)memBuffer;
+        const Header& header = *(Header*)pMemBuffer;
 
         ASSERT
         (
-            fileSize >= header.Pitch * custom::BytesPerPixel(header.Format) * header.Height + sizeof(Header),
+             (size_t)header.Pitch * (size_t)custom::BytesPerPixel(header.Format) * (size_t)header.Height + sizeof(Header) <= fileSize,
             "Raw PIX image dump has an invalid file size"
         );
 
-        Create(header.Pitch, header.Width, header.Height, header.Format, (uint8_t*)memBuffer + sizeof(Header));
+        CreateCommittedTexturePrivate(header.Pitch, header.Width, header.Height, header.Format, (uint8_t*)pMemBuffer + sizeof(Header));
     }
 
     bool Texture::CreateWICFromMemory(const std::wstring& fileName)
@@ -169,7 +174,7 @@ namespace custom
 
         ASSERT_HR(hr, "Invalid Creating WIC Request from ", fileName, ".");
 
-        CommandContext::InitializeTexture(*this, 1, &subresource);
+        CopyContext::InitializeTexture(*this, 1, &subresource);
 
         if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{

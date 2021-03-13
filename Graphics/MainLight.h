@@ -1,11 +1,16 @@
 #pragma once
 #include "FilledPrimitiveSphere.h"
-// #include "ShadowCamera.h"
-#include "Vector.h"
+
+namespace custom
+{
+	class CommandContextManager;
+	class CommandContext;
+}
 
 class MainLight
 {
-	friend class custom::CommandContext;
+	friend custom::CommandContextManager;
+	friend custom::CommandContext;
 public:
 	MainLight
 	(
@@ -17,11 +22,13 @@ public:
 		Math::Vector3 ShadowBounds = { 5000.0f, 3000.0f, 3000.0f }
 	);
 
-	const Math::Vector3 GetMainLightDirection();
-	const Math::Vector3 GetMainLightColor();
-	const Math::Vector3 GetAmbientColor();
-	const Math::Vector3 GetShadowCenter();
-	const Math::Vector3 GetShadowBounds();
+	const Math::Vector3 GetMainLightDirection() const;
+	const Math::Vector3 GetMainLightColor() const;
+	const float GetMainLightIntensity() const;
+	const Math::Vector3 GetAmbientColor() const;
+	const float GetAmibientIntensity() const;
+	const Math::Vector3 GetShadowCenter() const;
+	const Math::Vector3 GetShadowBounds() const;
 	const Math::Matrix4& GetShadowMatrix();
 
 	void Up();
@@ -31,17 +38,17 @@ public:
 private:
 	// FilledPrimitiveSphere m_Mesh; // IEntity
 
-	float m_LightOrientation;
-	float m_LightInclination;
 	Math::Vector3 m_LightColor;
 	Math::Vector3 m_AmbientColor;
+	float m_LightOrientation;
+	float m_LightInclination;
 	float m_LightIntensity;
 	float m_AmbientIntensity;
 
 	Math::Vector3 m_ShadowCenter;
 	Math::Vector3 m_ShadowBounds;
 
-	bool bDirty;
-	Math::Vector3 m_LightDirectionVector;
+	mutable Math::Vector3 m_LightDirectionVector;
+	mutable bool bDirty;
 };
 

@@ -1,12 +1,12 @@
 #include "stdafx.h"
 #include "ShadowCamera.h"
-#include "CommandContext.h"
+#include "Device.h"
+#include "CommandContextManager.h"
 
-void ShadowCamera::BindToGraphics(custom::CommandContext& BaseContext)
+void ShadowCamera::BindToGraphics(custom::CommandContextManager& contextManager)
 {
-    custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-
-    graphicsContext.SetModelToProjectionByCamera(*this);
+    // contextManager.SetModelToProjectionByCamera(*this);
+    device::g_commandContextManager.SetModelToProjectionByCamera(*this);
 }
 
 void ShadowCamera::UpdateShadowMatrix

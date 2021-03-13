@@ -1,6 +1,4 @@
 #pragma once
-#include "Vector.h"
-#include "Matrix4.h"
 
 // Keep in sync HLSL
 struct VSConstants
@@ -63,16 +61,17 @@ struct CSConstants
     Math::Matrix4 ViewProjMatrix;
 };
 
-struct LightData
+
+struct alignas(128) LightData
 {
     DirectX::XMFLOAT3 pos = { 0.0f, 0.0f, 0.0f };
     float radiusSq = 100000.0f;
     DirectX::XMFLOAT3 color = { 0.31f, 0.27f, 0.25f };
-
     uint32_t type = 0; // 0 Sphere, 1 Cone, 2 Cone with Shadow Map
 
     DirectX::XMFLOAT3 coneDir = {-0.5f, -0.1f, -0.8f };
+    float Padding0;
     DirectX::XMFLOAT2 coneAngles = { 50.0f, 0.91f };
-
+    float Padding1[2];
     float shadowTextureMatrix[16];
 };

@@ -8,7 +8,7 @@ Mesh::Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float
 	ZeroMemory(&m_Transform, sizeof(m_Transform));
 }
 
-void Mesh::Submit(eObjectFilterFlag _Filter, Math::Matrix4 _AccumulatedTranform) const DEBUG_EXCEPT
+void Mesh::Submit(eObjectFilterFlag _Filter, Math::Matrix4 _AccumulatedTranform) DEBUG_EXCEPT
 {
 	// DirectX::XMStoreFloat4x4(&m_Transform, _AccumulatedTranform);
 	m_Transform = _AccumulatedTranform;

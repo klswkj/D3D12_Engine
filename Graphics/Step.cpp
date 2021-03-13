@@ -5,22 +5,19 @@
 #include "ModelComponentWindow.h"
 #include "Job.h"
 #include "RenderingResource.h"
-#include "RenderQueuePass.h"
 #include "MasterRenderGraph.h"
 
-std::mutex Step::sm_mutex;
-
-Step::Step(std::string PassName)
-	: m_PassName(PassName) 
+Step::Step(const char* szJobName)
+	:
+	m_szJobName(szJobName)
 {
 }
 
 Step::Step(const Step& other) noexcept
-	: m_PassName(other.m_PassName)
+	: 
+	m_szJobName(other.m_szJobName)
 {
 	m_RenderingResources.reserve(other.m_RenderingResources.size());
-
-	std::lock_guard<std::mutex> LockGuard(sm_mutex);
 
 	for (auto& e : other.m_RenderingResources)
 	{
@@ -30,19 +27,17 @@ Step::Step(const Step& other) noexcept
 
 void Step::PushBack(std::shared_ptr<RenderingResource> _RenderingResource) noexcept
 {
-	std::lock_guard<std::mutex> LockGuard(sm_mutex);
-
-	m_RenderingResources.push_back(std::move(_RenderingResource));
+	m_RenderingResources.push_back(std::move(_RenderingResource));\
 }
-void Step::Submit(const IEntity& _Entity) const
-{
-	m_pTargetPass->PushBackJob(Job{ &_Entity, this });
-}
-void Step::Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT
+// void Step::Submit(const IEntity& _Entity) const
+// {
+	// m_pTargetPass->PushBackJob(Job{ &_Entity, this });
+// }
+void Step::Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) const DEBUG_EXCEPT
 {
 	for (const auto& e : m_RenderingResources)
 	{
-		e->Bind(BaseContext);
+		e->Bind(BaseContext, commandIndex);
 	}
 }
 
@@ -61,10 +56,4 @@ void Step::Accept(IWindow& _IWindow)
 	{
 		_RR->RenderingWindow(_IWindow);
 	}
-}
-
-void Step::Link(MasterRenderGraph& _MasterRenderGraph)
-{
-	ASSERT(m_pTargetPass == nullptr);
-	m_pTargetPass = &_MasterRenderGraph.FindRenderQueuePass(m_PassName);
 }

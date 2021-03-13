@@ -6,10 +6,9 @@
 //                                           │  IndexBuffer            <- class Material::Index  (FLOAT3) => ByteAddressBuffer
 //                                           │  Topology               <  D3D11_PRIMITIVE_TOPOLOGY
 //                                           └─ Technique  ┬─ vector<RenderStage>  ────────────┬─ vector<Bindable*>
-//                                                         │  uint32_t Channel          │  RenderQueuePass* ──────── vector<Job>
+//                                                         │  uint32_t Channel          │  ID3D12RenderQueuePass* ──────── vector<Job>
 //                                                         └  bActive, string name      └  string targetPassName
 // 
-//                                                    uint32_t Channel은 Imgui에서 숫자로 Index될 데이터.
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //             ┌  IEntity*
 // vector<Job> ┤  
@@ -26,8 +25,10 @@ class MasterRenderGraph;
 
 enum class eObjectFilterFlag;
 
+// Head of ModelPart
 class Model
 {
+    friend class ObjModelManager;
 public:
 	Model(const std::string& pathString, float scale = 1.0f);
 

@@ -3,20 +3,21 @@
 #include "CommandContext.h"
 #include "Entity.h"
 
-TransformConstants::TransformConstants(UINT RootIndex)
+TransformConstants::TransformConstants(const UINT rootIndex)
+	:
+	m_pParent(nullptr)
 {
-	m_RootIndex = RootIndex;
+	m_RootIndex = rootIndex;
 	memset(&m_Transform, -1, sizeof(m_Transform));
 }
-void TransformConstants::Bind(custom::CommandContext& BaseContext)
+void TransformConstants::Bind(custom::CommandContext& baseContext, const uint8_t commandIndex)
 {
 	ASSERT(m_pParent != nullptr, "Didn't Initialize Parent Reference.");
 
 	// m_Transform.ModelMatrix = m_pParent->GetTransform().GetTranspose();
 	m_Transform.ModelMatrix = m_pParent->GetTransform();
 
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetDynamicConstantBufferView(m_RootIndex, sizeof(m_Transform), &m_Transform);
+	baseContext.GetGraphicsContext().SetDynamicConstantBufferView(m_RootIndex, sizeof(m_Transform), &m_Transform, commandIndex);
 }
 void TransformConstants::InitializeParentReference(const IEntity& _Entity) noexcept
 {

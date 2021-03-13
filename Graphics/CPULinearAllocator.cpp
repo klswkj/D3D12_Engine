@@ -52,16 +52,16 @@ void CPULinearAllocator::CPULinearAllocationPageManager::FreeLargePages(const st
 {
     std::lock_guard<std::mutex> LockGuard(m_Mutex);
 
-    while (!m_deletionQueue.empty())
+    while (!m_deferredDeletionQueue.empty())
     {
-        delete m_deletionQueue.front();
-        m_deletionQueue.pop();
+        delete m_deferredDeletionQueue.front();
+        m_deferredDeletionQueue.pop();
     }
 
     for (auto& iter : LargePages)
     {
         // (*iter)->SafeUnmap();
-        m_deletionQueue.push(iter);
+        m_deferredDeletionQueue.push(iter);
     }
 }
 

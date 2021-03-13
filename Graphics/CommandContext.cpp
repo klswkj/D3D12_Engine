@@ -1,13 +1,12 @@
 #pragma once
 #include "stdafx.h"
+#include "CommandContext.h"
 #include "Graphics.h"
 #include "CommandQueue.h"
 #include "CommandQueueManager.h"
 #include "CommandContextManager.h"
-#include "CommandContext.h"
 #include "CommandSignature.h"
 #include "DepthBuffer.h"
-#include "GPUResource.h"
 #include "UAVBuffer.h"
 #include "BufferManager.h"
 #include "DynamicDescriptorHeap.h"
@@ -15,567 +14,521 @@
 #include "RootSignature.h"
 #include "ColorBuffer.h"
 #include "LinearAllocator.h"
+#include "CommandSignature.h"
 
 #include "IBaseCamera.h"
 #include "Camera.h"
 #include "ShadowCamera.h"
 #include "MainLight.h"
 
-namespace custom
-{
-	CommandContext::CommandContext(D3D12_COMMAND_LIST_TYPE Type) :
-		m_type(Type),
-		m_DynamicViewDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
-		m_DynamicSamplerDescriptorHeap(*this, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER),
-		m_CPULinearAllocator(LinearAllocatorType::CPU_WRITEABLE),
-		m_GPULinearAllocator(LinearAllocatorType::GPU_WRITEABLE),
-		m_owningManager                (nullptr),
-		m_commandList                  (nullptr),
-		m_currentCommandAllocator      (nullptr),
-		m_pCurrentGraphicsRootSignature(nullptr),
-		m_CurPipelineState             (nullptr),
-		m_pCurrentComputeRootSignature (nullptr),
-		m_numStandByBarriers(0U),
-		m_PrimitiveTopology (D3D_PRIMITIVE_TOPOLOGY_UNDEFINED),
-		m_pMainCamera           (nullptr),
-		m_pMainLightShadowCamera(nullptr)
-
-	{
-		ZeroMemory(m_pCurrentDescriptorHeaps, sizeof(m_pCurrentDescriptorHeaps));
-	}
-
-	CommandContext::~CommandContext(void)
-	{
-		if (m_commandList != nullptr)
-		{
-			m_commandList->Release();
-		}
-	}
-
-	void CommandContext::Initialize(const std::wstring& ID)
-	{
-		device::g_commandQueueManager.CreateNewCommandList(&m_commandList, &m_currentCommandAllocator, m_type, ID);
-	}
-
-	CommandContext& CommandContext::Begin(const std::wstring& ID)
-	{
-		CommandContext* NewContext = device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT, ID);
-		NewContext->setName(ID);
-		//        if (ID.length() > 0)
-		//             Profiling::BeginBlock(ID, NewContext);
-
-		return *NewContext;
-	}
-
-	uint64_t CommandContext::Finish(bool WaitForCompletion, bool RecordForSwapChainFence)
-	{
-		ASSERT(m_type == D3D12_COMMAND_LIST_TYPE_DIRECT || m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE);
-
-		FlushResourceBarriers();
-
-		// if (0 < m_ID.length())
-		// {
-		//     Profiling::EndBlock(this);
-		// }
-		ASSERT(m_currentCommandAllocator != nullptr);
-
-		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
-		uint64_t LastExecuteFenceValue = Queue.executeCommandList(m_commandList);
-
-		if (RecordForSwapChainFence)
-		{
-			ASSERT(Queue.GetFence() != nullptr);
-			device::g_commandQueueManager.SetFenceValueForSwapChain(LastExecuteFenceValue + 1);
-			device::g_commandQueueManager.SetFenceForSwapChain(Queue.GetFence());
-		}
-
-		Queue.discardAllocator(LastExecuteFenceValue, m_currentCommandAllocator);
-		m_currentCommandAllocator = nullptr;
-
-		m_CPULinearAllocator.CleanupUsedPages(LastExecuteFenceValue);
-		m_GPULinearAllocator.CleanupUsedPages(LastExecuteFenceValue);
-		m_DynamicViewDescriptorHeap.CleanupUsedHeaps(LastExecuteFenceValue);
-		m_DynamicSamplerDescriptorHeap.CleanupUsedHeaps(LastExecuteFenceValue);
-
-		if (WaitForCompletion)
-		{
-			device::g_commandQueueManager.WaitForFence(LastExecuteFenceValue);
-		}
-
-		device::g_commandContextManager.FreeContext(this);
-
-		return LastExecuteFenceValue;
-	}
-
-	void CommandContext::Reset(std::wstring ID)
-	{
-		// We only call Reset() on previously freed contexts.  The command list persists, but we must
-		// request a new allocator.
-		ASSERT(m_commandList != nullptr && m_currentCommandAllocator == nullptr);
-		m_currentCommandAllocator = device::g_commandQueueManager.GetQueue(m_type).requestAllocator();
-		m_commandList->Reset(m_currentCommandAllocator, nullptr);
-
-#ifdef _DEBUG
-		if (0 < ID.length())
-		{
-			ID += L"'s commandList";
-
-			m_commandList->SetName(ID.c_str());
-		}
-		else
-		{
-			m_commandList->SetName(L"CommandList");
-		}
+#ifndef VALID_COMPUTE_QUEUE_RESOURCE_STATES
+#define VALID_COMPUTE_QUEUE_RESOURCE_STATES          \
+    ( D3D12_RESOURCE_STATE_UNORDERED_ACCESS         |\
+     D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |\
+     D3D12_RESOURCE_STATE_COPY_DEST                 |\
+     D3D12_RESOURCE_STATE_COPY_SOURCE )
 #endif
 
-		m_pCurrentGraphicsRootSignature = nullptr;
-		m_CurPipelineState = nullptr;
-		m_pCurrentComputeRootSignature = nullptr;
-		m_numStandByBarriers = 0;
-		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+#ifndef VALID_COPY_QUEUE_RESOURCE_STATES
+#define VALID_COPY_QUEUE_RESOURCE_STATES \
+       (D3D12_RESOURCE_STATE_COMMON     |\
+        D3D12_RESOURCE_STATE_COPY_DEST  |\
+        D3D12_RESOURCE_STATE_SOURCE)
+#endif
 
-		bindDescriptorHeaps();
+constexpr uint8_t COMMAND_LIMIT = 63u;
+constexpr uint8_t NUM_LIMIT_RESOURCE_BARRIER_16 = 16u;
+
+namespace custom
+{
+#pragma region COMMAND_CONTEXT
+	CommandContext::CommandContext(const D3D12_COMMAND_LIST_TYPE Type, const uint8_t numCommandsPair)
+		:
+		m_type(Type),
+		m_LastExecuteFenceValue((uint64_t)Type << 56),
+		m_bRecordingFlag(0ull),
+		m_StartCommandALIndex(0u),
+		m_EndCommandALIndex(0u),
+		m_NumCommandPair(numCommandsPair),
+		m_MainWorkerThreadID(::GetCurrentThreadId()),
+		m_CommandContextID(-1),
+		m_Rect({}), m_Viewport({}), m_resourceBarriers(),
+		m_CPULinearAllocator(LinearAllocatorType::CPU_WRITEABLE),
+		m_GPULinearAllocator(LinearAllocatorType::GPU_WRITEABLE),
+		m_pOwningManager(nullptr),
+		m_numStandByBarriers(0U),
+		m_PrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED),
+		m_pMainCamera           (nullptr),
+		m_pMainLightShadowCamera(nullptr)
+	{
+		listHelper::InitializeListHead(&m_ContextEntry);
 	}
 
-	void CommandContext::FlushResourceBarriers()
+	CommandContext::~CommandContext()
 	{
-		if (0 < m_numStandByBarriers)
+		for (auto& e : m_pCommandLists)
 		{
-			m_commandList->ResourceBarrier(m_numStandByBarriers, m_resourceBarriers);
-			m_numStandByBarriers = 0;
+			CHECK_IUNKOWN_REF_COUNT_DEBUG(SafeRelease(e));
 		}
 	}
 
-	void CommandContext::DestroyAllContexts()
+	STATIC void CommandContext::BeginFrame()
+	{
+		ASSERT(device::g_commandContextManager.NoPausedCommandContext());
+	}
+	STATIC void CommandContext::EndFrame()
+	{
+		ASSERT(device::g_commandContextManager.NoPausedCommandContext());
+	}
+	STATIC CommandContext& CommandContext::Begin(const D3D12_COMMAND_LIST_TYPE type, const uint8_t numCommandALs)
+	{
+		ASSERT(numCommandALs < COMMAND_LIMIT && CHECK_VALID_TYPE(type));
+
+		CommandContext* NewContext = device::g_commandContextManager.AllocateContext(type, numCommandALs);
+		return *NewContext;
+	}
+	STATIC CommandContext& CommandContext::Resume(const D3D12_COMMAND_LIST_TYPE type, uint64_t contextID)
+	{
+		custom::CommandContext* ret = nullptr;
+		ret = device::g_commandContextManager.GetRecordingContext(type, contextID);
+		ASSERT(ret);
+		return *ret;
+	}
+	STATIC void CommandContext::DestroyAllContexts()
 	{
 		LinearAllocator::DestroyAll();
 		DynamicDescriptorHeap::DestroyAll();
-		device::g_commandContextManager.DestroyAllContexts();
+		device::g_commandContextManager.DestroyAllCommandContexts();
 	}
 
-	// 무조건 ID3D12GraphicsCommandList* m_commandList 를 Flush()나, 
-	// Finish()를 하면 무조건 execute(CommandList)
-	// 따라서, 쓰레드들이 한번에 모아서 Execute할 수 없는 구조.
-
-	uint64_t CommandContext::Flush(bool WaitForCompletion)
+	void CommandContext::Initialize(const D3D12_COMMAND_LIST_TYPE type, const uint8_t numCommandLists)
 	{
-		FlushResourceBarriers();
+		device::g_commandQueueManager.RequestCommandAllocatorLists(m_pCommandAllocators, m_pCommandLists, type, numCommandLists);
+	}
+	void CommandContext::PauseRecording()
+	{
+		device::g_commandContextManager.PauseRecording(m_type, this);
+	}
 
-		ASSERT(m_currentCommandAllocator != nullptr);
-
-		uint64_t FenceValue = device::g_commandQueueManager.GetQueue(m_type).executeCommandList(m_commandList);
-
-		if (WaitForCompletion)
+	void CommandContext::WaitLastExecuteGPUSide(CommandContext& BaseContext)
+	{
+		if (m_type == BaseContext.m_type)
 		{
-			device::g_commandQueueManager.WaitForFence(FenceValue);
+			return;
 		}
+
+		m_pOwningManager->GetQueue(m_type).WaitFenceValueGPUSide(BaseContext.m_LastExecuteFenceValue);
+	}
+
+	uint64_t CommandContext::ExecuteCommands(const uint8_t lastCommandALIndex, const bool bRootSigFlush, const bool bPSOFlush)
+	{
+		ASSERT(m_pCommandAllocators.size() &&
+			CHECK_VALID_TYPE(m_type) &&
+			(m_StartCommandALIndex <= lastCommandALIndex) &&
+			(lastCommandALIndex < m_NumCommandPair) &&
+			(!m_numStandByBarriers));
+
+		CHECK_SMALL_COMMAND_LISTS_EXECUTED(3);
+
+		m_LastExecuteFenceValue = device::g_commandQueueManager.GetQueue(m_type)
+			.executeCommandLists(m_pCommandLists, m_StartCommandALIndex, lastCommandALIndex);
 
 		// Reset the command list and restore previous state
+		for (uint8_t i = m_StartCommandALIndex; i <= lastCommandALIndex; ++i)
+		{
+			ASSERT_HR(m_pCommandLists[i]->Reset(m_pCommandAllocators[i], nullptr));
 
-		m_commandList->Reset(m_currentCommandAllocator, nullptr);
+			if (m_GPUTaskFiberContexts[i].pCurrentGraphicsRS && !bRootSigFlush)
+			{
+				m_pCommandLists[i]->SetGraphicsRootSignature(m_GPUTaskFiberContexts[i].pCurrentGraphicsRS);
+				INCRE_DEBUG_SET_RS_COUNT_I;
+			}
+			if (m_GPUTaskFiberContexts[i].pCurrentComputeRS && !bRootSigFlush)
+			{
+				m_pCommandLists[i]->SetComputeRootSignature(m_GPUTaskFiberContexts[i].pCurrentComputeRS);
+				INCRE_DEBUG_SET_RS_COUNT_I;
+			}
+			if (m_GPUTaskFiberContexts[i].pCurrentPSO && !bPSOFlush)
+			{
+				m_pCommandLists[i]->SetPipelineState(m_GPUTaskFiberContexts[i].pCurrentPSO);
+				INCRE_DEBUG_SET_PSO_COUNT_I;
+			}
+
+			setCurrentDescriptorHeaps(i);
+		}
+		
+
 		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-		if (m_pCurrentGraphicsRootSignature)
-		{
-			m_commandList->SetGraphicsRootSignature(m_pCurrentGraphicsRootSignature);
-		}
-		if (m_pCurrentComputeRootSignature)
-		{
-			m_commandList->SetComputeRootSignature(m_pCurrentComputeRootSignature);
-		}
-		if (m_CurPipelineState)
-		{
-			m_commandList->SetPipelineState(m_CurPipelineState);
-		}
+		// m_StartCommandALIndex = (EndALIndex + 1) % m_NumCommandPair;
+		// m_bRecordingFlag &= ~(((1 << (EndALIndex - m_StartCommandALIndex + 1)) - 1) << m_StartCommandALIndex);
+		// m_bRecordingFlag |= (1ull << 63);
 
-		bindDescriptorHeaps();
-
-		return FenceValue;
+		return m_LastExecuteFenceValue;
 	}
 
-	void CommandContext::BeginResourceTransition(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
+	uint64_t CommandContext::Finish(const bool CPUSideWaitForCompletion)
 	{
-		// If it's already transitioning, finish that transition
-		if (Resource.m_transitionState != (D3D12_RESOURCE_STATES)-1)
+		ASSERT((m_pCommandAllocators.size()) && (!m_numStandByBarriers) && CHECK_VALID_TYPE(m_type));
+
+		CHECK_SMALL_COMMAND_LISTS_EXECUTED(3);
+
+		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
+		m_LastExecuteFenceValue = Queue.executeCommandLists(m_pCommandLists, m_StartCommandALIndex, m_NumCommandPair - 1);
+
+		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+		m_CPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
+		m_GPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
+
+		for (size_t i = m_StartCommandALIndex; i < m_NumCommandPair; ++i)
 		{
-			TransitionResource(Resource, Resource.m_transitionState);
+			m_GPUTaskFiberContexts[i].DynamicViewDescriptorHeaps.CleanupUsedHeaps(m_LastExecuteFenceValue);
+			m_GPUTaskFiberContexts[i].DynamicSamplerDescriptorHeaps.CleanupUsedHeaps(m_LastExecuteFenceValue);
 		}
 
-		D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
-
-		if (OldState != NewState)
+		if (CPUSideWaitForCompletion)
 		{
-			ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
+			device::g_commandQueueManager.WaitFenceValueCPUSide(m_LastExecuteFenceValue);
+		}
+#pragma warning(push)
+#pragma warning(disable : 26454)
+		m_bRecordingFlag &= (uint64_t)((1ull << 63) - 1ull);
+#pragma warning(pop)
+		device::g_commandContextManager.FreeContext(this);
+
+		return m_LastExecuteFenceValue;
+	}
+
+	// Can be Optimized.
+	void CommandContext::Reset(D3D12_COMMAND_LIST_TYPE type, uint8_t numCommandALs)
+	{
+		custom::CommandQueue& Queue = m_pOwningManager->GetQueue(type);
+		uint8_t CurrentAllocatorSize = (uint8_t)m_pCommandAllocators.size();
+
+		ASSERT(!m_numStandByBarriers && (CurrentAllocatorSize == m_pCommandLists.size()));
+
+		if (CurrentAllocatorSize < numCommandALs)
+		{
+			m_pOwningManager->RequestCommandAllocatorLists(m_pCommandAllocators, m_pCommandLists, type, numCommandALs);
+
+			for (size_t i = CurrentAllocatorSize; i < numCommandALs; ++i)
+			{
+				ASSERT_HR(m_pCommandLists[i]->Close());
+			}
+		}
+		else if (numCommandALs < CurrentAllocatorSize) // 1 < 4 /// 3 < 6 // 7 < 15
+		{
+			size_t NumDiscards = CurrentAllocatorSize - numCommandALs;
+
+			Queue.discardAllocators(m_pCommandAllocators, m_LastExecuteFenceValue, NumDiscards);
+
+			for (size_t i = numCommandALs; i < CurrentAllocatorSize; ++i) // for (size_t i = NumDiscards; i < CurrentAllocatorSize; ++i)
+			{
+				CHECK_IUNKOWN_REF_COUNT_DEBUG(SafeRelease(m_pCommandLists[i]));
+			}
+
+			m_pCommandLists.erase(m_pCommandLists.begin() + numCommandALs, m_pCommandLists.end()); // m_pCommandLists.erase(m_pCommandLists.end() - NumDiscards, m_pCommandLists.end());
+			m_pCommandLists.shrink_to_fit();
+		}
+		
+		for (size_t i = 0ul; i < numCommandALs; ++i)
+		{
+			ASSERT_HR(m_pCommandLists[i]->Reset(m_pCommandAllocators[i], nullptr));
+		}
+
+		m_bRecordingFlag = (1ull << 63) + ((1ull << numCommandALs) - 1);
+
+		m_type               = type;
+		m_NumCommandPair     = numCommandALs;
+		m_numStandByBarriers = 0;
+		m_LastExecuteFenceValue = Queue.GetLastCompletedFenceValue();
+
+		// GPUTaskFiber can be recycled?
+		m_GPUTaskFiberContexts.clear();
+		m_GPUTaskFiberContexts.shrink_to_fit();
+		m_GPUTaskFiberContexts.reserve(m_NumCommandPair);
+		m_GPUTaskFiberContexts.resize(m_NumCommandPair, *this);
+
+		for (uint8_t i = 0; i < m_NumCommandPair; ++i)
+		{
+			setCurrentDescriptorHeaps(i);
+		}
+	}
+
+	void CommandContext::SubmitExternalResourceBarriers(const D3D12_RESOURCE_BARRIER pBarriers[], const UINT numBarriers, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX && (numBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+		if (0 < numBarriers)
+		{
+			m_pCommandLists[commandIndex]->ResourceBarrier(numBarriers, pBarriers);
+			INCRE_DEBUG_SET_RESOURCE_BARRIER_COUNT;
+		}
+	}
+
+	void CommandContext::SubmitResourceBarriers(const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		if (0 < m_numStandByBarriers)
+		{
+			m_pCommandLists[commandIndex]->ResourceBarrier(m_numStandByBarriers, m_resourceBarriers);
+			m_numStandByBarriers = 0U;
+			INCRE_DEBUG_SET_RESOURCE_BARRIER_COUNT;
+		}
+	}
+
+	void CommandContext::SplitResourceTransition(GPUResource& targetResource, D3D12_RESOURCE_STATES statePending)
+	{
+		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+
+		// If it's already transitioning, finish that transition
+		if (targetResource.m_pendingState != (D3D12_RESOURCE_STATES)-1)
+		{
+			TransitionResource(targetResource, targetResource.m_pendingState);
+		}
+
+		D3D12_RESOURCE_STATES OldState = targetResource.m_currentState;
+
+		if (OldState != statePending)
+		{
 			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
 			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			BarrierDesc.Transition.pResource = Resource.GetResource();
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
 			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 			BarrierDesc.Transition.StateBefore = OldState;
-			BarrierDesc.Transition.StateAfter = NewState;
+			BarrierDesc.Transition.StateAfter  = statePending;
 
 			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
 
-			Resource.m_transitionState = NewState;
-		}
-
-		if (FlushImmediate || (16 <= m_numStandByBarriers))
-		{
-			FlushResourceBarriers();
+			targetResource.m_pendingState = statePending;
 		}
 	}
 
 	// TODO : To change to find unused ResourceBarrier, then changed it. 
-	void CommandContext::TransitionResource(GPUResource& Resource, D3D12_RESOURCE_STATES NewState, bool FlushImmediate/*= FALSE*/)
+	void CommandContext::TransitionResource(GPUResource& targetResource, D3D12_RESOURCE_STATES stateAfter, D3D12_RESOURCE_STATES forcedOldState)
 	{
-		ASSERT(Resource.GetResource());
+		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
 
-		D3D12_RESOURCE_STATES OldState = Resource.m_currentState;
+		D3D12_RESOURCE_STATES OldState = (forcedOldState == (D3D12_RESOURCE_STATES)-1) ? targetResource.m_currentState : forcedOldState;
 
-		if (m_type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+		if (OldState != stateAfter)
 		{
-			// 0xc48 = RESOURCE_STATE UNORDERED_ACCESS | PIXEL_SHADER_RESOURCE | COPY | DEST_SOURCE
-
-			ASSERT((OldState & 0xc48) == OldState);
-			ASSERT((NewState & 0xc48) == NewState);
-		}
-
-		if (OldState != NewState)
-		{
-			ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
 			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
-			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			BarrierDesc.Transition.pResource   = Resource.GetResource();
+			BarrierDesc.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
 			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 			BarrierDesc.Transition.StateBefore = OldState;
-			BarrierDesc.Transition.StateAfter  = NewState;
+			BarrierDesc.Transition.StateAfter  = stateAfter;
 
 			// Check to see if we already started the transition
-			if (NewState == Resource.m_transitionState)
+			if (targetResource.m_pendingState != D3D12_RESOURCE_STATES(-1)) // <- Before : if(NewState == Resource.m_pendingState)
 			{
+				ASSERT(stateAfter == targetResource.m_pendingState);
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
-				Resource.m_transitionState = (D3D12_RESOURCE_STATES)-1;
+				targetResource.m_pendingState = (D3D12_RESOURCE_STATES)-1;
 			}
 			else
 			{
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			}
 
-			Resource.m_currentState = NewState;
+			targetResource.m_currentState = stateAfter;
 		}
-		else if (NewState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+		else if (stateAfter == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 		{
-			InsertUAVBarrier(Resource, FlushImmediate);
-		}
-
-		if (FlushImmediate || (16 <= m_numStandByBarriers))
-		{
-			FlushResourceBarriers();
+			InsertUAVBarrier(targetResource);
 		}
 	}
-
-	void CommandContext::InsertUAVBarrier(GPUResource& Resource, bool FlushImmediate/*= FALSE*/)
+	void CommandContext::InsertUAVBarrier(GPUResource& targetResource)
 	{
-		ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
+		ASSERT(m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16, "Exceeded arbitrary limit on buffered barriers");
 		D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
-		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+		BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		BarrierDesc.UAV.pResource = Resource.GetResource();
-
-		if (FlushImmediate)
-		{
-			FlushResourceBarriers();
-		}
+		BarrierDesc.UAV.pResource = targetResource.GetResource();
 	}
-
-	void CommandContext::InsertAliasBarrier(GPUResource& Before, GPUResource& After, bool FlushImmediate/*= FALSE*/)
+	void CommandContext::InsertAliasBarrier(GPUResource& beforeResource, GPUResource& afterResource)
 	{
-		ASSERT(m_numStandByBarriers < 16, "Exceeded arbitrary limit on buffered barriers");
+		ASSERT(m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16, "Exceeded arbitrary limit on buffered barriers");
 		D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
-		BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+		BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
 		BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-		BarrierDesc.Aliasing.pResourceBefore = Before.GetResource();
-		BarrierDesc.Aliasing.pResourceAfter = After.GetResource();
-
-		if (FlushImmediate)
-		{
-			FlushResourceBarriers();
-		}
+		BarrierDesc.Aliasing.pResourceBefore = beforeResource.GetResource();
+		BarrierDesc.Aliasing.pResourceAfter  = afterResource.GetResource();
 	}
 
-	void CommandContext::WriteBuffer(GPUResource& Dest, size_t DestOffset, const void* BufferData, size_t NumBytes)
+	void CommandContext::SetPipelineState(const PSO& customPSO, const uint8_t commandIndex)
 	{
-		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-		LinearBuffer temp = m_CPULinearAllocator.Allocate(NumBytes, 512);
-		SIMDMemCopy(temp.pData, BufferData, HashInternal::DivideByMultiple(NumBytes, 16));
-		CopyBufferRegion(Dest, DestOffset, temp.buffer, temp.offset, NumBytes);
-	}
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
 
-	void CommandContext::FillBuffer(GPUResource& Dest, size_t DestOffset, float Value, size_t NumBytes)
-	{
-		LinearBuffer temp = m_CPULinearAllocator.Allocate(NumBytes, 512);
-		__m128 VectorValue = _mm_set1_ps(Value);
-		SIMDMemFill(temp.pData, VectorValue, HashInternal::DivideByMultiple(NumBytes, 16));
-		CopyBufferRegion(Dest, DestOffset, temp.buffer, temp.offset, NumBytes);
-	}
-
-	void CommandContext::InitializeTexture(GPUResource& Dest, UINT NumSubresources, D3D12_SUBRESOURCE_DATA SubData[])
-	{
-		UINT64 uploadBufferSize = GetRequiredIntermediateSize(Dest.GetResource(), 0, NumSubresources);
-
-		CommandContext& InitContext = CommandContext::Begin();
-
-		// copy data to the intermediate upload heap and then schedule a copy from the upload heap to the default texture
-		LinearBuffer mem = InitContext.ReserveUploadMemory(uploadBufferSize);
-		UpdateSubresources(InitContext.m_commandList, Dest.GetResource(), mem.buffer.GetResource(), 0, 0, NumSubresources, SubData);
-		InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ);
-
-		// Execute the command list and wait for it to finish so we can release the upload buffer
-		InitContext.Finish(true);
-	}
-
-	void CommandContext::InitializeTextureArraySlice(GPUResource& Dest, UINT SliceIndex, GPUResource& Src)
-	{
-		CommandContext& Context = CommandContext::Begin();
-
-		Context.TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
-		Context.FlushResourceBarriers();
-
-		const D3D12_RESOURCE_DESC& DestDesc = Dest.GetResource()->GetDesc();
-		const D3D12_RESOURCE_DESC& SrcDesc = Src.GetResource()->GetDesc();
-
-		ASSERT
-		(
-			SliceIndex < DestDesc.DepthOrArraySize&&
-			SrcDesc.DepthOrArraySize == 1 &&
-			DestDesc.Width == SrcDesc.Width &&
-			DestDesc.Height == SrcDesc.Height &&
-			DestDesc.MipLevels <= SrcDesc.MipLevels
-		);
-
-		size_t SubResourceIndex = SliceIndex * DestDesc.MipLevels;
-
-		for (UINT MipLevel = 0; MipLevel < DestDesc.MipLevels; ++MipLevel)
-		{
-			size_t InputSubresourceIndex = SubResourceIndex + (size_t)MipLevel;
-
-			D3D12_TEXTURE_COPY_LOCATION destCopyLocation =
-			{
-				Dest.GetResource(),
-				D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-				(UINT)InputSubresourceIndex
-			};
-
-			D3D12_TEXTURE_COPY_LOCATION srcCopyLocation =
-			{
-				Src.GetResource(),
-				D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-				MipLevel
-			};
-
-			Context.m_commandList->CopyTextureRegion(&destCopyLocation, 0, 0, 0, &srcCopyLocation, nullptr);
-		}
-
-		Context.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ);
-		Context.Finish(true);
-	}
-
-	void CommandContext::CopyBuffer(GPUResource& Dest, GPUResource& Src)
-	{
-		TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
-		TransitionResource(Src, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		FlushResourceBarriers();
-		m_commandList->CopyResource(Dest.GetResource(), Src.GetResource());
-	}
-
-	void CommandContext::CopyBufferRegion
-	(
-		GPUResource& Dest, size_t DestOffset, GPUResource& Src,
-		size_t SrcOffset, size_t NumBytes
-	)
-	{
-		TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
-		//TransitionResource(Src, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		FlushResourceBarriers();
-		m_commandList->CopyBufferRegion(Dest.GetResource(), DestOffset, Src.GetResource(), SrcOffset, NumBytes);
-	}
-
-	void CommandContext::CopySubresource(GPUResource& Dest, UINT DestSubIndex, GPUResource& Src, UINT SrcSubIndex)
-	{
-		FlushResourceBarriers();
-
-		D3D12_TEXTURE_COPY_LOCATION DestLocation =
-		{
-			Dest.GetResource(),
-			D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-			DestSubIndex
-		};
-
-		D3D12_TEXTURE_COPY_LOCATION SrcLocation =
-		{
-			Src.GetResource(),
-			D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-			SrcSubIndex
-		};
-
-		m_commandList->CopyTextureRegion(&DestLocation, 0, 0, 0, &SrcLocation, nullptr);
-	}
-
-	void CommandContext::CopyCounter(GPUResource& Dest, size_t DestOffset, StructuredBuffer& Src)
-	{
-		TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST);
-		TransitionResource(Src.GetCounterBuffer(), D3D12_RESOURCE_STATE_COPY_SOURCE);
-		FlushResourceBarriers();
-		m_commandList->CopyBufferRegion(Dest.GetResource(), DestOffset, Src.GetCounterBuffer().GetResource(), 0, 4);
-	}
-
-	void CommandContext::ResetCounter(StructuredBuffer& Buf, float Value)
-	{
-		FillBuffer(Buf.GetCounterBuffer(), 0, Value, sizeof(float));
-		TransitionResource(Buf.GetCounterBuffer(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	}
-
-	void CommandContext::ReadbackTexture2D(GPUResource& ReadbackBuffer, PixelBuffer& SrcBuffer)
-	{
-		// The footprint may depend on the device of the resource, but we assume there is only one device.
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;
-		device::g_pDevice->GetCopyableFootprints(&SrcBuffer.GetResource()->GetDesc(), 0, 1, 0, &PlacedFootprint, nullptr, nullptr, nullptr);
-
-		// This very short command list only issues one API call and will be synchronized so we can immediately read
-		// the buffer contents.
-		CommandContext& Context = CommandContext::Begin(L"Copy texture to memory");
-
-		Context.TransitionResource(SrcBuffer, D3D12_RESOURCE_STATE_COPY_SOURCE, true);
-
-		Context.m_commandList->CopyTextureRegion
-		(
-			&CD3DX12_TEXTURE_COPY_LOCATION(ReadbackBuffer.GetResource(), PlacedFootprint), 0, 0, 0,
-			&CD3DX12_TEXTURE_COPY_LOCATION(SrcBuffer.GetResource(), 0), nullptr
-		);
-
-		Context.Finish(true);
-	}
-
-	void CommandContext::InitializeBuffer(GPUResource& Dest, const void* BufferData, size_t NumBytes, size_t Offset /* = 0*/)
-	{
-		CommandContext& InitContext = CommandContext::Begin();
-
-		LinearBuffer mem = InitContext.ReserveUploadMemory(NumBytes);
-
-		// TODO : This part can be Optimized.
-		if (HashInternal::IsAligned(NumBytes, 16) && HashInternal::IsAligned(BufferData, 16))
-		{
-			SIMDMemCopy(mem.pData, BufferData, HashInternal::DivideByMultiple(NumBytes, 16));
-		}
-		else
-		{
-			memcpy_s(mem.pData, NumBytes, BufferData, NumBytes);
-		}
-
-		// copy data to the intermediate upload heap and then schedule a copy from the upload heap to the default texture
-		InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_COPY_DEST, true);
-		InitContext.m_commandList->CopyBufferRegion(Dest.GetResource(), Offset, mem.buffer.GetResource(), 0, NumBytes);
-		InitContext.TransitionResource(Dest, D3D12_RESOURCE_STATE_GENERIC_READ, true);
-
-		// Execute the command list and wait for it to finish so we can release the upload buffer
-		InitContext.Finish(true);
-	}
-
-	void CommandContext::SetPipelineStateByPtr(ID3D12PipelineState* pPSO)
-	{
-		if (pPSO == m_CurPipelineState)
+		ID3D12PipelineState* PipelineState = customPSO.GetPipelineStateObject();
+		if (PipelineState == m_GPUTaskFiberContexts[commandIndex].pCurrentPSO)
 		{
 			return;
 		}
 
-		m_commandList->SetPipelineState(pPSO);
-		m_CurPipelineState = pPSO;
+		m_pCommandLists[commandIndex]->SetPipelineState(PipelineState);
+		m_GPUTaskFiberContexts[commandIndex].pCurrentPSO = PipelineState;
+		INCRE_DEBUG_SET_PSO_COUNT;
 	}
-	
-	void CommandContext::SetPipelineState(const PSO& PSO)
+	void CommandContext::SetPipelineStateRange(const PSO& customPSO, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		ID3D12PipelineState* PipelineState = PSO.GetPipelineStateObject();
-		if (PipelineState == m_CurPipelineState)
+		ASSERT(CHECK_VALID_RANGE);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			ID3D12PipelineState* PipelineState = customPSO.GetPipelineStateObject();
+			if (PipelineState == m_GPUTaskFiberContexts[i].pCurrentPSO)
+			{
+				continue;
+			}
+
+			m_pCommandLists[i]->SetPipelineState(PipelineState);
+			m_GPUTaskFiberContexts[i].pCurrentPSO = PipelineState;
+			INCRE_DEBUG_SET_PSO_COUNT_I;
+		}
+	}
+
+	void CommandContext::SetPipelineStateByPtr(ID3D12PipelineState* const pPSO, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		if (pPSO == m_GPUTaskFiberContexts[commandIndex].pCurrentPSO)
 		{
 			return;
 		}
 
-		m_commandList->SetPipelineState(PipelineState);
-		m_CurPipelineState = PipelineState;
+		m_pCommandLists[commandIndex]->SetPipelineState(pPSO);
+		m_GPUTaskFiberContexts[commandIndex].pCurrentPSO = pPSO;
+		INCRE_DEBUG_SET_PSO_COUNT;
 	}
-
-	void CommandContext::SetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type, ID3D12DescriptorHeap* HeapPtr)
+	void CommandContext::SetPipelineStateByPtrRange(ID3D12PipelineState* const pPSO, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		if (m_pCurrentDescriptorHeaps[Type] != HeapPtr)
+		ASSERT(CHECK_VALID_RANGE);
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
 		{
-			m_pCurrentDescriptorHeaps[Type] = HeapPtr;
-			bindDescriptorHeaps();
+			if (pPSO == m_GPUTaskFiberContexts[i].pCurrentPSO)
+			{
+				continue;
+			}
+
+			m_pCommandLists[i]->SetPipelineState(pPSO);
+			m_GPUTaskFiberContexts[i].pCurrentPSO = pPSO;
+			INCRE_DEBUG_SET_PSO_COUNT_I;
 		}
 	}
 
-	void CommandContext::SetDescriptorHeaps(UINT HeapCount, D3D12_DESCRIPTOR_HEAP_TYPE Type[], ID3D12DescriptorHeap* HeapPtrs[])
+	void CommandContext::setDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_TYPE heapType, ID3D12DescriptorHeap* const pHeap, const uint8_t commandIndex)
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		if (m_GPUTaskFiberContexts[commandIndex].pCurrentDescriptorHeaps[heapType] != pHeap)
+		{
+			m_GPUTaskFiberContexts[commandIndex].pCurrentDescriptorHeaps[heapType] = pHeap;
+			setCurrentDescriptorHeaps(commandIndex);
+		}
+	}
+	void CommandContext::setDescriptorHeaps(const UINT numHeap, const D3D12_DESCRIPTOR_HEAP_TYPE heapTypes[], ID3D12DescriptorHeap* const pHeaps[], const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
 		bool bAnyChanged = false;
 
-		for (size_t i = 0; i < HeapCount; ++i)
+		for (size_t i = 0; i < numHeap; ++i)
 		{
-			if (m_pCurrentDescriptorHeaps[Type[i]] != HeapPtrs[i])
+			if (m_GPUTaskFiberContexts[commandIndex].pCurrentDescriptorHeaps[heapTypes[i]] != pHeaps[i])
 			{
-				m_pCurrentDescriptorHeaps[Type[i]] = HeapPtrs[i];
+				m_GPUTaskFiberContexts[commandIndex].pCurrentDescriptorHeaps[heapTypes[i]] = pHeaps[i];
 				bAnyChanged = true;
 			}
 		}
 
 		if (bAnyChanged)
 		{
-			bindDescriptorHeaps();
+			setCurrentDescriptorHeaps(commandIndex);
 		}
 	}
 
-	void CommandContext::InsertTimeStamp(ID3D12QueryHeap* pQueryHeap, UINT QueryIdx)
+	void CommandContext::InsertTimeStamp(ID3D12QueryHeap* const pQueryHeap, const UINT QueryIdx, const uint8_t commandIndex) const
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
 		// For Gpu Profiling.
-		m_commandList->EndQuery(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryIdx);
+		m_pCommandLists[commandIndex]->EndQuery(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, QueryIdx);
 	}
 
-	void CommandContext::ResolveTimeStamps(ID3D12Resource* pReadbackHeap, ID3D12QueryHeap* pQueryHeap, UINT NumQueries)
+	void CommandContext::ResolveTimeStamps(ID3D12Resource* const pReadbackHeap, ID3D12QueryHeap* const pQueryHeap, const UINT NumQueries, const uint8_t commandIndex) const
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
 		// For Gpu Profiling.
-		m_commandList->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
+		m_pCommandLists[commandIndex]->ResolveQueryData(pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, NumQueries, pReadbackHeap, 0);
 	}
 
-	void CommandContext::PIXBeginEvent(const wchar_t* label)
+	void CommandContext::PIXBeginEvent(const wchar_t* const label, const uint8_t commandIndex) const
 	{
 #if defined(_DEBUG) | !defined(RELEASE)
-		::PIXBeginEvent(m_commandList, 0, label);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		::PIXBeginEvent(m_pCommandLists[commandIndex], 0, label);
+#endif
+	}
+	void CommandContext::PIXEndEvent(const uint8_t commandIndex) const
+	{
+#if defined(_DEBUG) | !defined(RELEASE)
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		::PIXEndEvent(m_pCommandLists[commandIndex]);
 #endif
 	}
 
-	void CommandContext::PIXEndEvent(void)
+	void CommandContext::PIXBeginEventAll(const wchar_t* const label) const
 	{
 #if defined(_DEBUG) | !defined(RELEASE)
-		::PIXEndEvent(m_commandList);
+		for (auto& e : m_pCommandLists)
+		{
+			::PIXBeginEvent(e, 0, label);
+		}
+#endif
+	}
+	void CommandContext::PIXEndEventAll() const
+	{
+#if defined(_DEBUG) | !defined(RELEASE)
+		for (auto& e : m_pCommandLists)
+		{
+			::PIXEndEvent(e);
+		}
 #endif
 	}
 
-	void CommandContext::PIXSetMarker(const wchar_t* label)
+	void CommandContext::PIXSetMarker(const wchar_t* const label, const uint8_t commandIndex) const
 	{
 #if defined(_DEBUG) | !defined(RELEASE)
-		::PIXSetMarker(m_commandList, 0, label);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		::PIXSetMarker(m_pCommandLists[commandIndex], 0, label);
+#endif
+	}
+	void CommandContext::PIXSetMarkerAll(const wchar_t* const label) const
+	{
+#if defined(_DEBUG) | !defined(RELEASE)
+		for (auto& e : m_pCommandLists)
+		{
+			::PIXSetMarker(e, 0, label);
+		}
 #endif
 	}
 
-	void CommandContext::bindDescriptorHeaps()
+	void CommandContext::setCurrentDescriptorHeaps(const uint8_t commandIndex)
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
 		UINT NonNullHeaps = 0;
 		ID3D12DescriptorHeap* HeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
 		for (size_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
-			ID3D12DescriptorHeap* HeapIter = m_pCurrentDescriptorHeaps[i];
+			ID3D12DescriptorHeap* HeapIter = m_GPUTaskFiberContexts[commandIndex].pCurrentDescriptorHeaps[i];
 			if (HeapIter != nullptr)
 			{
 				HeapsToBind[NonNullHeaps++] = HeapIter;
@@ -584,18 +537,17 @@ namespace custom
 
 		if (0 < NonNullHeaps)
 		{
-			m_commandList->SetDescriptorHeaps(NonNullHeaps, HeapsToBind);
+			m_pCommandLists[commandIndex]->SetDescriptorHeaps(NonNullHeaps, HeapsToBind);
+			INCRE_DEBUG_SET_DESCRIPTOR_HEAPS_COUNT;
 		}
 	}
 
-	void CommandContext::SetPredication(ID3D12Resource* Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op)
+	void CommandContext::SetPredication(ID3D12Resource* const Buffer, const UINT64 BufferOffset, const D3D12_PREDICATION_OP Op, const uint8_t commandIndex)
 	{
-		m_commandList->SetPredication(Buffer, BufferOffset, Op);
-	}
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		m_pCommandLists[commandIndex]->SetPredication(Buffer, BufferOffset, Op);
+	}
 
 #pragma region CAMERA_LIGHTS
 	void CommandContext::SetModelToProjection(const Math::Matrix4& _ViewProjMatrix)
@@ -603,7 +555,7 @@ namespace custom
 		m_VSConstants.modelToProjection = _ViewProjMatrix;
 	}
 	
-	void CommandContext::SetModelToProjectionByCamera(IBaseCamera& _IBaseCamera)
+	void CommandContext::SetModelToProjectionByCamera(const IBaseCamera& _IBaseCamera)
 	{
 		m_VSConstants.modelToProjection = _IBaseCamera.GetViewProjMatrix();
 		m_VSConstants.ViewMatrix        = _IBaseCamera.GetViewMatrix();
@@ -627,44 +579,44 @@ namespace custom
 		SetModelToProjectionByCamera(_Camera);
 	}
 
-	Camera* CommandContext::GetpMainCamera()
+	Camera* CommandContext::GetpMainCamera() const
 	{
 		ASSERT(m_pMainCamera != nullptr);
 		return m_pMainCamera;
 	}
 
-	VSConstants CommandContext::GetVSConstants()
+	VSConstants CommandContext::GetVSConstants() const
 	{
 		return m_VSConstants;
 	}
-	PSConstants CommandContext::GetPSConstants()
+	PSConstants CommandContext::GetPSConstants() const
 	{
 		return m_PSConstants;
 	}
 	
-	void CommandContext::SetMainLightDirection(Math::Vector3 MainLightDirection)
+	void CommandContext::SetMainLightDirection(const Math::Vector3& MainLightDirection)
 	{
 		m_PSConstants.sunDirection = MainLightDirection;
 	}
 
-	void CommandContext::SetMainLightColor(Math::Vector3 Color, float Intensity)
+	void CommandContext::SetMainLightColor(const Math::Vector3& Color, const float Intensity)
 	{
 		m_PSConstants.sunLightColor = Color * Intensity;
 	}
 
-	void CommandContext::SetAmbientLightColor(Math::Vector3 Color, float Intensity)
+	void CommandContext::SetAmbientLightColor(const Math::Vector3& Color, const float Intensity)
 	{
 		m_PSConstants.ambientColor = Color * Intensity;
 	}
 
-	void CommandContext::SetShadowTexelSize(float TexelSize)
+	void CommandContext::SetShadowTexelSize(const float TexelSize)
 	{
 		ASSERT(0.0f < TexelSize && TexelSize < 1.0f);
 		m_PSConstants.ShadowTexelSize[0] = TexelSize;
 		m_PSConstants.ShadowTexelSize[1] = TexelSize;
 	}
 
-	void CommandContext::SetTileDimension(uint32_t MainColorBufferWidth, uint32_t MainColorBufferHeight, uint32_t LightWorkGroupSize)
+	void CommandContext::SetTileDimension(const uint32_t MainColorBufferWidth, const uint32_t MainColorBufferHeight, const uint32_t LightWorkGroupSize)
 	{
 		ASSERT(1u < LightWorkGroupSize);
 
@@ -675,7 +627,7 @@ namespace custom
 		m_PSConstants.TileCount[0] = HashInternal::DivideByMultiple(MainColorBufferHeight, LightWorkGroupSize);
 	}
 
-	void CommandContext::SetSpecificLightIndex(uint32_t FirstConeLightIndex, uint32_t FirstConeShadowedLightIndex)
+	void CommandContext::SetSpecificLightIndex(const uint32_t FirstConeLightIndex, const uint32_t FirstConeShadowedLightIndex)
 	{
 		m_PSConstants.FirstLightIndex[0] = FirstConeLightIndex;
 		m_PSConstants.FirstLightIndex[1] = FirstConeShadowedLightIndex;
@@ -690,147 +642,264 @@ namespace custom
 
 	void CommandContext::SetSync()
 	{
-		device::g_commandContextManager.m_VSConstants   = m_VSConstants;
-		device::g_commandContextManager.m_PSConstants   = m_PSConstants;
-		device::g_commandContextManager.m_pCamera       = m_pMainCamera;
-		device::g_commandContextManager.m_pShadowCamera = m_pMainLightShadowCamera;
+		device::g_commandContextManager.m_VSConstants       = m_VSConstants;
+		device::g_commandContextManager.m_PSConstants       = m_PSConstants;
+		device::g_commandContextManager.m_pMainCamera       = m_pMainCamera;
+		device::g_commandContextManager.m_pMainShadowCamera = m_pMainLightShadowCamera;
 	}
 
 #pragma endregion CAMERA_LIGHTS
 
-	// TODO : Eliminate Overloading.
-	void GraphicsContext::SetRootSignature(const RootSignature& RootSig)
+#pragma endregion COMMAND_CONTEXT
+
+#pragma region GRAPHICS_CONTEXT
+
+	STATIC GraphicsContext& GraphicsContext::Begin(const uint8_t numCommandALs)
 	{
-		if (RootSig.GetSignature() == m_pCurrentGraphicsRootSignature)
+		ASSERT((numCommandALs < COMMAND_LIMIT));
+
+		GraphicsContext* NewContext = reinterpret_cast<GraphicsContext*>(device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_DIRECT, numCommandALs));
+		return *NewContext;
+	}
+
+	STATIC GraphicsContext& GraphicsContext::Resume(const uint64_t contextID)
+	{
+		custom::CommandContext* ret = nullptr;
+		ret = device::g_commandContextManager.GetRecordingContext(D3D12_COMMAND_LIST_TYPE_DIRECT, contextID);
+		ASSERT(ret && ret->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT);
+		return *reinterpret_cast<custom::GraphicsContext*>(ret);
+	}
+
+	STATIC GraphicsContext& GraphicsContext::GetRecentContext()
+	{
+		custom::CommandContext* ret = nullptr;
+		ret = device::g_commandContextManager.GetRecentContext(D3D12_COMMAND_LIST_TYPE_DIRECT);
+		ASSERT(ret && ret->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT);
+		return *reinterpret_cast<custom::GraphicsContext*>(ret);
+	}
+
+	// TODO : Eliminate Overloading.
+	void GraphicsContext::SetRootSignature(const RootSignature& customRS, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		if (customRS.GetSignature() == m_GPUTaskFiberContexts[commandIndex].pCurrentGraphicsRS)
 		{
 			return;
 		}
 
-		m_commandList->SetGraphicsRootSignature(m_pCurrentGraphicsRootSignature = RootSig.GetSignature());
+		m_pCommandLists[commandIndex]->SetGraphicsRootSignature(m_GPUTaskFiberContexts[commandIndex].pCurrentGraphicsRS = customRS.GetSignature());
+		INCRE_DEBUG_SET_RS_COUNT;
 
-		// When Called Reset()?
-
-		m_DynamicViewDescriptorHeap.ParseGraphicsRootSignature(RootSig);
-		m_DynamicSamplerDescriptorHeap.ParseGraphicsRootSignature(RootSig);
+		m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.ParseGraphicsRootSignature(customRS);
+		m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.ParseGraphicsRootSignature(customRS);
 	}
 
-	void GraphicsContext::SetRenderTargets(UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], D3D12_CPU_DESCRIPTOR_HANDLE DSV)
+	void GraphicsContext::SetRootSignatureRange(const RootSignature& customRS, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		m_commandList->OMSetRenderTargets(NumRTVs, RTVs, FALSE, &DSV);
+		ASSERT(CHECK_VALID_RANGE);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			if (customRS.GetSignature() == m_GPUTaskFiberContexts[i].pCurrentGraphicsRS)
+			{
+				continue;
+			}
+
+			m_pCommandLists[i]->SetGraphicsRootSignature(m_GPUTaskFiberContexts[i].pCurrentGraphicsRS = customRS.GetSignature());
+			INCRE_DEBUG_SET_RS_COUNT_I;
+
+			m_GPUTaskFiberContexts[i].DynamicViewDescriptorHeaps.ParseGraphicsRootSignature(customRS);
+			m_GPUTaskFiberContexts[i].DynamicSamplerDescriptorHeaps.ParseGraphicsRootSignature(customRS);
+		}
 	}
 
-	void GraphicsContext::SetRenderTargets(UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[])
+	void GraphicsContext::SetRenderTargets(const UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], D3D12_CPU_DESCRIPTOR_HANDLE DSV, const uint8_t commandIndex)
 	{
-		m_commandList->OMSetRenderTargets(NumRTVs, RTVs, FALSE, nullptr);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->OMSetRenderTargets(NumRTVs, RTVs, FALSE, &DSV);
 	}
 
-	void GraphicsContext::BeginQuery(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT HeapIndex)
+	void GraphicsContext::SetRenderTargetsRange(const UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], const D3D12_CPU_DESCRIPTOR_HANDLE DSV, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		m_commandList->BeginQuery(QueryHeap, Type, HeapIndex);
+		ASSERT(CHECK_VALID_RANGE);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			m_pCommandLists[i]->OMSetRenderTargets(NumRTVs, RTVs, FALSE, &DSV);
+		}
 	}
 
-	void GraphicsContext::EndQuery(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT HeapIndex)
+	void GraphicsContext::SetRenderTargets(const UINT NumRTVs, const D3D12_CPU_DESCRIPTOR_HANDLE RTVs[], const uint8_t commandIndex)
 	{
-		m_commandList->EndQuery(QueryHeap, Type, HeapIndex);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->OMSetRenderTargets(NumRTVs, RTVs, FALSE, nullptr);
 	}
 
-	void GraphicsContext::ResolveQueryData(ID3D12QueryHeap* QueryHeap, D3D12_QUERY_TYPE Type, UINT StartIndex, UINT NumQueries, ID3D12Resource* DestinationBuffer, UINT64 DestinationBufferOffset)
+	void GraphicsContext::BeginQuery(ID3D12QueryHeap* const QueryHeap, const D3D12_QUERY_TYPE Type, UINT HeapIndex, const uint8_t commandIndex)
 	{
-		m_commandList->ResolveQueryData(QueryHeap, Type, StartIndex, NumQueries, DestinationBuffer, DestinationBufferOffset);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->BeginQuery(QueryHeap, Type, HeapIndex);
 	}
 
-	void GraphicsContext::ClearUAV(UAVBuffer& Target)
+	void GraphicsContext::EndQuery(ID3D12QueryHeap* const QueryHeap, const D3D12_QUERY_TYPE Type, const UINT HeapIndex, const uint8_t commandIndex)
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->EndQuery(QueryHeap, Type, HeapIndex);
+	}
+
+	void GraphicsContext::ResolveQueryData
+	(
+		ID3D12QueryHeap* const QueryHeap, 
+		const D3D12_QUERY_TYPE Type, 
+		const UINT StartIndex, 
+		const UINT NumQueries, 
+		ID3D12Resource* const DestinationBuffer, 
+		const UINT64 DestinationBufferOffset, 
+		const uint8_t commandIndex
+	)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->ResolveQueryData(QueryHeap, Type, StartIndex, NumQueries, DestinationBuffer, DestinationBufferOffset);
+	}
+
+	void GraphicsContext::ClearUAV(const UAVBuffer& Target, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
 		// After binding a UAV, we can get a GPU handle that is required to clear it as a UAV 
 		// (because it essentially runs a shader to set all of the values).
-		D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+		D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.UploadDirect(Target.GetUAV(), commandIndex);
 		const UINT ClearColor[4] = {};
-		m_commandList->ClearUnorderedAccessViewUint(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 0, nullptr);
+		m_pCommandLists[commandIndex]->ClearUnorderedAccessViewUint(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 0, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::ClearUAV(ColorBuffer& Target)
+	void GraphicsContext::ClearUAV(const ColorBuffer& Target, const uint8_t commandIndex)
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
 		// After binding a UAV, we can get a GPU handle that is required to clear it as a UAV 
 		// (because it essentially runs a shader to set all of the values).
-		D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+		D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.UploadDirect(Target.GetUAV(), commandIndex);
 		CD3DX12_RECT ClearRect(0, 0, (LONG)Target.GetWidth(), (LONG)Target.GetHeight());
 
 		const float* ClearColor = Target.GetClearColor().GetPtr();
-		m_commandList->ClearUnorderedAccessViewFloat(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 1, &ClearRect);
+		m_pCommandLists[commandIndex]->ClearUnorderedAccessViewFloat(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 1, &ClearRect);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::ClearColor(ColorBuffer& Target)
+	void GraphicsContext::ClearColor(const ColorBuffer& Target, const uint8_t commandIndex)
 	{
-		m_commandList->ClearRenderTargetView(Target.GetRTV(), Target.GetClearColor().GetPtr(), 0, nullptr);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		m_pCommandLists[commandIndex]->ClearRenderTargetView(Target.GetRTV(), Target.GetClearColor().GetPtr(), 0, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::ClearDepth(DepthBuffer& Target)
+	void GraphicsContext::ClearDepth(const DepthBuffer& Target, const uint8_t commandIndex)
 	{
-		m_commandList->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		m_pCommandLists[commandIndex]->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::ClearStencil(DepthBuffer& Target)
+	void GraphicsContext::ClearStencil(const DepthBuffer& Target, const uint8_t commandIndex)
 	{
-		m_commandList->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_STENCIL, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		m_pCommandLists[commandIndex]->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_STENCIL, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::ClearDepthAndStencil(DepthBuffer& Target)
+	void GraphicsContext::ClearDepthAndStencil(const DepthBuffer& Target, const uint8_t commandIndex)
 	{
-		m_commandList->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		m_pCommandLists[commandIndex]->ClearDepthStencilView(Target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, Target.GetClearDepth(), Target.GetClearStencil(), 0, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
 	}
 
-	void GraphicsContext::SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect)
+	void GraphicsContext::SetViewportAndScissor(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect, const uint8_t commandIndex)
 	{
-		ASSERT(rect.left <= rect.right && rect.top <= rect.bottom);
+		ASSERT(rect.left <= rect.right && rect.top <= rect.bottom && CHECK_VALID_COMMAND_INDEX);
 
-		device::g_commandContextManager.m_Viewport = vp;
-		device::g_commandContextManager.m_Scissor = rect;
-
-		m_commandList->RSSetViewports(1, &vp);
-		m_commandList->RSSetScissorRects(1, &rect);
+		m_pCommandLists[commandIndex]->RSSetViewports(1, &vp);
+		m_pCommandLists[commandIndex]->RSSetScissorRects(1, &rect);
 	}
-
-	void GraphicsContext::SetViewport(const D3D12_VIEWPORT& vp)
+	void GraphicsContext::SetViewportAndScissorRange(const D3D12_VIEWPORT& vp, const D3D12_RECT& rect, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		device::g_commandContextManager.m_Viewport = vp;
-		m_commandList->RSSetViewports(1, &vp);
+		ASSERT(rect.left <= rect.right && rect.top <= rect.bottom && CHECK_VALID_RANGE);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			m_pCommandLists[i]->RSSetViewports(1, &vp);
+			m_pCommandLists[i]->RSSetScissorRects(1, &rect);
+		}
 	}
-
-	void GraphicsContext::SetViewport(FLOAT x, FLOAT y, FLOAT w, FLOAT h, FLOAT minDepth, FLOAT maxDepth)
+	void GraphicsContext::SetViewport(const D3D12_VIEWPORT& vp, const uint8_t commandIndex)
 	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->RSSetViewports(1, &vp);
+	}
+	void GraphicsContext::SetViewport(const FLOAT x, const FLOAT y, const FLOAT w, const FLOAT h, const FLOAT minDepth, const FLOAT maxDepth, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
 		D3D12_VIEWPORT vp;
-		vp.Width = w;
-		vp.Height = h;
+		vp.Width    = w;
+		vp.Height   = h;
 		vp.MinDepth = minDepth;
 		vp.MaxDepth = maxDepth;
 		vp.TopLeftX = x;
 		vp.TopLeftY = y;
 
-		device::g_commandContextManager.m_Viewport = vp;
-		m_commandList->RSSetViewports(1, &vp);
+		m_pCommandLists[commandIndex]->RSSetViewports(1, &vp);
 	}
 
-	void GraphicsContext::SetScissor(const D3D12_RECT& rect)
+	void GraphicsContext::SetScissor(const D3D12_RECT& rect, const uint8_t commandIndex)
 	{
-		ASSERT(rect.left < rect.right&& rect.top < rect.bottom);
-
+		ASSERT(rect.left < rect.right && rect.top < rect.bottom && CHECK_VALID_COMMAND_INDEX);
 		device::g_commandContextManager.m_Scissor = rect;
-		m_commandList->RSSetScissorRects(1, &rect);
+		m_pCommandLists[commandIndex]->RSSetScissorRects(1, &rect);
+	}
+	void GraphicsContext::SetScissor(const LONG left, const LONG top, const LONG right, const LONG bottom, const uint8_t commandIndex)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		SetScissor(CD3DX12_RECT(left, top, right, bottom), commandIndex);
 	}
 
-	void GraphicsContext::SetScissor(LONG left, LONG top, LONG right, LONG bottom)
+	void GraphicsContext::SetViewportAndScissor(const LONG x, const LONG y, const LONG w, const LONG h, const uint8_t commandIndex)
 	{
-		SetScissor(CD3DX12_RECT(left, top, right, bottom));
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		SetViewport((float)x, (float)y, (float)w, (float)h, 0.0f, 1.0f, commandIndex);
+		SetScissor(x, y, x + w, y + h, commandIndex);
 	}
-
-	void GraphicsContext::SetViewportAndScissor(LONG x, LONG y, LONG w, LONG h)
+	void GraphicsContext::SetViewportAndScissor(const PixelBuffer& TargetBuffer, const uint8_t commandIndex)
 	{
-		SetViewport((float)x, (float)y, (float)w, (float)h);
-		SetScissor(x, y, x + w, y + h);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+
+		D3D12_VIEWPORT vp;
+		D3D12_RECT RECT;
+		vp.Width    = (float)TargetBuffer.GetWidth();
+		vp.Height   = (float)TargetBuffer.GetHeight();
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+
+		RECT.left   = 0L;
+		RECT.top    = 0L;
+		RECT.right  = (LONG)TargetBuffer.GetWidth();
+		RECT.bottom = (LONG)TargetBuffer.GetHeight();
+
+		SetViewportAndScissor(vp, RECT, commandIndex);
 	}
-
-	void GraphicsContext::SetViewportAndScissor(PixelBuffer& TargetBuffer)
+	void GraphicsContext::SetViewportAndScissorRange(const PixelBuffer& TargetBuffer, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
+		ASSERT(CHECK_VALID_RANGE);
+
 		D3D12_VIEWPORT vp;
 		D3D12_RECT RECT;
 		vp.Width = (float)TargetBuffer.GetWidth();
@@ -840,48 +909,70 @@ namespace custom
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 
-		RECT.left   = 0l;
-		RECT.top    = 0l;
+		RECT.left   = 0L;
+		RECT.top    = 0L;
 		RECT.right  = (LONG)TargetBuffer.GetWidth();
 		RECT.bottom = (LONG)TargetBuffer.GetHeight();
 
-		SetViewportAndScissor(vp, RECT);
+		SetViewportAndScissorRange(vp, RECT, startCommandIndex, endCommandIndex);
 	}
 
-	void GraphicsContext::SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology)
+	void GraphicsContext::SetPrimitiveTopology(const D3D12_PRIMITIVE_TOPOLOGY Topology, bool bForced)
 	{
-		if (m_PrimitiveTopology != Topology)
+		if ((m_PrimitiveTopology != Topology) || bForced)
 		{
-			m_commandList->IASetPrimitiveTopology(Topology);
+			for (auto& e : m_pCommandLists)
+			{
+				e->IASetPrimitiveTopology(Topology);
+			}
+
 			m_PrimitiveTopology = Topology;
 		}
 	}
 
-	void GraphicsContext::SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1)
+	void GraphicsContext::SetConstants(const UINT RootIndex, float _32BitParameter0, float _32BitParameter1, const uint8_t commandIndex)
 	{
-		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
-		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
+		m_pCommandLists[commandIndex]->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
-	void GraphicsContext::SetConstants(UINT RootIndex, float _32BitParameter0, float _32BitParameter1, float _32BitParameter2)
+	void GraphicsContext::SetConstants(const UINT RootIndex, float _32BitParameter0, float _32BitParameter1, float _32BitParameter2, const uint8_t commandIndex)
 	{
-		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
-		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
-		m_commandList->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter2), 2);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter0), 0);
+		m_pCommandLists[commandIndex]->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter1), 1);
+		m_pCommandLists[commandIndex]->SetGraphicsRoot32BitConstant(RootIndex, *reinterpret_cast<UINT*>(&_32BitParameter2), 2);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
-	void GraphicsContext::SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData)
+	void GraphicsContext::SetDynamicConstantBufferView(const UINT RootIndex, const size_t BufferSize, const void* const BufferData, const uint8_t commandIndex)
 	{
-		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
+		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16) && CHECK_VALID_COMMAND_INDEX);
 		LinearBuffer ConstantBuffer = m_CPULinearAllocator.Allocate(BufferSize);
 		//SIMDMemCopy(ConstantBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
 		memcpy(ConstantBuffer.pData, BufferData, BufferSize);
-		m_commandList->SetGraphicsRootConstantBufferView(RootIndex, ConstantBuffer.GPUAddress);
+		m_pCommandLists[commandIndex]->SetGraphicsRootConstantBufferView(RootIndex, ConstantBuffer.GPUAddress);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+	}
+	void GraphicsContext::SetDynamicConstantBufferViewRange(const UINT RootIndex, const size_t BufferSize, const void* const BufferData, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
+	{
+		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16) && CHECK_VALID_RANGE);
+		LinearBuffer ConstantBuffer = m_CPULinearAllocator.Allocate(BufferSize);
+		//SIMDMemCopy(ConstantBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+		memcpy(ConstantBuffer.pData, BufferData, BufferSize);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			m_pCommandLists[i]->SetGraphicsRootConstantBufferView(RootIndex, ConstantBuffer.GPUAddress);
+			INCRE_DEBUG_SET_ROOT_PARAM_COUNT_I;
+		}
 	}
 
-	void GraphicsContext::SetDynamicVB(UINT Slot, size_t NumVertices, size_t VertexStride, const void* VertexData)
+	void GraphicsContext::SetDynamicVB(const UINT Slot, const size_t NumVertices, const size_t VertexStride, const void* VertexData, const uint8_t commandIndex)
 	{
-		ASSERT(VertexData != nullptr && HashInternal::IsAligned(VertexData, 16));
+		ASSERT(VertexData != nullptr && HashInternal::IsAligned(VertexData, 16) && CHECK_VALID_COMMAND_INDEX);
 
 		size_t BufferSize = HashInternal::AlignUp(NumVertices * VertexStride, 16);
 		LinearBuffer VertexBuffer = m_CPULinearAllocator.Allocate(BufferSize);
@@ -893,12 +984,12 @@ namespace custom
 		VBView.SizeInBytes = (UINT)BufferSize;
 		VBView.StrideInBytes = (UINT)VertexStride;
 
-		m_commandList->IASetVertexBuffers(Slot, 1, &VBView);
+		m_pCommandLists[commandIndex]->IASetVertexBuffers(Slot, 1, &VBView);
 	}
 
-	void GraphicsContext::SetDynamicIB(size_t IndexCount, const uint16_t* IndexData)
+	void GraphicsContext::SetDynamicIB(const size_t IndexCount, const uint16_t* const IndexData, const uint8_t commandIndex)
 	{
-		ASSERT(IndexData != nullptr && HashInternal::IsAligned(IndexData, 16));
+		ASSERT(IndexData != nullptr && HashInternal::IsAligned(IndexData, 16) && CHECK_VALID_COMMAND_INDEX);
 
 		size_t BufferSize = HashInternal::AlignUp(IndexCount * sizeof(uint16_t), 16);
 		LinearBuffer IndexBuffer = m_CPULinearAllocator.Allocate(BufferSize);
@@ -910,120 +1001,175 @@ namespace custom
 		IBView.SizeInBytes = (UINT)(IndexCount * sizeof(uint16_t));
 		IBView.Format = DXGI_FORMAT_R16_UINT;
 
-		m_commandList->IASetIndexBuffer(&IBView);
+		m_pCommandLists[commandIndex]->IASetIndexBuffer(&IBView);
 	}
 
-	void GraphicsContext::SetDynamicSRV(UINT RootIndex, size_t BufferSize, const void* BufferData)
+	void GraphicsContext::SetDynamicSRV(const UINT RootIndex, const size_t BufferSize, const void* const BufferData, const uint8_t commandIndex)
 	{
-		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
+		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16) && CHECK_VALID_COMMAND_INDEX);
 		LinearBuffer temp = m_CPULinearAllocator.Allocate(BufferSize);
 		SIMDMemCopy(temp.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-		m_commandList->SetGraphicsRootShaderResourceView(RootIndex, temp.GPUAddress);
+		m_pCommandLists[commandIndex]->SetGraphicsRootShaderResourceView(RootIndex, temp.GPUAddress);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+	}
+	void GraphicsContext::SetDynamicSRVRange(const UINT RootIndex, const size_t BufferSize, const void* const BufferData, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
+	{
+		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16) && CHECK_VALID_RANGE);
+		LinearBuffer temp = m_CPULinearAllocator.Allocate(BufferSize);
+		SIMDMemCopy(temp.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			m_pCommandLists[i]->SetGraphicsRootShaderResourceView(RootIndex, temp.GPUAddress);
+			INCRE_DEBUG_SET_ROOT_PARAM_COUNT_I;
+		}
 	}
 
-	void GraphicsContext::SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset)
+	void GraphicsContext::SetBufferSRV(const UINT RootIndex, const UAVBuffer& SRV, const UINT64 Offset, const uint8_t commandIndex)
 	{
-		ASSERT((SRV.m_currentState & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) != 0);
-		m_commandList->SetGraphicsRootShaderResourceView(RootIndex, SRV.GetGpuVirtualAddress() + Offset);
+		ASSERT(((SRV.m_currentState & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) != 0) && CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->SetGraphicsRootShaderResourceView(RootIndex, SRV.GetGpuVirtualAddress() + Offset);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
-	void GraphicsContext::SetBufferUAV(UINT RootIndex, const UAVBuffer& UAV, UINT64 Offset)
+	void GraphicsContext::SetBufferUAV(const UINT RootIndex, const UAVBuffer& UAV, const UINT64 Offset, const uint8_t commandIndex)
 	{
-		ASSERT((UAV.m_currentState & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0);
-		m_commandList->SetGraphicsRootUnorderedAccessView(RootIndex, UAV.GetGpuVirtualAddress() + Offset);
+		ASSERT(((UAV.m_currentState & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0) && CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->SetGraphicsRootUnorderedAccessView(RootIndex, UAV.GetGpuVirtualAddress() + Offset);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
-	void GraphicsContext::SetDynamicDescriptor(UINT RootIndex, UINT Offset, D3D12_CPU_DESCRIPTOR_HANDLE Handle)
+	// Texture -> FundamentalTexture 
+	void GraphicsContext::SetDynamicDescriptor(const UINT RootIndex, const UINT Offset, const D3D12_CPU_DESCRIPTOR_HANDLE Handle, const uint8_t commandIndex)
 	{
-		SetDynamicDescriptors(RootIndex, Offset, 1, &Handle);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		SetDynamicDescriptors(RootIndex, Offset, 1, &Handle, commandIndex);
 	}
 
-	void GraphicsContext::SetDynamicDescriptors(UINT RootIndex, UINT Offset, UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[])
+	void GraphicsContext::SetDynamicDescriptors(const UINT RootIndex, const UINT Offset, const UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[], const uint8_t commandIndex)
 	{
-		m_DynamicViewDescriptorHeap.SetGraphicsDescriptorHandles(RootIndex, Offset, Count, Handles);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetGraphicsDescriptorHandles(RootIndex, Offset, Count, Handles);
 	}
 
-	void GraphicsContext::SetDynamicSampler(UINT RootIndex, UINT Offset, D3D12_CPU_DESCRIPTOR_HANDLE Handle)
+
+	void GraphicsContext::SetDynamicDescriptorsRange(const UINT RootIndex, const UINT Offset, const UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[], const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		SetDynamicSamplers(RootIndex, Offset, 1, &Handle);
+		ASSERT(CHECK_VALID_RANGE);
+		for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+		{
+			m_GPUTaskFiberContexts[i].DynamicViewDescriptorHeaps.SetGraphicsDescriptorHandles(RootIndex, Offset, Count, Handles);
+		}
 	}
 
-	void GraphicsContext::SetDynamicSamplers(UINT RootIndex, UINT Offset, UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[])
+	void GraphicsContext::SetDynamicSampler(const UINT RootIndex, const UINT Offset, const D3D12_CPU_DESCRIPTOR_HANDLE Handle, const uint8_t commandIndex)
 	{
-		m_DynamicSamplerDescriptorHeap.SetGraphicsDescriptorHandles(RootIndex, Offset, Count, Handles);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		SetDynamicSamplers(RootIndex, Offset, 1, &Handle, commandIndex);
 	}
 
-	void GraphicsContext::SetDescriptorTable(UINT RootIndex, D3D12_GPU_DESCRIPTOR_HANDLE FirstHandle)
+	void GraphicsContext::SetDynamicSamplers(const UINT RootIndex, const UINT Offset, UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[], const uint8_t commandIndex)
 	{
-		m_commandList->SetGraphicsRootDescriptorTable(RootIndex, FirstHandle);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetGraphicsDescriptorHandles(RootIndex, Offset, Count, Handles);
 	}
 
-	void GraphicsContext::SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW& IBView)
+	void GraphicsContext::SetDescriptorTable(const UINT RootIndex, const D3D12_GPU_DESCRIPTOR_HANDLE FirstHandle, const uint8_t commandIndex)
 	{
-		m_commandList->IASetIndexBuffer(&IBView);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->SetGraphicsRootDescriptorTable(RootIndex, FirstHandle);
+		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
-	void GraphicsContext::SetVertexBuffer(UINT Slot, const D3D12_VERTEX_BUFFER_VIEW& VBView)
+	void GraphicsContext::SetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW& IBView, const uint8_t commandIndex)
 	{
-		SetVertexBuffers(Slot, 1, &VBView);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->IASetIndexBuffer(&IBView);
 	}
 
-	void GraphicsContext::SetVertexBuffers(UINT StartSlot, UINT Count, const D3D12_VERTEX_BUFFER_VIEW VBViews[])
+	void GraphicsContext::SetVertexBuffer(const UINT Slot, const D3D12_VERTEX_BUFFER_VIEW& VBView, const uint8_t commandIndex)
 	{
-		m_commandList->IASetVertexBuffers(StartSlot, Count, VBViews);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		SetVertexBuffers(Slot, 1, &VBView, commandIndex);
 	}
 
-	void GraphicsContext::SetVSConstantsBuffer(UINT RootIndex)
+	void GraphicsContext::SetVertexBuffers(const UINT StartSlot, const UINT Count, const D3D12_VERTEX_BUFFER_VIEW VBViews[], const uint8_t commandIndex)
 	{
-		SetDynamicConstantBufferView(RootIndex, sizeof(m_VSConstants), &m_VSConstants);
-	}
-	void GraphicsContext::SetPSConstantsBuffer(UINT RootIndex)
-	{
-		SetDynamicConstantBufferView(RootIndex, sizeof(m_PSConstants), &m_PSConstants);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		m_pCommandLists[commandIndex]->IASetVertexBuffers(StartSlot, Count, VBViews);
 	}
 
-	void GraphicsContext::Draw(UINT VertexCount, UINT VertexStartOffset)
+	void GraphicsContext::SetVSConstantsBuffer(const UINT RootIndex, const uint8_t commandIndex)
 	{
-		DrawInstanced(VertexCount, 1, VertexStartOffset, 0);
+		SetDynamicConstantBufferView(RootIndex, sizeof(m_VSConstants), &m_VSConstants, commandIndex);
 	}
 
-	void GraphicsContext::DrawIndexed(UINT IndexCount, UINT StartIndexLocation/*= 0*/, INT BaseVertexLocation/*= 0*/)
+	void GraphicsContext::SetVSConstantsBufferRange(const UINT RootIndex, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
 	{
-		DrawIndexedInstanced(IndexCount, 1, StartIndexLocation, BaseVertexLocation, 0);
+		ASSERT(CHECK_VALID_RANGE);
+		SetDynamicConstantBufferViewRange(RootIndex, sizeof(m_VSConstants), &m_VSConstants, startCommandIndex, endCommandIndex);
+	}
+
+	void GraphicsContext::SetPSConstantsBuffer(const UINT RootIndex, const uint8_t commandIndex)
+	{
+		SetDynamicConstantBufferView(RootIndex, sizeof(m_PSConstants), &m_PSConstants, commandIndex);
+	}
+
+	void GraphicsContext::SetPSConstantsBufferRange(const UINT RootIndex, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
+	{
+		ASSERT(CHECK_VALID_RANGE);
+		SetDynamicConstantBufferViewRange(RootIndex, sizeof(m_PSConstants), &m_PSConstants, startCommandIndex, endCommandIndex);
+	}
+
+	void GraphicsContext::Draw(const UINT VertexCount, const UINT VertexStartOffset, const uint8_t commandIndex)
+	{
+		DrawInstanced(VertexCount, 1U, VertexStartOffset, 0U, commandIndex);
+	}
+
+	void GraphicsContext::DrawIndexed(const UINT IndexCount, const UINT StartIndexLocation/*= 0*/, const INT BaseVertexLocation/*= 0*/, const uint8_t commandIndex)
+	{
+		DrawIndexedInstanced(IndexCount, 1U, StartIndexLocation, BaseVertexLocation, 0U, commandIndex);
 	}
 
 	void GraphicsContext::DrawInstanced
 	(
-		UINT VertexCountPerInstance, UINT InstanceCount,
-		UINT StartVertexLocation/*= 0*/, UINT StartInstanceLocation/*= 0*/
+		const UINT VertexCountPerInstance, const UINT InstanceCount,
+		const UINT StartVertexLocation/*= 0*/, const UINT StartInstanceLocation,/*= 0*/
+		const uint8_t commandIndex
 	)
 	{
-		FlushResourceBarriers();
-		m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_commandList->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		// SubmitResourceBarriers(commandIndex);
+		m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex); // -> ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable
+		m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+		m_pCommandLists[commandIndex]->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
+		INCRE_DEBUG_DRAW_JOB_COUNT;
 	}
-
-	void GraphicsContext::DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation,
-		INT BaseVertexLocation, UINT StartInstanceLocation)
+	
+	void GraphicsContext::DrawIndexedInstanced(const UINT IndexCountPerInstance, const UINT InstanceCount, const UINT StartIndexLocation,
+		const INT BaseVertexLocation, const UINT StartInstanceLocation, const uint8_t commandIndex)
 	{
-		FlushResourceBarriers();
-		m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_commandList->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		// SubmitResourceBarriers(commandIndex);
+		m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+		m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+		m_pCommandLists[commandIndex]->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation);
+		INCRE_DEBUG_DRAW_JOB_COUNT;
 	}
 
 	void GraphicsContext::ExecuteIndirect
 	(
-		CommandSignature& CommandSig,
-		UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset,
-		uint32_t MaxCommands, UAVBuffer* CommandCounterBuffer, uint64_t CounterOffset
+		const CommandSignature& CommandSig,
+		const UAVBuffer& ArgumentBuffer, const uint64_t ArgumentStartOffset,
+		const uint32_t MaxCommands, const UAVBuffer* const CommandCounterBuffer, const uint64_t CounterOffset,
+		const uint8_t commandIndex
 	)
 	{
-		FlushResourceBarriers();
-		m_DynamicViewDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_DynamicSamplerDescriptorHeap.CommitGraphicsRootDescriptorTables(m_commandList);
-		m_commandList->ExecuteIndirect
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		// SubmitResourceBarriers(commandIndex);
+		m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+		m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetGraphicsRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+		m_pCommandLists[commandIndex]->ExecuteIndirect
 		(
 			CommandSig.GetSignature(), MaxCommands,
 			ArgumentBuffer.GetResource(), ArgumentStartOffset,
@@ -1031,8 +1177,17 @@ namespace custom
 		);
 	}
 
-	void GraphicsContext::DrawIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
+	void GraphicsContext::DrawIndirect(const UAVBuffer& ArgumentBuffer, const uint64_t ArgumentBufferOffset, const uint8_t commandIndex)
 	{
-		ExecuteIndirect(graphics::g_DrawIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+		ExecuteIndirect(graphics::g_DrawIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset, commandIndex);
 	}
+
+	void GraphicsContext::ExecuteBundle(ID3D12GraphicsCommandList* const pBundle, const uint8_t commandIndex)
+	{
+		ASSERT(pBundle->GetType() == D3D12_COMMAND_LIST_TYPE_BUNDLE &&
+			CHECK_VALID_COMMAND_INDEX);
+		// Bundle도 Indirect처럼 Capuslation해야되나...
+		m_pCommandLists[commandIndex]->ExecuteBundle(pBundle);
+	}
+#pragma endregion GRAPHICS_CONTEXT
 }

@@ -10,19 +10,21 @@ public:
     {
     }
 
-    uint32_t GetWidth(void) const 
+    virtual ~PixelBuffer() = default;
+
+    uint32_t GetWidth() const 
     { 
         return m_width; 
     }
-    uint32_t GetHeight(void) const 
+    uint32_t GetHeight() const 
     { 
         return m_height; 
     }
-    uint32_t GetDepth(void) const 
+    uint32_t GetDepth() const 
     { 
         return m_arraySize; 
     }
-    const DXGI_FORMAT& GetFormat(void) const 
+    const DXGI_FORMAT& GetFormat() const 
     { 
         return m_format; 
     }
@@ -30,25 +32,25 @@ public:
 protected:
     D3D12_RESOURCE_DESC Texture2DResourceDescriptor
     (
-        uint32_t Width, uint32_t Height, uint32_t DepthOrArraySize, 
-        uint32_t NumMips, DXGI_FORMAT Format, UINT Flags
+        const uint32_t width, const uint32_t height, const uint32_t depthOrArraySize,
+        const uint32_t numMips, const DXGI_FORMAT format, const UINT flags
     );
 
-    void CopyResource(ID3D12Device* Device, const std::wstring& Name, ID3D12Resource* Resource, D3D12_RESOURCE_STATES CurrentState);
+    void CopyResource(ID3D12Device* const pDevice, const std::wstring& wName, ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES currentResourceState);
 
-    void CreateTextureResource
+    void CreateTextureCommittedResource
     (
-        ID3D12Device* Device, const std::wstring& Name, 
-        const D3D12_RESOURCE_DESC& ResourceDesc,
-        D3D12_CLEAR_VALUE ClearValue
+        ID3D12Device* const pDevice, const std::wstring& wName,
+        const D3D12_RESOURCE_DESC& resourceDesc,
+        const D3D12_CLEAR_VALUE* const pClearValue
     );
 
-    static DXGI_FORMAT GetBaseFormat   (DXGI_FORMAT Format);
-    static DXGI_FORMAT GetUAVFormat    (DXGI_FORMAT Format);
-    static DXGI_FORMAT GetDSVFormat    (DXGI_FORMAT Format);
-    static DXGI_FORMAT GetDepthFormat  (DXGI_FORMAT Format);
-    static DXGI_FORMAT GetStencilFormat(DXGI_FORMAT Format);
-    static size_t      BytesPerPixel   (DXGI_FORMAT Format);
+    static DXGI_FORMAT GetBaseFormat   (const DXGI_FORMAT defaultFormat);
+    static DXGI_FORMAT GetUAVFormat    (const DXGI_FORMAT defaultFormat);
+    static DXGI_FORMAT GetDSVFormat    (const DXGI_FORMAT defaultFormat);
+    static DXGI_FORMAT GetDepthFormat  (const DXGI_FORMAT defaultFormat);
+    static DXGI_FORMAT GetStencilFormat(const DXGI_FORMAT defaultFormat);
+    static size_t      BytesPerPixel   (const DXGI_FORMAT defaultFormat);
 
 protected:
     uint32_t    m_width;

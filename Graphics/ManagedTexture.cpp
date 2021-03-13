@@ -93,13 +93,16 @@ const ManagedTexture* TextureManager::LoadTGAFromFile(const std::wstring& fileNa
     }
 
     std::shared_ptr<std::vector<byte>> ba = fileReader::ReadFileSync(TextureManager::GetRootPath() + fileName);
-    if (ba->size() > 0)
+
+    if (0 < ba->size())
     {
         ManTex->CreateTGAFromMemory(ba->data(), ba->size(), bStandardRGB);
         ManTex->GetResource()->SetName(fileName.c_str());
     }
-    else
-        ManTex->SetToInvalidTexture();
+	else
+	{
+		ManTex->SetToInvalidTexture();
+	}
 
     return ManTex;
 }

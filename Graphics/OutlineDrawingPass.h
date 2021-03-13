@@ -6,12 +6,14 @@
 namespace custom
 {
 	class CommandContext;
+	class GraphicsContext;
+	class ComputeContext;
 }
 
 class PixelBuffer;
 class DepthBuffer;
 
-class OutlineDrawingPass : public RenderQueuePass
+class OutlineDrawingPass final : public ID3D12RenderQueuePass
 {
 public:
 	OutlineDrawingPass
@@ -23,29 +25,30 @@ public:
 	);
 	~OutlineDrawingPass();
 
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
-	void RenderWindow() override;
-private:
-	void ExecuteStencilMasking(custom::CommandContext& BaseContext, DepthBuffer& TargetBuffer);
-	void ExecuteDrawColor(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer);
-	void ExecuteBlurOutlineBuffer(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer, ColorBuffer& HelpBuffer);
-	void ExecutePaperOutline(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& SrcBuffer);
+	void ExecutePass() DEBUG_EXCEPT final;
+	void RenderWindow() final;
 
-	void ExecuteHorizontalBlur(custom::CommandContext& BaseContext, ColorBuffer& OutlineBuffer, ColorBuffer& HelpBuffer);
-	void ExecuteVerticalBlurAndPaper(custom::CommandContext& BaseContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& HelpBuffer);
+private:
+	void ExecuteStencilMasking(custom::GraphicsContext& graphicsContext, DepthBuffer& TargetBuffer, uint8_t commandIndex);
+	void ExecuteDrawColor(custom::GraphicsContext& graphicsContext, ColorBuffer& TargetBuffer, uint8_t commandIndex);
+	void ExecuteBlurOutlineBuffer(custom::ComputeContext& computeContext, ColorBuffer& TargetBuffer, ColorBuffer& HelpBuffer, uint8_t commandIndex);
+	void ExecutePaperOutline(custom::GraphicsContext& graphicsContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& SrcBuffer, uint8_t commandIndex);
+
+	void ExecuteHorizontalBlur(custom::GraphicsContext& graphicsContext, ColorBuffer& OutlineBuffer, ColorBuffer& HelpBuffer, uint8_t commandIndex);
+	void ExecuteVerticalBlurAndPaper(custom::GraphicsContext& graphicsContext, ColorBuffer& TargetBuffer, DepthBuffer& DepthStencilBuffer, ColorBuffer& HelpBuffer, uint8_t commandIndex);
 
 private:
 	static OutlineDrawingPass* s_pOutlineDrawingPass;
 
+private:
 	custom::RootSignature* m_pRootSignature;
-	GraphicsPSO* m_pOutlineMaskPSO;
-	GraphicsPSO* m_pOutlineDrawPSO;
+	GraphicsPSO*           m_pOutlineMaskPSO;
+	GraphicsPSO*           m_pOutlineDrawPSO;
 
 	custom::RootSignature m_BlurRootSignature;
 	ComputePSO m_GaussBlurPSO;
 
 	GraphicsPSO m_PaperOutlinePSO;
-
 	GraphicsPSO m_HorizontalOutlineBlurPSO;
 	GraphicsPSO m_VerticalOutlineBlurPSO;
 

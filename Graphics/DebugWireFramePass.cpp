@@ -5,7 +5,7 @@
 DebugWireFramePass* DebugWireFramePass::s_pDebugWireFramePass = nullptr;
 
 DebugWireFramePass::DebugWireFramePass(std::string Name)
-	: RenderQueuePass(Name)
+	: ID3D12RenderQueuePass(Name, JobFactorization::ByEntity)
 {
 	ASSERT(s_pDebugWireFramePass == nullptr);
 	s_pDebugWireFramePass = nullptr;
@@ -13,7 +13,7 @@ DebugWireFramePass::DebugWireFramePass(std::string Name)
 
 }
 
-void DebugWireFramePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void DebugWireFramePass::ExecutePass() DEBUG_EXCEPT
 {
 
 
@@ -41,7 +41,7 @@ void DebugWireFramePass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCE
 TestPass* TestPass::s_pMainRenderPass = nullptr;
 
 TestPass::TestPass(std::string Name)
-	: RenderQueuePass(Name)
+	: ID3D12RenderQueuePass(Name)
 {
 	ASSERT(s_pMainRenderPass == nullptr);
 	s_pMainRenderPass = nullptr;
@@ -130,7 +130,7 @@ void TestPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
 	// graphicsContext.SetVSConstantsBuffer(0);
 	// graphicsContext.SetPSConstantsBuffer(1);
 
-	RenderQueuePass::Execute(BaseContext);
+	ID3D12RenderQueuePass::Execute(BaseContext);
 
 	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
 	graphicsContext.ClearColor(bufferManager::g_SceneColorBuffer);

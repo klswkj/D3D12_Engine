@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "MainLight.h"
 #include "ShadowCamera.h"
-#include "Matrix4.h"
 #include "BufferManager.h"
 
 MainLight::MainLight
@@ -25,7 +24,7 @@ MainLight::MainLight
 	bDirty = true;
 }
 
-const Math::Vector3 MainLight::GetMainLightDirection()
+const Math::Vector3 MainLight::GetMainLightDirection() const
 {
 	if (bDirty)
 	{
@@ -41,21 +40,31 @@ const Math::Vector3 MainLight::GetMainLightDirection()
 	return m_LightDirectionVector;
 }
 
-const Math::Vector3 MainLight::GetMainLightColor()
+const Math::Vector3 MainLight::GetMainLightColor() const
 {
 	return m_LightColor * m_LightIntensity;
 }
 
-const Math::Vector3 MainLight::GetAmbientColor()
+const float MainLight::GetMainLightIntensity() const
+{
+	return m_LightIntensity;
+}
+
+const Math::Vector3 MainLight::GetAmbientColor() const
 {
 	return m_AmbientColor * m_AmbientIntensity;
 }
 
-const Math::Vector3 MainLight::GetShadowCenter()
+const float MainLight::GetAmibientIntensity() const
+{
+	return m_AmbientIntensity;
+}
+
+const Math::Vector3 MainLight::GetShadowCenter() const
 {
 	return m_ShadowCenter;
 }
-const Math::Vector3 MainLight::GetShadowBounds()
+const Math::Vector3 MainLight::GetShadowBounds() const
 {
 	return m_ShadowBounds;
 }

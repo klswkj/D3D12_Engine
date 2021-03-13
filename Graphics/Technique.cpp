@@ -1,19 +1,16 @@
 #include "stdafx.h"
 #include "Technique.h"
+#include "MasterRenderGraph.h"
 #include "Entity.h"
+#include "RenderQueuePass.h"
 #include "ModelComponentWindow.h"
 #include "ObjectFilterFlag.h"
 
-std::mutex Technique::sm_mutex;
-
-void Technique::Submit(const IEntity& drawable, eObjectFilterFlag Filter) const noexcept
+void Technique::Submit(IEntity& drawable, eObjectFilterFlag Filter) noexcept
 {
 	if (m_bActive && ((m_Filter && Filter) != 0))
 	{
-		for (const auto& Step : m_Steps)
-		{
-			Step.Submit(drawable);
-		}
+		m_pTargetPass->PushBackJob(drawable, m_Steps);
 	}
 }
 
@@ -27,8 +24,9 @@ void Technique::InitializeParentReferences(const IEntity& parent) noexcept
 
 void Technique::PushBackStep(Step _Step) noexcept
 {
-	std::lock_guard<std::mutex> LockGuard(sm_mutex);
+	::EnterCriticalSection(&m_CS);
 	m_Steps.push_back(std::move(_Step));
+	::LeaveCriticalSection(&m_CS);
 }
 
 bool Technique::IsActive() const noexcept
@@ -51,15 +49,12 @@ void Technique::Accept(IWindow& _IWindow)
 	}
 }
 
-void Technique::Link(MasterRenderGraph& _MasterRenderGraph)
+void Technique::Link(const MasterRenderGraph& _MasterRenderGraph)
 {
-	for (auto& Step : m_Steps)
-	{
-		Step.Link(_MasterRenderGraph);
-	}
+	m_pTargetPass = _MasterRenderGraph.FindRenderQueuePass(m_szTargetRenderTargetPassName);
 }
 
-std::string Technique::GetName() const noexcept
+const char* Technique::GetTargetPassName() const noexcept
 {
-	return m_Name;
+	return m_szTargetRenderTargetPassName;
 }

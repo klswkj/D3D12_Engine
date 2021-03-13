@@ -10,6 +10,8 @@ namespace custom
 {
     class RootSignature;
     class CommandContext;
+    class GraphicsContext;
+    class ComputeContext;
 }
 
 namespace custom
@@ -17,20 +19,23 @@ namespace custom
     class PSO
     {
     public:
-        PSO()
-            : m_PSO(nullptr) // , m_pRootSignature(nullptr)
+		PSO()
+			:
+			m_PSO(nullptr)
         {
         }
+
+        virtual ~PSO() = default;
 
         static void DestroyAll();
 
         void SetRootSignature(const RootSignature& BindMappings)
         {
             // m_pRootSignature = &BindMappings;
-            m_PersonalRootSignature = BindMappings; // Testing 1012
+            m_PersonalRootSignature = BindMappings;
         }
         
-        const RootSignature& GetRootSignature() const // Testing 1012
+        const RootSignature& GetRootSignature() const
         {
             // ASSERT(m_pRootSignature != nullptr);
             ASSERT(m_PersonalRootSignature.GetSignature() != nullptr);
@@ -51,7 +56,7 @@ namespace custom
     };
 }
 
-class GraphicsPSO : public custom::PSO, public RenderingResource
+class GraphicsPSO final : public custom::PSO, public RenderingResource
 {
     friend class CommandContext;
 public:
@@ -62,19 +67,19 @@ public:
     void SetBlendState(const D3D12_BLEND_DESC& BlendDesc);
     void SetRasterizerState(const D3D12_RASTERIZER_DESC& RasterizerDesc);
     void SetDepthStencilState(const D3D12_DEPTH_STENCIL_DESC& DepthStencilDesc);
-    void SetSampleMask(UINT SampleMask);
-    void SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType);
-    void SetRenderTargetFormat(DXGI_FORMAT RTVFormat, DXGI_FORMAT DSVFormat, UINT MsaaCount = 1, UINT MsaaQuality = 0);
-    void SetRenderTargetFormats(UINT NumRTVs, const DXGI_FORMAT* RTVFormats, DXGI_FORMAT DSVFormat, UINT MsaaCount = 1, UINT MsaaQuality = 0);
-    void SetInputLayout(UINT NumElements, const D3D12_INPUT_ELEMENT_DESC* pInputElementDescs);
-    void SetIBStripCutValue(D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps); // Not used.
+    void SetSampleMask(const UINT SampleMask);
+    void SetPrimitiveTopologyType(const D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType);
+    void SetRenderTargetFormat(const DXGI_FORMAT RTVFormat, const DXGI_FORMAT DSVFormat, const UINT MsaaCount = 1, const UINT MsaaQuality = 0);
+    void SetRenderTargetFormats(const UINT NumRTVs, const DXGI_FORMAT* RTVFormats, const DXGI_FORMAT DSVFormat, const UINT MsaaCount = 1, const UINT MsaaQuality = 0);
+    void SetInputLayout(const UINT NumElements, const D3D12_INPUT_ELEMENT_DESC* const pInputElementDescs);
+    void SetIBStripCutValue(const D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBProps); // Not used.
 
     // These const_casts shouldn't be necessary, but we need to fix the API to accept "const void* pShaderBytecode"
-    void SetVertexShader(const void* Binary, size_t Size);
-    void SetPixelShader(const void* Binary, size_t Size);
-    void SetGeometryShader(const void* Binary, size_t Size);
-    void SetHullShader(const void* Binary, size_t Size);
-    void SetDomainShader(const void* Binary, size_t Size);
+    void SetVertexShader(const void* const Binary, const size_t Size);
+    void SetPixelShader(const void* const Binary, const size_t Size);
+    void SetGeometryShader(const void* const Binary, const size_t Size);
+    void SetHullShader(const void* const Binary, const size_t Size);
+    void SetDomainShader(const void* const Binary, const size_t Size);
 
     void SetVertexShader(const D3D12_SHADER_BYTECODE& Binary);
     void SetPixelShader(const D3D12_SHADER_BYTECODE& Binary);
@@ -82,7 +87,7 @@ public:
     void SetHullShader(const D3D12_SHADER_BYTECODE& Binary);
     void SetDomainShader(const D3D12_SHADER_BYTECODE& Binary);
 
-    void operator=(ID3D12RootSignature*& _RootSignature)
+    void operator=(ID3D12RootSignature* const _RootSignature)
     {
         m_PSODesc.pRootSignature = _RootSignature;
     }
@@ -109,10 +114,11 @@ public:
         return m_PSO;
     }
 
-    void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+    void Bind(custom::CommandContext& baseContext, const uint8_t commandIndex) DEBUG_EXCEPT final;
 
     // Perform validation and compute a hash value for fast state block comparisons
-    void Finalize(const std::wstring& name = L"", bool ExpectedCollision = false);
+    void Finalize(const std::wstring& name = L"", const bool ExpectedCollision = false);
+
 private:
     D3D12_GRAPHICS_PIPELINE_STATE_DESC m_PSODesc;
     std::shared_ptr<const D3D12_INPUT_ELEMENT_DESC> m_inputLayouts;
@@ -183,13 +189,13 @@ private:
     GraphicsPSOHash m_hash;
 };
 
-class ComputePSO : public custom::PSO, public RenderingResource
+class ComputePSO final : public custom::PSO, public RenderingResource
 {
     friend class CommandContext;
 public:
     ComputePSO();
 
-    void SetComputeShader(const void* Binary, size_t Size) 
+    void SetComputeShader(const void* const Binary, const size_t Size)
     { 
         m_PSODesc.CS = CD3DX12_SHADER_BYTECODE(const_cast<void*>(Binary), Size); 
     }
@@ -198,7 +204,7 @@ public:
         m_PSODesc.CS = Binary; 
     }
 
-    void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+    void Bind(custom::CommandContext& baseContext, const uint8_t commandIndex) DEBUG_EXCEPT final;
 
     void Finalize(const std::wstring& name = L"");
 private:

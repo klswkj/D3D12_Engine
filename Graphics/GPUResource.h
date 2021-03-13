@@ -19,31 +19,34 @@
 
 namespace custom
 {
-    class CommandContext;
-    class GraphicsContext;
-
 	class GPUResource
 	{
-        friend CommandContext;
-        friend GraphicsContext;
+        friend class CommandContext;
+        friend class GraphicsContext;
+        friend class ComputeContext;
+        friend class CopyContext;
+        friend class ResourceBarrier;
     public:
         GPUResource() :
             m_pResource(nullptr),
             m_GPUVirtualAddress(D3D12_GPU_VIRTUAL_ADDRESS_NULL),
             m_userAllocatedMemory(nullptr),
             m_currentState(D3D12_RESOURCE_STATE_COMMON),
-            m_transitionState((D3D12_RESOURCE_STATES)-1)
+            m_pendingState((D3D12_RESOURCE_STATES)-1)
         {
         }
 
-        GPUResource(ID3D12Device* pDevice, ID3D12Resource* pResource, D3D12_RESOURCE_STATES CurrentState) :
+        GPUResource(ID3D12Device* const pDevice, ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES CurrentState) 
+            :
             m_GPUVirtualAddress(D3D12_GPU_VIRTUAL_ADDRESS_NULL),
             m_userAllocatedMemory(nullptr),
             m_pResource(pResource),
             m_currentState(CurrentState),
-            m_transitionState((D3D12_RESOURCE_STATES)-1)
+            m_pendingState((D3D12_RESOURCE_STATES)-1)
         {
         }
+
+        virtual ~GPUResource() = default;
 
         virtual void Destroy()
         {
@@ -56,7 +59,7 @@ namespace custom
             }
         }
 
-        ID3D12Resource* operator->() 
+        ID3D12Resource* operator->()
         { 
             return m_pResource; 
         }
@@ -64,7 +67,7 @@ namespace custom
         { 
             return m_pResource; 
         }
-        ID3D12Resource* GetResource() 
+        ID3D12Resource* GetResource() const
         { 
             return m_pResource;
         }
@@ -83,8 +86,8 @@ namespace custom
         }
     protected:
         D3D12_RESOURCE_STATES m_currentState;
-        D3D12_RESOURCE_STATES m_transitionState;
-        ID3D12Resource* m_pResource;
+        D3D12_RESOURCE_STATES m_pendingState;
+        ID3D12Resource* m_pResource; // Using with ResourceBarrier synchronization.
         D3D12_GPU_VIRTUAL_ADDRESS m_GPUVirtualAddress;
 
         // When using VirtualAlloc() to allocate memory directly, 

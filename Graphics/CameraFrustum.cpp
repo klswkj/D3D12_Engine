@@ -22,12 +22,15 @@
 #define TransformRootIndex 1u
 #define Color3RootIndex    3u
 
-CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float NearZ, float FarZ)
+CameraFrustum::CameraFrustum(Camera& rCamera, const float aspectHeightOverWidth, const float nearZ, const float farZ)
+	:
+	m_pParentCamera(&rCamera),
+	m_CameraPosition({ 0.0f,0.0f,0.0f }),
+	m_Rotation({ 0.0f,0.0f,0.0f })
 {
 	// Vertices : 8, Indices : 24
-	m_pParentCamera = pCamera;
 
-	SetVertices(AspectHeightOverWidth, NearZ, FarZ);
+	SetVertices(aspectHeightOverWidth, nearZ, farZ);
 
 	uint8_t Indices[24] =
 	{
@@ -53,8 +56,8 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 	D3D12_INDEX_BUFFER_VIEW ModelIBV = pIndexBuffer->IndexBufferView();
 
 	m_IndexCount = _countof(Indices);
-	m_StartIndexLocation = 0;
-	m_BaseVertexLocation = 0;
+	m_StartIndexLocation = 0U;
+	m_BaseVertexLocation = 0U;
 	// m_VertexBufferView = pVertexBuffer->VertexBufferView();
 	m_IndexBufferView = pIndexBuffer->IndexBufferView();
 
@@ -120,28 +123,28 @@ CameraFrustum::CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float
 }
 //         UpVector axis           
 // float verticalFovRadians, float aspectHeightOverWidth, float nearZClip, float farZClip
-void CameraFrustum::SetVertices(float Width, float Height, float NearZClip, float FarZClip)
+void CameraFrustum::SetVertices(const float width, const float height, const float nearZClip, const float farZClip)
 {
-	float aspectHeightOverWidth = 0;
+	float AspectHeightOverWidth = 0;
 
-	const float nearZCipWidth = aspectHeightOverWidth * NearZClip * 0.5f;
+	const float NearZCipWidth = AspectHeightOverWidth * nearZClip * 0.5f;
 
-	const float zRatio          = FarZClip / NearZClip;
-	const float NearZClipWidth  = Width  / 2.0f;
-	const float NearZClipHeight = Height / 2.0f;
-	const float FarZClipWidth   = NearZClipWidth * zRatio;
-	const float FarZClipHeight  = NearZClipHeight * zRatio;
+	const float ZRatio          = farZClip / nearZClip;
+	const float NearZClipWidth  = width  / 2.0f;
+	const float NearZClipHeight = height / 2.0f;
+	const float FarZClipWidth   = NearZClipWidth * ZRatio;
+	const float FarZClipHeight  = NearZClipHeight * ZRatio;
 
 	DirectX::XMFLOAT3 vertices[8] =
 	{
-		{-NearZClipWidth,  NearZClipHeight, NearZClip },
-		{ NearZClipWidth,  NearZClipHeight, NearZClip },
-		{ NearZClipWidth, -NearZClipHeight, NearZClip },
-		{-NearZClipWidth, -NearZClipHeight, NearZClip },
-		{ -FarZClipWidth,   FarZClipHeight,  FarZClip },
-		{  FarZClipWidth,   FarZClipHeight,  FarZClip },
-		{  FarZClipWidth,  -FarZClipHeight,  FarZClip },
-		{ -FarZClipWidth,  -FarZClipHeight,  FarZClip }
+		{-NearZClipWidth,  NearZClipHeight, nearZClip },
+		{ NearZClipWidth,  NearZClipHeight, nearZClip },
+		{ NearZClipWidth, -NearZClipHeight, nearZClip },
+		{-NearZClipWidth, -NearZClipHeight, nearZClip },
+		{ -FarZClipWidth,   FarZClipHeight,  farZClip },
+		{  FarZClipWidth,   FarZClipHeight,  farZClip },
+		{  FarZClipWidth,  -FarZClipHeight,  farZClip },
+		{ -FarZClipWidth,  -FarZClipHeight,  farZClip }
 	};
 
 	custom::StructuredBuffer* pVertexBuffer =
@@ -151,24 +154,24 @@ void CameraFrustum::SetVertices(float Width, float Height, float NearZClip, floa
 	ComputeBoundingBox((const float*)vertices, _countof(vertices), 3);
 }
 
-void CameraFrustum::SetVertices(float AspectHeightOverWidth, float NearZClip, float FarZClip)
+void CameraFrustum::SetVertices(const float aspectHeightOverWidth, const float nearZClip, const float farZClip)
 {
-	const float zRatio = FarZClip / NearZClip;
-	const float NearZClipWidth = NearZClip * 0.5f;
-	const float NearZClipHeight = (1 / AspectHeightOverWidth) * NearZClip * 0.5f;
-	const float FarZClipWidth = NearZClipWidth * zRatio;
-	const float FarZClipHeight = NearZClipHeight * zRatio;
+	const float ZRatio = farZClip / nearZClip;
+	const float NearZClipWidth = nearZClip * 0.5f;
+	const float NearZClipHeight = (1 / aspectHeightOverWidth) * nearZClip * 0.5f;
+	const float FarZClipWidth = NearZClipWidth * ZRatio;
+	const float FarZClipHeight = NearZClipHeight * ZRatio;
 
 	DirectX::XMFLOAT3 vertices[8] =
 	{
-		{-NearZClipWidth,  NearZClipHeight, NearZClip },
-		{ NearZClipWidth,  NearZClipHeight, NearZClip },
-		{ NearZClipWidth, -NearZClipHeight, NearZClip },
-		{-NearZClipWidth, -NearZClipHeight, NearZClip },
-		{ -FarZClipWidth,   FarZClipHeight,  FarZClip },
-		{  FarZClipWidth,   FarZClipHeight,  FarZClip },
-		{  FarZClipWidth,  -FarZClipHeight,  FarZClip },
-		{ -FarZClipWidth,  -FarZClipHeight,  FarZClip }
+		{-NearZClipWidth,  NearZClipHeight, nearZClip },
+		{ NearZClipWidth,  NearZClipHeight, nearZClip },
+		{ NearZClipWidth, -NearZClipHeight, nearZClip },
+		{-NearZClipWidth, -NearZClipHeight, nearZClip },
+		{ -FarZClipWidth,   FarZClipHeight,  farZClip },
+		{  FarZClipWidth,   FarZClipHeight,  farZClip },
+		{  FarZClipWidth,  -FarZClipHeight,  farZClip },
+		{ -FarZClipWidth,  -FarZClipHeight,  farZClip }
 	};
 
 	custom::StructuredBuffer* pVertexBuffer =
@@ -178,43 +181,29 @@ void CameraFrustum::SetVertices(float AspectHeightOverWidth, float NearZClip, fl
 	ComputeBoundingBox((const float*)vertices, _countof(vertices), 3);
 }
 
-void CameraFrustum::SetPosition(DirectX::XMFLOAT3& Position) noexcept
+void CameraFrustum::SetPosition(const DirectX::XMFLOAT3& position) noexcept
 {
-	m_CameraPosition = Position;
+	m_CameraPosition = position;
 	// m_CameraToWorld.SetTranslation(Position);
 }
 
-void CameraFrustum::SetPosition(Math::Vector3& Translation) noexcept
+void CameraFrustum::SetPosition(const Math::Vector3& translation) noexcept
 {
-	m_CameraPosition = Translation;
+	m_CameraPosition = translation;
 	// m_CameraToWorld.SetTranslation(Translation);
 }
 
-void CameraFrustum::SetRotation(const DirectX::XMFLOAT3& RollPitchYaw) noexcept
+void CameraFrustum::SetRotation(const DirectX::XMFLOAT3& rollPitchYaw) noexcept
 {
-	m_Rotation = RollPitchYaw;
+	m_Rotation = rollPitchYaw;
 	// m_CameraToWorld.SetRotation(RollPitchYaw);
 }
 
-void CameraFrustum::SetRotation(Math::Vector3& Rotation) noexcept
+void CameraFrustum::SetRotation(const Math::Vector3& rotation) noexcept
 {
-	m_Rotation = Rotation;
+	m_Rotation = rotation;
 }
-/*
-Math::Matrix4 CameraFrustum::GetTransform() const noexcept
-{
-	return Math::Matrix4(DirectX::XMMatrixRotationRollPitchYawFromVector(DirectX::XMVECTOR(m_Rotation)) *
-		DirectX::XMMatrixTranslationFromVector(DirectX::XMVECTOR(m_CameraPosition)));
 
-	// return DirectX::XMMatrixRotationRollPitchYawFromVector(m_CameraToWorld.GetRotation()) *
-	// 	 DirectX::XMMatrixTranslationFromVector(m_CameraToWorld.GetTranslation());
-
-	//inline Math::Matrix4 CameraFrustum::GetTransform() const noexcept
-	//{
-	//	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());
-	//}
-}
-*/
 Math::Matrix4 CameraFrustum::GetTransform() const noexcept
 {
 	return Math::Matrix4(m_pParentCamera->GetRightUpForwardMatrix(), m_pParentCamera->GetPosition());

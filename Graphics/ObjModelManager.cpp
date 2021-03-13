@@ -5,6 +5,8 @@
 #include "UAVBuffer.h"
 #include "ObjectFilterFlag.h"
 #include "CustomImgui.h"
+#include "TextureManager.h"
+
 
 ObjModelManager::ObjModelManager(float ModelSize)
 {
@@ -40,6 +42,8 @@ ObjModelManager::~ObjModelManager()
 
 void ObjModelManager::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
 {
+	TextureManager::AllTextureResourceTransition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 	for (auto& _Model : m_Models)
 	{
 		_Model.LinkTechniques(_MasterRenderGraph);

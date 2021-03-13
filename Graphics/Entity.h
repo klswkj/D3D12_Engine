@@ -21,17 +21,17 @@ class IEntity
 	friend class Job;
 public:
 	IEntity() = default;
-	virtual ~IEntity() {};
+	virtual ~IEntity() = default;
 	
 	// IEntity(const Material& CMaterial, const aiMesh& _AiMesh, float _Scale = 1.0f) noexcept;
 	IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
 	IEntity(const IEntity&) = delete;
 	void AddTechnique(Technique Tech) noexcept;
 	virtual Math::Matrix4 GetTransform() const noexcept = 0;
-	void Submit(eObjectFilterFlag Filter) const noexcept;
-	void Bind(custom::CommandContext& BaseContext) const DEBUG_EXCEPT;
+	void Submit(eObjectFilterFlag Filter) noexcept;
+	void Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) const DEBUG_EXCEPT;
 	void Accept(IWindow& window);
-	void LinkTechniques(MasterRenderGraph& _MasterRenderGraph);
+	void LinkTechniques(const MasterRenderGraph& _MasterRenderGraph);
 
 	UINT GetIndexCount() const DEBUG_EXCEPT { return m_IndexCount; }
 	UINT GetStartIndexLocation() const DEBUG_EXCEPT { return m_StartIndexLocation; }
@@ -68,7 +68,7 @@ protected:
 
 	BoundingBox m_BoundingBox;
 
-	D3D12_PRIMITIVE_TOPOLOGY m_Topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	D3D12_PRIMITIVE_TOPOLOGY m_Topology;
 
 	UINT m_IndexCount         = -1; 
 	UINT m_StartIndexLocation = -1;

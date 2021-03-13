@@ -14,8 +14,8 @@ namespace Profiling
 {
     void Update();
 
-    void BeginBlock(const std::wstring& name, custom::CommandContext* Context = nullptr);
-    void EndBlock(custom::CommandContext* Context = nullptr);
+    void BeginBlock(const std::wstring& name, custom::CommandContext* const Context, const uint8_t commandIndex);
+    void EndBlock(custom::CommandContext* const Context, const uint8_t commandIndex);
 
     void DisplayFrameRate(TextContext& Text);
     void DisplayPerfGraph(custom::GraphicsContext& Text);
@@ -27,10 +27,10 @@ namespace Profiling
 class ScopedTimer
 {
 public:
-    ScopedTimer(const std::wstring&) 
+    explicit ScopedTimer(const std::wstring&) 
     {
     }
-    ScopedTimer(const std::wstring&, CommandContext&) 
+    explicit ScopedTimer(const std::wstring&, CommandContext&) 
     {
     }
 };
@@ -38,20 +38,27 @@ public:
 class ScopedTimer
 {
 public:
-    ScopedTimer(const std::wstring& name) : m_Context(nullptr)
+    explicit ScopedTimer(const std::wstring& name) 
+        : 
+        m_Context(nullptr),
+        m_CommandIndex(0u)
     {
-        Profiling::BeginBlock(name);
+        Profiling::BeginBlock(name, nullptr, 0u);
     }
-    ScopedTimer(const std::wstring& name, custom::CommandContext& Context) : m_Context(&Context)
+    explicit ScopedTimer(const std::wstring& name, custom::CommandContext& Context, const uint8_t commandIndex) 
+        : 
+        m_Context(&Context),
+        m_CommandIndex(commandIndex)
     {
-        Profiling::BeginBlock(name, m_Context);
+        Profiling::BeginBlock(name, m_Context, m_CommandIndex);
     }
     ~ScopedTimer()
     {
-        Profiling::EndBlock(m_Context);
+        Profiling::EndBlock(m_Context, m_CommandIndex);
     }
 
 private:
-    custom::CommandContext* m_Context;
+    custom::CommandContext* const m_Context;
+    const uint8_t m_CommandIndex;
 };
 #endif

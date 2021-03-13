@@ -9,8 +9,8 @@ namespace custom
 class FundamentalTexture : public RenderingResource
 {
 public:
-	FundamentalTexture(const char* Name, UINT RootIndex, UINT ShaderOffset, D3D12_CPU_DESCRIPTOR_HANDLE SRV);
-	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+	FundamentalTexture(const char* szName, UINT RootIndex, UINT ShaderOffset, D3D12_CPU_DESCRIPTOR_HANDLE SRV);
+	void Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) DEBUG_EXCEPT override;
 
 private:
 #ifdef _DEBUG

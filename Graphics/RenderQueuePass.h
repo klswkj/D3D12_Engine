@@ -7,29 +7,43 @@ namespace custom
 	class CommandContext;
 }
 
-class RenderingResource;
-class PixelBuffer;
-class RenderTarget; // Will be deleted.
-class DepthStencil; // Will be deleted.
+class IEntity;
+class Step;
 
-// TODO 3 : 나중에 sequential Populate RenderQueuePass 만들어서
-// Z-Sorting이나(알파블랜딩), Cascade Shadow Mapping처럼 순차적으로
-// 제출해야 할 때를 대비해서 미리미리 생각해놔야될듯.
-
-
-class RenderQueuePass : public Pass
+class ID3D12RenderQueuePass : public ID3D12MTPass
 {
 public:
-	// Be Inherited all constructors from Base class (BindingPass).
-	// -> Be Inherited all constructors directly from Pass class.
-	RenderQueuePass(std::string Name) : Pass(Name) {}
+	explicit ID3D12RenderQueuePass(std::string Name, JobFactorization status)
+		: 
+		ID3D12MTPass(Name),
+		m_FactorizationStatus(status)
+	{
+	}
+	virtual ~ID3D12RenderQueuePass() = default;
 
-	void PushBackJob(Job _Job) noexcept;
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT; // Add size_t StartStepIndex, size_t EndStepIndex
-	void ExecuteWithRange(custom::CommandContext& BaseContext, size_t StartStepIndex = 0ul, size_t EndStepIndex = SIZE_MAX);
+	void PushBackJob(IEntity& pEntity, std::vector<Step>& pSteps);//  noexcept;
+	void Execute(custom::CommandContext& BaseContext, uint8_t commandIndex) DEBUG_EXCEPT;
+	void ExecuteWithRange(custom::CommandContext& BaseContext, uint8_t commandIndex, size_t StartJobIndex = 0ul, size_t EndJobIndex = SIZE_MAX);
+
+	void SetParams(custom::GraphicsContext* pGraphicsContext, uint8_t startCommandIndex, uint8_t totalCommandCount);
 	void Reset() DEBUG_EXCEPT override;
 	size_t GetJobCount() const;
 
-private:
+public:
+	struct RenderQueueThreadParameterWrapper
+	{
+		ID3D12RenderQueuePass*   pRenderQueuePass;
+		custom::GraphicsContext* pGraphicsContext;
+		uint8_t                  StartCommandIndex;
+		uint8_t                  CommandIndex;      // 할당된 CL Index
+		uint8_t                  TotalCommandCount; // 총 CL갯수, 
+	};
+
+	static void ContextWorkerThread(LPVOID ptr);
+	static void SetParamsWithVariadic(void* ptr);
+
+protected:
 	std::vector<Job> m_Jobs;
+	std::vector<RenderQueueThreadParameterWrapper> m_Params;
+	const JobFactorization m_FactorizationStatus;
 };

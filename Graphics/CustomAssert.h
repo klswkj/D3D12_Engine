@@ -97,7 +97,7 @@ namespace AssertInternal
             AssertInternal::PrintSubMessage("\'" #bFalse "\' is false"); \
             AssertInternal::PrintSubMessage(__VA_ARGS__);                \
             AssertInternal::Print("\n");                                 \
-            __debugbreak();                                              \
+            ::__debugbreak();                                            \
         }                                                               
 
 #define ASSERT_HR( hr, ... ) \

@@ -18,17 +18,18 @@ namespace custom
         { 
             m_hCpuDescriptorHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN; 
         }
-        Texture(D3D12_CPU_DESCRIPTOR_HANDLE Handle)
-            : m_hCpuDescriptorHandle(Handle)
+        Texture(const D3D12_CPU_DESCRIPTOR_HANDLE handle)
+            : m_hCpuDescriptorHandle(handle)
         {
         }
+        virtual ~Texture() = default;
 
         // Create a 1-level 2D texture
-        void Create(size_t Pitch, size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitData);
+        void CreateCommittedTexturePrivate(const size_t pitch, const size_t width, const size_t height, const DXGI_FORMAT format, const void* const pInitData);
 
-        void Create(size_t Width, size_t Height, DXGI_FORMAT Format, const void* InitData)
+        void CreateCommittedTexture(const size_t width, const size_t height, const DXGI_FORMAT format, const void* const pInitData)
         {
-            Create(Width, Width, Height, Format, InitData);
+            CreateCommittedTexturePrivate(width, width, height, format, pInitData);
         }
 
         void CreateTGAFromMemory(const void* memBuffer, size_t fileSize, bool bStandardRGB);

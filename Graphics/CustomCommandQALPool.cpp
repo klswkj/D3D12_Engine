@@ -1,211 +1,6 @@
 #include "stdafx.h"
 #include "CustomCommandQALPool.h"
-/*
-namespace custom
-{
-	CustomCommandQueue::CustomCommandQueue()
-	{
 
-	}
-	CustomCommandQueue::CustomCommandQueue(ID3D12Device* pDevice, CustomCommandQALPool* pPool, D3D12_COMMAND_LIST_TYPE type)
-	{
-
-	}
-
-	HRESULT CustomCommandQueue::Create(ID3D12Device* pDevice, CustomCommandQALPool* pPool, D3D12_COMMAND_LIST_TYPE type)
-	{
-
-	}
-
-	void CustomCommandQueue::PairingFenceOff(ID3D12Fence* pFence)
-	{
-
-	}
-	D3D12_COMMAND_LIST_TYPE CustomCommandQueue::GetType()
-	{
-		ASSERT(m_pCommandQueue);
-
-		return m_Type;
-	}
-}
-
-namespace custom
-{
-	CustomCommandAllocator::CustomCommandAllocator()
-		: 
-		m_Type(D3D12_COMMAND_LIST_TYPE_DIRECT),
-		m_pDevice(nullptr),
-		m_pOwningPool(nullptr),
-		m_pAllocator(nullptr)
-	{
-	}
-	CustomCommandAllocator::CustomCommandAllocator(ID3D12Device* pDevice, CustomCommandQALPool* pPool, D3D12_COMMAND_LIST_TYPE type)
-		:
-		m_Type(type),
-		m_pDevice(pDevice),
-		m_pOwningPool(pPool),
-		m_pAllocator(nullptr)
-	{
-		ASSERT(pDevice);
-		Create(pDevice, pPool, type);
-	}
-
-	CustomCommandAllocator::~CustomCommandAllocator()
-	{
-	}
-
-	HRESULT CustomCommandAllocator::Create(ID3D12Device* pDevice, CustomCommandQALPool* pPool, D3D12_COMMAND_LIST_TYPE type)
-	{
-		ASSERT(pDevice);
-		ASSERT(pPool);
-		ASSERT(m_pAllocator == nullptr);
-
-		m_pDevice = pDevice;
-		m_pOwningPool = pPool;
-
-		HRESULT Result;
-		ASSERT_HR(Result = pDevice->CreateCommandAllocator(type, IID_PPV_ARGS(&m_pAllocator)));
-		return Result;
-	}
-	HRESULT CustomCommandAllocator::Reset()
-	{
-		return m_pAllocator->Reset();
-	}
-
-	HRESULT CustomCommandAllocator::GetDevice(ID3D12Device** ppDevice)
-	{
-		ASSERT(*ppDevice == nullptr);
-
-		HRESULT Result = m_pAllocator->GetDevice(IID_PPV_ARGS(ppDevice));
-		ASSERT_HR(Result);
-
-		return Result;
-	}
-
-	ID3D12CommandAllocator* CustomCommandAllocator::GetCommandAllocator()
-	{
-		return m_pAllocator;
-	}
-	D3D12_COMMAND_LIST_TYPE CustomCommandAllocator::GetType()
-	{
-		return m_Type;
-	}
-}
-
-namespace custom
-{
-	CustomGraphicsCommandList::CustomGraphicsCommandList()
-		: 
-		m_pDevice(nullptr),
-		m_pCommandQueue(nullptr),
-		m_pQueueFence(nullptr),
-		m_pOwningPool(nullptr),
-		m_pPartnerAllocator(nullptr),
-		m_pGraphicsCommandList(nullptr),
-		m_bClosed(false),
-		m_LastFenceValue(0)
-	{
-	}
-	CustomGraphicsCommandList::CustomGraphicsCommandList
-	(
-		ID3D12Device*           pDevice,
-		ID3D12CommandQueue*     pCommandQueue,
-		CustomCommandQALPool*   pPool,
-		CustomFence*            pCustomFence,
-		CustomCommandAllocator* pAllocator,
-		uint64_t                LastFenceValue
-	)
-		:
-		m_pDevice(pDevice),
-		m_pCommandQueue(pCommandQueue),
-		m_pQueueFence(pCustomFence),
-		m_pOwningPool(pPool),
-		m_pPartnerAllocator(pAllocator),
-		m_pGraphicsCommandList(nullptr),
-		m_bClosed(false),
-		m_LastFenceValue(LastFenceValue)
-	{
-		Create(pDevice, pAllocator);
-	}
-	CustomGraphicsCommandList::~CustomGraphicsCommandList()
-	{
-	}
-	void CustomGraphicsCommandList::Create
-	(
-		ID3D12Device*           pDevice,
-		CustomCommandAllocator* pAllocator
-	)
-	{
-		ASSERT(pDevice);
-		ASSERT(pAllocator);
-
-		m_pDevice           = pDevice;
-		m_pPartnerAllocator = pAllocator;
-
-		ASSERT_HR(m_pDevice->CreateCommandList(1Single GPU, pAllocator->GetType(), pAllocator->GetCommandAllocator(), nullptr, IID_PPV_ARGS(&m_pGraphicsCommandList)));
-		ASSERT(m_pGraphicsCommandList);
-	}
-
-	HRESULT CustomGraphicsCommandList::Reset(CustomCommandAllocator* pAllocator)
-	{
-		ID3D12CommandAllocator* pCommandAllocator = pAllocator->GetCommandAllocator();
-		ASSERT(pCommandAllocator);
-		HRESULT Result;
-		ASSERT_HR(Result = m_pGraphicsCommandList->Reset(pCommandAllocator, nullptr));
-
-		m_bClosed = false;
-
-		return Result;
-	}
-	HRESULT CustomGraphicsCommandList::Close()
-	{
-		ASSERT(m_bClosed);
-
-		HRESULT Result;
-		ASSERT_HR(Result = m_pGraphicsCommandList->Close());
-		m_bClosed = true;
-
-		return Result;
-	}
-
-	HRESULT CustomGraphicsCommandList::GetDevice(ID3D12Device** ppDevice)
-	{
-		ASSERT(*ppDevice == nullptr);
-
-		HRESULT Result = m_pGraphicsCommandList->GetDevice(IID_PPV_ARGS(ppDevice));
-		ASSERT_HR(Result);
-
-		return Result;
-	}
-
-	UINT CustomGraphicsCommandList::GetPriority() // Desc받아서
-	{
-		ASSERT(m_pCommandQueue);
-
-		return m_pCommandQueue->GetDesc().Priority;
-	}
-	UINT CustomGraphicsCommandList::GetNodeMask() // Desc받아서
-	{
-		ASSERT(m_pCommandQueue);
-
-		return m_pCommandQueue->GetDesc().NodeMask;
-	}
-	D3D12_COMMAND_LIST_TYPE CustomGraphicsCommandList::GetType() // Desc받아서
-	{
-		return m_pGraphicsCommandList->GetType();
-	}
-
-	uint64_t CustomGraphicsCommandList::GetLastFenceValue()
-	{
-		return m_LastFenceValue;
-	}
-
-	bool CustomGraphicsCommandList::GetbClosed()
-	{
-		return m_bClosed;
-	}
-}
-*/
 namespace custom
 {
 	CustomCommandQALPool::CustomCommandQALPool()
@@ -237,9 +32,9 @@ namespace custom
 
 	void CustomCommandQALPool::Create(ID3D12Device* pDevice, D3D12_COMMAND_LIST_TYPE type)
 	{
-		ASSERT(pDevice);
 		ASSERT
 		(
+			pDevice &&
 			(type == D3D12_COMMAND_LIST_TYPE_DIRECT) ||
 			(type == D3D12_COMMAND_LIST_TYPE_COPY)   ||
 			(type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
@@ -324,14 +119,12 @@ namespace custom
 		return pCommandQueue;
 	}
 
-	void CustomCommandQALPool::RequestCommandAllocatorsLists(size_t NumPairs, ID3D12CommandAllocator*** pppCommandAllocators, ID3D12GraphicsCommandList*** pppLists)
+	void CustomCommandQALPool::RequestCommandAllocatorsLists(size_t NumPairs, ID3D12CommandAllocator*** p_pCommandAllocators, ID3D12GraphicsCommandList*** p_pLists)
 	{
-		ASSERT(NumPairs);
-		ASSERT(pppCommandAllocators);
-		ASSERT(pppLists);
+		ASSERT(NumPairs && p_pCommandAllocators && p_pLists);
 
-		ID3D12CommandAllocator**    pAllocatorArray = *pppCommandAllocators;
-		ID3D12GraphicsCommandList** pListArray      = *pppLists;
+		ID3D12CommandAllocator**    pAllocatorArray = *p_pCommandAllocators;
+		ID3D12GraphicsCommandList** pListArray      = *p_pLists;
 		{
 			EnterCriticalSection(&m_CommandAllocatorCS);
 
@@ -374,6 +167,9 @@ namespace custom
 				pAllocatorArray[AllocatorNewIndex]->GetDevice(IID_PPV_ARGS(&pDevice2));
 
 				ASSERT(pDevice1 == pDevice2);
+
+				SafeRelease(pDevice1);
+				SafeRelease(pDevice2);
 			}
 
 			LeaveCriticalSection(&m_CommandAllocatorCS);
@@ -420,6 +216,9 @@ namespace custom
 				pAllocatorArray[ListNewIndex]->GetDevice(IID_PPV_ARGS(&pDevice2));
 
 				ASSERT(pDevice1 == pDevice2);
+
+				pDevice1->Release();
+				pDevice2->Release();
 			}
 
 			LeaveCriticalSection(&m_CommandListCS);
@@ -453,6 +252,7 @@ namespace custom
 		EnterCriticalSection(&m_CommandAllocatorCS);
 		for (size_t i = 0; i < allocatorSize; ++i)
 		{
+			ASSERT_HR(pCommandAllocators[i]->Reset());
 			m_AvailableCommandAllocators.push_back(pCommandAllocators[i]);
 		}
 		m_NumAvailableCommandAllocators += allocatorSize;
@@ -463,6 +263,7 @@ namespace custom
 		EnterCriticalSection(&m_CommandListCS);
 		for (size_t i = 0; i < listSize; ++i)
 		{
+			pCommandLists[i]->Reset(nullptr, nullptr);
 			m_AvailableCommandLists.push_back(pCommandLists[i]);
 		}
 		m_NumAvailableCommandLists += listSize;

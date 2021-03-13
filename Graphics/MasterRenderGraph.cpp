@@ -1,17 +1,16 @@
 #include "stdafx.h"
 #include "MasterRenderGraph.h"
 
+#include "CommandContextManager.h"
 #include "ShadowBuffer.h"
 #include "BufferManager.h"
 #include "PreMadePSO.h"
+#include "GPUWorkManager.h"
 #include "ObjectFilterFlag.h"
-#include "Matrix4.h"
 #include "ShaderConstantsTypeDefinitions.h"
 
 #include "Camera.h"
 #include "ShadowCamera.h"
-#include "RenderTarget.h"
-#include "DepthStencil.h"
 
 #include "RenderQueuePass.h"
 #include "LightPrePass.h"
@@ -60,8 +59,6 @@ MasterRenderGraph* MasterRenderGraph::s_pMasterRenderGraph = nullptr;
 MasterRenderGraph::MasterRenderGraph()
 	:
 	m_SelctedPassIndex(0ul),
-	m_ThreadJobScale(100),
-	m_CurrentNeedCommandList(-1),
 	m_pMainLights         (nullptr),
 	m_pCurrentActiveCamera(nullptr),
 	m_bFullScreenDebugPasses(false),
@@ -71,6 +68,9 @@ MasterRenderGraph::MasterRenderGraph()
 	m_bSSAODebugDraw        (false),
 	m_bShadowMappingPass    (true),
 	m_bMainRenderPass       (true),
+	m_bGPUTaskFiberDirty      (true),
+	m_NumNeedCommandQueues  (1U),
+	m_NumNeedCommandALs     (1U),
 	m_pLightPrePass      (nullptr),
 	m_pShadowPrePass     (nullptr),
 	m_pZ_PrePass         (nullptr),
@@ -226,38 +226,32 @@ MasterRenderGraph::~MasterRenderGraph()
 {
 }
 
-void MasterRenderGraph::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void MasterRenderGraph::Execute() DEBUG_EXCEPT
 {
 	ASSERT(m_pCurrentActiveCamera != nullptr);
 
 	RenderPassesWindow();
 
-	BaseContext.SetMainCamera(*m_pCurrentActiveCamera);
-	BaseContext.SetModelToShadow(m_pMainLights->front().GetShadowMatrix());
-
-	BaseContext.PIXBeginEvent(L"Scene Render");
+	custom::CommandContext::BeginFrame();
 
 	for (auto& p : (m_bDebugPassesMode) ? m_pFullScreenDebugPasses : m_pPasses)
 	{
 		if (p->m_bActive)
 		{
-			p->Execute(BaseContext);
+			p->ExecutePass();
 		}
 	}
-
-	BaseContext.PIXEndEvent(); // End Scene Render
-
-	BaseContext.PIXBeginEvent(L"Debug Drawing");
 
 	for (auto& p : m_pDebugPasses)
 	{
 		if (p->m_bActive)
 		{
-			p->Execute(BaseContext);
+			// p->Execute();
+			p->ExecutePass();
 		}
 	}
 
-	BaseContext.PIXEndEvent(); // End DebugDrawing
+	custom::CommandContext::EndFrame();
 }
 
 void MasterRenderGraph::ShowPassesWindows()
@@ -289,7 +283,7 @@ void MasterRenderGraph::Profiling()
 		printf("%s's operational time : %.5f, DDTime : %.4lf\n", p->GetRegisteredName().c_str(), p->m_DeltaTime, (double)(p->m_DeltaTime - p->m_DeltaTimeBefore));
 
 		{
-			RenderQueuePass* pRQP = dynamic_cast<RenderQueuePass*>(p.get());
+			ID3D12RenderQueuePass* pRQP = dynamic_cast<ID3D12RenderQueuePass*>(p.get());
 			if (pRQP != nullptr)
 			{
 				printf("Job Count : %lld\n", pRQP->GetJobCount());
@@ -307,19 +301,15 @@ void MasterRenderGraph::Update()
 	ASSERT(m_pCurrentActiveCamera != nullptr);
 	ASSERT(m_pMainLights != nullptr);
 
-	custom::CommandContext& BaseContext = custom::CommandContext::Begin(L"MasterRenderGraph::Update()");
+	CommandContextManager::SetMainCamera(*m_pCurrentActiveCamera);
+	CommandContextManager::SetModelToShadow(m_pMainLights->front().GetShadowMatrix());
 
-	{
-		MainLight& FirstLight = m_pMainLights->front();
-		BaseContext.SetPSConstants(FirstLight);
-	}
-
-	BaseContext.SetMainCamera(*m_pCurrentActiveCamera);
-	BaseContext.SetShadowTexelSize(1 / (float)bufferManager::g_ShadowBuffer.GetWidth());
-	BaseContext.SetSpecificLightIndex(m_pLightPrePass->GetFirstConeLightIndex(), m_pLightPrePass->GetFirstConeShadowedLightIndex()); // PS
-	BaseContext.SetTileDimension(bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight(), m_pFillLightGridPass->m_WorkGroupSize);
-	BaseContext.SetSync();
-	BaseContext.Finish();
+	MainLight& FirstLight = m_pMainLights->front();
+	CommandContextManager::SetPSConstants(FirstLight);
+	
+	CommandContextManager::SetShadowTexelSize(1 / (float)bufferManager::g_ShadowBuffer.GetWidth());
+	CommandContextManager::SetSpecificLightIndex(m_pLightPrePass->GetFirstConeLightIndex(), m_pLightPrePass->GetFirstConeShadowedLightIndex()); // PS
+	CommandContextManager::SetTileDimension(bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight(), m_pFillLightGridPass->m_WorkGroupSize);
 
 	m_pSSAOPass->m_bEnable           = m_bSSAOPassEnable;
 	m_pSSAOPass->m_bDebugDraw        = m_bSSAODebugDraw;
@@ -327,13 +317,9 @@ void MasterRenderGraph::Update()
 	m_pMainRenderPass->m_bActive     = m_bMainRenderPass;
 
 	m_pDebugShadowMapPass->m_bActive = m_bDebugShadowMap;
-
-	size_t NeedNumCommandLists = SetNextNumCommandList();
-
-	std::cout << " " << std::endl;
 }
 
-void MasterRenderGraph::appendPass(std::unique_ptr<Pass> _Pass)
+void MasterRenderGraph::appendPass(std::unique_ptr<D3D12Pass> _Pass)
 {
 	for (const auto& p : m_pPasses)
 	{
@@ -345,7 +331,7 @@ void MasterRenderGraph::appendPass(std::unique_ptr<Pass> _Pass)
 
 	m_pPasses.push_back(std::move(_Pass));
 }
-void MasterRenderGraph::appendFullScreenDebugPass(std::unique_ptr<Pass> _Pass)
+void MasterRenderGraph::appendFullScreenDebugPass(std::unique_ptr<D3D12Pass> _Pass)
 {
 	for (const auto& p : m_pFullScreenDebugPasses)
 	{
@@ -357,7 +343,7 @@ void MasterRenderGraph::appendFullScreenDebugPass(std::unique_ptr<Pass> _Pass)
 
 	m_pFullScreenDebugPasses.push_back(std::move(_Pass));
 }
-void MasterRenderGraph::appendDebugPass(std::unique_ptr<Pass> _Pass)
+void MasterRenderGraph::appendDebugPass(std::unique_ptr<D3D12Pass> _Pass)
 {
 	for (const auto& p : m_pDebugPasses)
 	{
@@ -369,13 +355,13 @@ void MasterRenderGraph::appendDebugPass(std::unique_ptr<Pass> _Pass)
 
 	m_pDebugPasses.push_back(std::move(_Pass));
 }
-RenderQueuePass& MasterRenderGraph::FindRenderQueuePass(const std::string& RenderQueuePassName)
+ID3D12RenderQueuePass* MasterRenderGraph::FindRenderQueuePass(const std::string& RenderQueuePassName) const
 {
 	for (const auto& p : m_pPasses)
 	{
 		if (p->GetRegisteredName() == RenderQueuePassName)
 		{
-			return dynamic_cast<RenderQueuePass&>(*p);
+			return dynamic_cast<ID3D12RenderQueuePass*>(p.get());
 		}
 	}
 
@@ -383,17 +369,15 @@ RenderQueuePass& MasterRenderGraph::FindRenderQueuePass(const std::string& Rende
 	{
 		if (p->GetRegisteredName() == RenderQueuePassName)
 		{
-			return dynamic_cast<RenderQueuePass&>(*p);
+			return dynamic_cast<ID3D12RenderQueuePass*>(p.get());
 		}
 	}
 
 	ASSERT(false, "Cannot Find Given Pass Name.");
 
-	RenderQueuePass emptyPass{"Empty"};
-
-	return emptyPass;
+	return nullptr;
 }
-Pass& MasterRenderGraph::FindPass(const std::string& PassName)
+D3D12Pass& MasterRenderGraph::FindPass(const std::string& PassName)
 {
 	const auto i = std::find_if(m_pPasses.begin(), m_pPasses.end(),
 		[&PassName](auto& p) { return p->GetRegisteredName() == PassName; });
@@ -449,67 +433,6 @@ void MasterRenderGraph::BindMainLightContainer(std::vector<MainLight>* MainLight
 	ASSERT(MainLightContainer != nullptr);
 	m_pMainLights = MainLightContainer;
 }
-
-size_t MasterRenderGraph::SetNextNumCommandList()
-{
-	m_CurrentNeedCommandList = -1;
-
-	if (m_bDebugPassesMode == false)
-	{
-		m_CurrentNeedCommandList = 0;
-		size_t NumThreads = custom::ThreadPool::GetLogicalProcessors();
-
-		for (auto& e : m_pPasses)
-		{
-			RenderQueuePass* pRQP = dynamic_cast<RenderQueuePass*>(e.get());
-
-			if (pRQP != nullptr)
-			{
-				size_t StepSize = pRQP->GetJobCount();
-
-				if (m_ThreadJobScale < StepSize)
-				{
-					size_t NumWorkingThread = min(NumThreads, (size_t)ceilf((float)StepSize / (float)m_ThreadJobScale));
-					e->SetNumThread(NumWorkingThread);
-
-					// m_CurrentNeedCommandList += StepSize / NumWorkingThread; // CommandList for Worker Thread.
-					m_CurrentNeedCommandList += NumWorkingThread;
-					// m_CurrentNeedCommandList += StepSize - 1; // CommandList for Transition Resource, Clear Buffer or Async Fence Waiting.
-					m_CurrentNeedCommandList += 1; // CommandList for Transition Resource, Clear Buffer or Async Fence Waiting.
-				}
-				else
-				{
-					e->m_NumWorkingThread = 0;
-				}
-			}
-			else
-			{
-				e->m_NumWorkingThread = 0;
-			}
-		}
-	}
-
-	return m_CurrentNeedCommandList;
-}
-
-#pragma region ON/OFF
-
-void MasterRenderGraph::ToggleFullScreenDebugPasses()
-{
-	m_bFullScreenDebugPasses = !m_bFullScreenDebugPasses;
-}
-void MasterRenderGraph::ToggleDebugPasses()
-{
-	m_bDebugPassesMode = !m_bDebugPassesMode;
-}
-void MasterRenderGraph::ToggleDebugShadowMap()
-{
-	m_bDebugShadowMap = !m_bDebugShadowMap;
-}
-void MasterRenderGraph::ToggleSSAOPass()
-{
-	m_bSSAOPassEnable = !m_bSSAOPassEnable;
-}
 void MasterRenderGraph::ToggleSSAODebugMode()
 {
 	m_bSSAODebugDraw = !m_bSSAODebugDraw;
@@ -525,23 +448,3 @@ void MasterRenderGraph::ToggleSSAODebugMode()
 		enableMainRenderPass();
 	}
 }
-
-void MasterRenderGraph::enableShadowMappingPass()
-{
-	m_bShadowMappingPass = true;
-}
-void MasterRenderGraph::disableShadowMappingPass()
-{
-	m_bShadowMappingPass = false;
-}
-
-void MasterRenderGraph::enableMainRenderPass()
-{
-	m_bMainRenderPass = true;
-}
-void MasterRenderGraph::disableMainRenderPass()
-{
-	m_bMainRenderPass = false;
-}
-
-#pragma endregion ON/OFF

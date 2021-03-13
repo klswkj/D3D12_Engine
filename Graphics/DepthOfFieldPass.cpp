@@ -12,7 +12,11 @@
 // TODO : Set Branch and Shader Code.
 
 DOFPass::DOFPass(std::string name)
-	: Pass(name), cBuffer{}
+	: 
+	D3D12Pass(name),
+	cBuffer{},
+	m_NearClipDist(0.0f),
+	m_FarClipDist(1000.0f)
 {
 	m_RootSignature.Reset(4, 3);
 	m_RootSignature.InitStaticSampler(0, premade::g_SamplerPointBorderDesc);
@@ -31,9 +35,6 @@ DOFPass::DOFPass(std::string name)
 	PSOName.Finalize(L#PSOName);
 
 	// If compiled Shader Code was added later, Fill this part. 
-
-
-
 #undef CREATE_PSO
 
 	if (device::g_bTypedUAVLoadSupport_R11G11B10_FLOAT)
@@ -58,14 +59,7 @@ DOFPass::DOFPass(std::string name)
 	}
 
     __declspec(align(16)) const uint32_t initArgs[9] = { 0, 1, 1, 0, 1, 1, 0, 1, 1 };
-    m_IndirectArgument.Create(L"DoF Indirect Parameters", 3, sizeof(D3D12_DISPATCH_ARGUMENTS), initArgs);
-
-	RawLayout Coeff;
-
-	Coeff.Add<custom::Type::Bool>("Enable");
-
-	// bEnable = std::make_shared<CachingPixelConstantBufferEx>
-	// bEnable;
+    m_IndirectArgument.CreateUAVCommitted(L"DoF Indirect Parameters", 3, sizeof(D3D12_DISPATCH_ARGUMENTS), initArgs);
 }
 
 DOFPass::~DOFPass()
@@ -73,8 +67,9 @@ DOFPass::~DOFPass()
     m_IndirectArgument.Destroy();
 }
 
-void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, float FarClipDist) DEBUG_EXCEPT
+void DOFPass::ExecutePass() DEBUG_EXCEPT
 {
+	/*
     // custom::CommandContext& BaseContext = custom::CommandContext::Begin(L"DOFPass Execute");
     custom::ComputeContext& computeContext = BaseContext.GetComputeContext();
 
@@ -90,10 +85,11 @@ void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, f
 	uint32_t TiledWidth   = bufferManager::g_DoFTileClass[0].GetWidth(); // DXGI_FORMAT_R11G11B10_FLOAT
 	uint32_t TiledHeight  = bufferManager::g_DoFTileClass[0].GetHeight();
 
-	cBuffer.FGRange = m_ForegroundRange / FarClipDist;
+	cBuffer.FGRange = m_ForegroundRange / m_FarClipDist;
 	cBuffer.RcpFGRange = 1.0f / cBuffer.FGRange;
 
 	using namespace custom;
+
 	{
 		// Initial pass to discover max CoC and closest depth in 16x16 tiles
 		computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -173,7 +169,7 @@ void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, f
 	}
 
 	{
-		// DoF Main Pass
+		// DoF Main D3D12Pass
 		computeContext.PIXBeginEvent(L"DOF Main Pass");
 
 		computeContext.TransitionResource(bufferManager::g_DoFPrefilter,    D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -269,7 +265,7 @@ void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, f
 	//}
 	// else
 	{
-		computeContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);/**/
+		computeContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		computeContext.SetPipelineState(DoFCombineCS);
 		computeContext.SetDynamicDescriptor(1, 0, bufferManager::g_DoFBlurColor[1].GetSRV()); // MedianFilter ? 1 : 0
@@ -288,9 +284,10 @@ void DOFPass::Execute(custom::CommandContext& BaseContext, float NearClipDist, f
 	}
     // computeContext.Finish();
     // graphicsContext.Finish();
+	*/
 }
 
-void DOFPass::RenderSubWindow()
+void DOFPass::RenderWindow() DEBUG_EXCEPT
 {
 	bool bChangedFocalDepth{ false };
 	bool bChangedFocalRange{ false };

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -163,10 +163,6 @@
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BindingPass.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="BufferManager.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CameraEntity.cpp" />
@@ -186,8 +182,10 @@
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="CommandQueueManager.cpp" />
     <ClCompile Include="CommandSignature.cpp" />
+    <ClCompile Include="CopyContext.cpp" />
     <ClCompile Include="CPULinearAllocator.cpp" />
     <ClCompile Include="CustomFence.cpp" />
+    <ClCompile Include="CustomResourceBarrier.cpp" />
     <ClCompile Include="GPUWorkManager.cpp" />
     <ClCompile Include="CustomCommandQALPool.cpp" />
     <ClCompile Include="CustomImgui.cpp" />
@@ -209,7 +207,6 @@
     <ClCompile Include="DepthOfFieldPass.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="DepthStencil.cpp" />
     <ClCompile Include="DescriptorHeapManager.cpp" />
     <ClCompile Include="DynamicDescriptorHeap.cpp" />
     <ClCompile Include="DynamicUploadBuffer.cpp" />
@@ -270,8 +267,9 @@
     <ClCompile Include="ModelPart.cpp" />
     <ClCompile Include="PixelBuffer.cpp" />
     <ClCompile Include="PSO.cpp" />
-    <ClCompile Include="RawBuffer.cpp" />
-    <ClCompile Include="RenderTarget.cpp" />
+    <ClCompile Include="RawBuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="ScopedPtr.cpp" />
     <ClCompile Include="ShaderConstantsTypeDefinitions.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -301,9 +299,6 @@
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="imgui.cpp" />
-    <ClCompile Include="ImguiRenderStage.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_impl_dx12.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
@@ -322,9 +317,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Font Header\consola24.h" />
-    <ClInclude Include="BindingPass.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="BoundingPlane.h" />
     <ClInclude Include="BoundingSphere.h" />
     <ClInclude Include="BufferManager.h" />
@@ -342,7 +334,10 @@
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="CommandQueueManager.h" />
     <ClInclude Include="CommandSignature.h" />
+    <ClInclude Include="CopyContext.h" />
     <ClInclude Include="CPULinearAllocator.h" />
+    <ClInclude Include="CustomCriticalSection.h" />
+    <ClInclude Include="CustomResourceBarrier.h" />
     <ClInclude Include="GPUWorkManager.h" />
     <ClInclude Include="CustomCommandQALPool.h" />
     <ClInclude Include="CustomFence.h" />
@@ -351,6 +346,7 @@
     <ClInclude Include="DebugShadowMapPass.h" />
     <ClInclude Include="FundamentalTexture.h" />
     <ClInclude Include="FundamentalVertexIndex.h" />
+    <ClInclude Include="ListEntryHelper.h" />
     <ClInclude Include="MaterialConstants.h" />
     <ClInclude Include="ModelComponentWindow.h" />
     <ClInclude Include="CompressedQuaternion.h" />
@@ -362,7 +358,6 @@
     <ClInclude Include="DDSTextureLoader.cpp" />
     <ClInclude Include="DepthBuffer.h" />
     <ClInclude Include="DepthOfFieldPass.h" />
-    <ClInclude Include="DepthStencil.h" />
     <ClInclude Include="DescriptorHandle.h" />
     <ClInclude Include="eLayoutFlags.h" />
     <ClInclude Include="FileReader.h" />
@@ -392,12 +387,13 @@
       <FileType>Document</FileType>
     </None>
     <ClInclude Include="IBaseCamera.h" />
-    <ClInclude Include="IDisplaySurface.h" />
     <ClInclude Include="DynamicDescriptorHeap.h" />
     <ClInclude Include="DynamicUploadBuffer.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="Job.h" />
-    <ClInclude Include="LayoutCodex.h" />
+    <ClInclude Include="LayoutCodex.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="MathBasic.h" />
     <ClInclude Include="MathCommon.h" />
     <ClInclude Include="Matrix3.h" />
@@ -420,8 +416,9 @@
     <ClInclude Include="ModelPart.h" />
     <ClInclude Include="PixelBuffer.h" />
     <ClInclude Include="PSO.h" />
-    <ClInclude Include="RawBuffer.h" />
-    <ClInclude Include="RenderTarget.h" />
+    <ClInclude Include="RawBuffer.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="ScopedPtr.h" />
     <ClInclude Include="ShaderConstantsTypeDefinitions.h" />
     <ClInclude Include="ShadowBuffer.h" />
@@ -451,9 +448,6 @@
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="ImGuiManager.h" />
-    <ClInclude Include="ImguiRenderStage.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="imgui_impl_dx12.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="imgui_internal.h" />
@@ -470,7 +464,6 @@
     <ClInclude Include="SamplerDescriptor.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TypeDefine.h" />
-    <ClInclude Include="UpdateConstantBuffer.h" />
     <ClInclude Include="Vector.h" />
     <ClInclude Include="Window.h" />
     <ClInclude Include="WindowInput.h" />
@@ -1394,6 +1387,9 @@
       <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ObjectFileOutput>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Memo.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

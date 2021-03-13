@@ -112,8 +112,11 @@ private:
 class StatGraph
 {
 public:
-	StatGraph(const std::wstring& Label, D3D12_RECT Window)
-		: m_Label(Label), m_Window(Window), m_BGColor(0.0f, 0.0f, 0.0f, 0.2f)
+	StatGraph(const std::wstring& Label, const D3D12_RECT Window)
+		: 
+		m_Label(Label), 
+		m_Window(Window), 
+		m_BGColor(0.0f, 0.0f, 0.0f, 0.2f)
 	{
 		m_PeakValue = 0.0f;
 	}
@@ -123,7 +126,7 @@ public:
 		m_Label = Label;
 	}
 
-	void SetWindow(D3D12_RECT Window)
+	void SetWindow(const D3D12_RECT Window)
 	{
 		m_Window = Window;
 	}
@@ -135,7 +138,7 @@ public:
 		return Idx;
 	}
 
-	StatPlot& GetPlot(uint32_t Handle)
+	StatPlot& GetPlot(const uint32_t Handle)
 	{
 		if (Handle < m_Stats.size())
 		{
@@ -143,7 +146,7 @@ public:
 		}
 	}
 
-	void Draw(custom::GraphicsContext& Context);
+	// void Draw(custom::GraphicsContext& Context);
 
 private:
 	std::wstring m_Label;
@@ -164,22 +167,22 @@ public:
 		m_TimerIndex = GPUTime::NewTimer();
 	}
 
-	void Start(custom::CommandContext& Context)
+	void Start(const custom::CommandContext& Context, const uint8_t commandIndex) const
 	{
-		GPUTime::StartTimer(Context, m_TimerIndex);
+		GPUTime::StartTimer(Context, m_TimerIndex, commandIndex);
 	}
 
-	void Stop(custom::CommandContext& Context)
+	void Stop(custom::CommandContext& Context, const uint8_t commandIndex) const
 	{
-		GPUTime::StopTimer(Context, m_TimerIndex);
+		GPUTime::StopTimer(Context, m_TimerIndex, commandIndex);
 	}
 
-	float GetTime()
+	float GetTime() const
 	{
 		return GPUTime::GetTime(m_TimerIndex);
 	}
 
-	uint32_t GetTimerIndex()
+	uint32_t GetTimerIndex() const
 	{
 		return m_TimerIndex;
 	}
@@ -212,7 +215,7 @@ public:
 		return node;
 	}
 
-	NestedTimingTree* NextScope(void)
+	NestedTimingTree* NextScope()
 	{
 		if (m_IsExpanded && m_Children.size())
 		{
@@ -296,7 +299,7 @@ public:
 		return nullptr;
 	}
 
-	void StartTiming(custom::CommandContext* Context)
+	void StartTiming(custom::CommandContext* const Context, const uint8_t commandIndex)
 	{
 		m_StartTick = CPUTime::GetCurrentTick();
 
@@ -305,20 +308,23 @@ public:
 			return;
 		}
 
-		m_GpuTimer.Start(*Context);
+		m_GpuTimer.Start(*Context, commandIndex);
 
-		Context->PIXBeginEvent(m_Name.c_str());
+		Context->PIXBeginEvent(m_Name.c_str(), commandIndex);
 	}
 
-	void StopTiming(custom::CommandContext* Context)
+	void StopTiming(custom::CommandContext* const Context, const uint8_t commandIndex)
 	{
 		m_EndTick = CPUTime::GetCurrentTick();
+
 		if (Context == nullptr)
+		{
 			return;
+		}
 
-		m_GpuTimer.Stop(*Context);
+		m_GpuTimer.Stop(*Context, commandIndex);
 
-		Context->PIXEndEvent();
+		Context->PIXEndEvent(commandIndex);
 	}
 
 	void GatherTimes(uint32_t FrameIndex)
@@ -358,8 +364,8 @@ public:
 		}
 	}
 
-	static void PushProfilingMarker(const std::wstring& name, custom::CommandContext* Context);
-	static void PopProfilingMarker(custom::CommandContext* Context);
+	static void PushProfilingMarker(const std::wstring& name, custom::CommandContext* const Context, const uint8_t commandIndex);
+	static void PopProfilingMarker(custom::CommandContext* const Context, const uint8_t commandIndex);
 
 	static void Update();
 	static void UpdateTimes()
@@ -466,14 +472,14 @@ namespace Profiling
 		NestedTimingTree::UpdateTimes();
 	}
 
-	void BeginBlock(const std::wstring& name, custom::CommandContext* Context)
+	void BeginBlock(const std::wstring& name, custom::CommandContext* const Context, const uint8_t commandIndex)
 	{
-		NestedTimingTree::PushProfilingMarker(name, Context);
+		NestedTimingTree::PushProfilingMarker(name, Context, commandIndex);
 	}
 
-	void EndBlock(custom::CommandContext* Context)
+	void EndBlock(custom::CommandContext* const Context, const uint8_t commandIndex)
 	{
-		NestedTimingTree::PopProfilingMarker(Context);
+		NestedTimingTree::PopProfilingMarker(Context, commandIndex);
 	}
 
 	bool IsPaused()
@@ -504,6 +510,7 @@ namespace Profiling
 	{
 		if (DrawPerfGraph)
 		{
+			ASSERT(false);
 			// GraphRenderer::RenderGraphs(Context, GraphType::Global);
 		}
 	}
@@ -531,20 +538,20 @@ namespace Profiling
 			NestedTimingTree::Display(Text, x);
 		}
 
-		Text.GetCommandContext().SetScissor(0, 0, window::g_TargetWindowWidth, window::g_TargetWindowHeight);
+		Text.GetGraphicsContext()->SetScissor(0, 0, window::g_TargetWindowWidth, window::g_TargetWindowHeight, Text.GetCommandIndex());
 	}
 
 } // Profiling
 
-void NestedTimingTree::PushProfilingMarker(const std::wstring& name, custom::CommandContext* Context)
+void NestedTimingTree::PushProfilingMarker(const std::wstring& name, custom::CommandContext* const Context, const uint8_t commandIndex)
 {
 	sm_CurrentNode = sm_CurrentNode->GetChild(name);
-	sm_CurrentNode->StartTiming(Context);
+	sm_CurrentNode->StartTiming(Context, commandIndex);
 }
 
-void NestedTimingTree::PopProfilingMarker(custom::CommandContext* Context)
+void NestedTimingTree::PopProfilingMarker(custom::CommandContext* const Context, const uint8_t commandIndex)
 {
-	sm_CurrentNode->StopTiming(Context);
+	sm_CurrentNode->StopTiming(Context, commandIndex);
 	sm_CurrentNode = sm_CurrentNode->m_Parent;
 }
 

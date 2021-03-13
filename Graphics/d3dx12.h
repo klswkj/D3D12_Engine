@@ -1905,6 +1905,7 @@ inline UINT64 UpdateSubresources(
     // Minor validation
     auto IntermediateDesc = pIntermediate->GetDesc();
     auto DestinationDesc = pDestinationResource->GetDesc();
+
     if (IntermediateDesc.Dimension != D3D12_RESOURCE_DIMENSION_BUFFER || 
         IntermediateDesc.Width < RequiredSize + pLayouts[0].Offset || 
         RequiredSize > SIZE_T(-1) || 

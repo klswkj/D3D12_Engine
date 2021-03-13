@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "TextureManager.h"
 #include "ManagedTexture.h"
+#include "CommandContext.h"
+#include "CommandContextManager.h"
 
 std::wstring MakeWStr(const std::string& str)
 {
@@ -13,9 +15,42 @@ namespace TextureManager
 	// std::map<std::wstring, std::unique_ptr<ManagedTexture>> s_TextureCache;
 	std::map<std::wstring, std::shared_ptr<ManagedTexture>> s_TextureCache;
 
-	void Initialize(const std::wstring TextureLibRoot/* = L""*/)
+	void Initialize(const std::wstring wTextureLibRoot/* = L""*/)
 	{
-		s_RootPath = TextureLibRoot;
+		s_RootPath = wTextureLibRoot;
+	}
+
+	uint64_t AllTextureResourceTransition(const D3D12_RESOURCE_STATES newState)
+	{
+		custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(1u);
+		uint64_t numResourceCommand = 0ull;
+
+		for (auto& e : s_TextureCache)
+		{
+			graphicsContext.TransitionResource(*e.second, newState);
+
+			if (16u <= graphicsContext.GetNumStandbyResourceBarrier())
+			{
+				graphicsContext.SubmitResourceBarriers(0u);
+				++numResourceCommand;
+			}
+		}
+
+		if (graphicsContext.GetNumStandbyResourceBarrier())
+		{
+			graphicsContext.SubmitResourceBarriers(0u);
+			++numResourceCommand;
+		}
+
+		if (numResourceCommand)
+		{
+			return graphicsContext.Finish(false);
+		}
+		else
+		{
+			device::g_commandContextManager.FreeContext(&graphicsContext);
+			return 0ull;
+		}
 	}
 
 	void Shutdown()
@@ -31,12 +66,12 @@ namespace TextureManager
 		return s_RootPath;
 	}
 
-	std::pair<ManagedTexture*, bool> FindOrLoadTexture(const std::wstring& fileName)
+	std::pair<ManagedTexture*, bool> FindOrLoadTexture(const std::wstring& wFileName)
 	{
 		static std::mutex s_Mutex;
 		std::lock_guard<std::mutex> Guard(s_Mutex);
 
-		auto iter = s_TextureCache.find(fileName);
+		auto iter = s_TextureCache.find(wFileName);
 
 		// If it's found, it has already been loaded or the load process has begun
 		if (iter != s_TextureCache.end())
@@ -44,8 +79,8 @@ namespace TextureManager
 			return std::make_pair(iter->second.get(), false);
 		}
 
-		ManagedTexture* NewTexture = new ManagedTexture(fileName);
-		s_TextureCache[fileName].reset(NewTexture);
+		ManagedTexture* NewTexture = new ManagedTexture(wFileName);
+		s_TextureCache[wFileName].reset(NewTexture);
 
 		// This was the first time it was requested, so indicate that the caller must read the file
 		return std::make_pair(NewTexture, true);
@@ -65,7 +100,7 @@ namespace TextureManager
 		}
 
 		uint32_t BlackPixel = 0;
-		ManTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &BlackPixel);
+		ManTex->CreateCommittedTexture(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &BlackPixel);
 		return *ManTex;
 	}
 
@@ -83,7 +118,7 @@ namespace TextureManager
 		}
 
 		uint32_t WhitePixel = 0xFFFFFFFFul;
-		ManTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &WhitePixel);
+		ManTex->CreateCommittedTexture(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &WhitePixel);
 		return *ManTex;
 	}
 
@@ -101,7 +136,7 @@ namespace TextureManager
 		}
 
 		uint32_t MagentaPixel = 0x00FF00FF;
-		ManTex->Create(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &MagentaPixel);
+		ManTex->CreateCommittedTexture(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM, &MagentaPixel);
 		return *ManTex;
 	}
 } // namespace TextureManager

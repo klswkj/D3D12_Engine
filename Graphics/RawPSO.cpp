@@ -7,7 +7,7 @@ RawPSO::RawPSO(ID3D12PipelineState* pPSO)
 {
 }
 
-void RawPSO::Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void RawPSO::Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) DEBUG_EXCEPT
 {
-	BaseContext.SetPipelineStateByPtr(m_pPSO);
+	BaseContext.SetPipelineStateByPtr(m_pPSO, commandIndex);
 }

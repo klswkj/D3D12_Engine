@@ -1,23 +1,6 @@
 #include "stdafx.h"
 #include "CustomFence.h"
 
-#ifndef CHECK_TYPE
-#define CHECK_TYPE(Type, FenceValue) (FenceValue >> 56) == (uint64_t)(Type)
-#endif
-#ifndef CHECK_VALID_FENCE_VALUE
-#define CHECK_VALID_FENCE_VALUE(Type, FenceValue) (((uint64_t)Type << 56) <= FenceValue) && \
-                                                  (FenceValue < ((uint64_t)(Type + 1ull) << 56))
-#endif
-#ifndef CHECK_VALID_TYPE
-#define CHECK_VALID_TYPE(Type) Type == D3D12_COMMAND_LIST_TYPE_DIRECT || \
-                               Type == D3D12_COMMAND_LIST_TYPE_COMPUTE|| \
-                               Type == D3D12_COMMAND_LIST_TYPE_COPY
-#endif
-
-#ifndef TYPE_TO_INDEX
-#define TYPE_TO_INDEX(Type) ((uint64_t)Type + 1ull) / 2ull
-#endif
-
 namespace custom
 {
 	ID3D12Fence* CustomFence::sm_pFence[3] = { nullptr, nullptr, nullptr };
@@ -43,8 +26,7 @@ namespace custom
 		m_rLastCompletedGPUFenceValue(sm_LastCompletedGPUFenceValue[TYPE_TO_INDEX(type)]),
 		m_Type(type)
 	{
-		ASSERT(CHECK_VALID_TYPE(type));
-		ASSERT(m_prFence, "CustomFence::SetFence Must be called.");
+		ASSERT(CHECK_VALID_TYPE(type) && m_prFence, "CustomFence::SetFence Must be called.");
 		m_hCompleteEvent = CreateEvent(nullptr, false, false, nullptr);
 	}
 
@@ -69,11 +51,14 @@ namespace custom
 		uint64_t Index = TYPE_TO_INDEX(type);
 		uint64_t GPUSideLastCompletedFenceValue = pFence->GetCompletedValue();
 
-		ASSERT(pFence);
-		ASSERT(CHECK_VALID_TYPE(type));
-		ASSERT(!sm_pFence[Index]);
-		ASSERT(CHECK_VALID_FENCE_VALUE(type, pFence->GetCompletedValue()));
-		ASSERT(GPUSideLastCompletedFenceValue < InterlockedGetValue(&sm_CPUSideNextFenceValue[Index]));
+		ASSERT
+		(
+			pFence && 
+			CHECK_VALID_TYPE(type) && 
+			(sm_pFence[Index] == nullptr) && 
+			CHECK_VALID_FENCE_VALUE(type, pFence->GetCompletedValue()) && 
+			GPUSideLastCompletedFenceValue < InterlockedGetValue(&sm_CPUSideNextFenceValue[Index])
+		);
 
 		sm_pFence[Index] = pFence;
 	}
@@ -96,16 +81,22 @@ namespace custom
 
 	uint64_t CustomFence::GetCPUSideNextFenceValue(D3D12_COMMAND_LIST_TYPE expectedtype)
 	{
-		ASSERT(expectedtype == m_Type);
-		ASSERT(CHECK_TYPE(expectedtype, InterlockedGetValue(&m_rCPUSideNextFenceValue)));
+		ASSERT
+		(
+			(expectedtype == m_Type) &&
+			CHECK_TYPE(expectedtype, InterlockedGetValue(&m_rCPUSideNextFenceValue))
+		);
 
 		return InterlockedGetValue(&m_rCPUSideNextFenceValue);
 	}
 
 	uint64_t CustomFence::GetGPUCompletedValue(D3D12_COMMAND_LIST_TYPE expectedtype)
 	{
-		ASSERT(m_prFence);
-		ASSERT(expectedtype == m_Type);
+		ASSERT
+		(
+			m_prFence &&
+			(expectedtype == m_Type)
+		);
 
 		uint64_t CurrentGPUSideFenceValue = m_prFence->GetCompletedValue();
 
@@ -132,36 +123,48 @@ namespace custom
 		ASSERT(pCommandQueue);
 		D3D12_COMMAND_LIST_TYPE NewType = pCommandQueue->GetDesc().Type;
 
-		ASSERT(CHECK_VALID_TYPE(NewType));
-		ASSERT(m_Type == NewType);
+		ASSERT
+		(
+			CHECK_VALID_TYPE(NewType) &&
+			(m_Type == NewType)
+		);
 
 		m_pCommandQueue = pCommandQueue;
 	}
 	void CustomFence::SetLastExecuteFenceValue(uint64_t fenceValue)
 	{
-		ASSERT(m_LastExecuteFenceValue < fenceValue);
-		ASSERT(CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
+		ASSERT
+		(
+			(m_LastExecuteFenceValue < fenceValue) &&
+			CHECK_VALID_FENCE_VALUE(m_Type, fenceValue)
+		);
+
 		m_LastExecuteFenceValue = fenceValue;
 	}
 
 	void CustomFence::SignalCPUFenceValue(uint64_t signalValue)
 	{
-		ASSERT(CHECK_VALID_FENCE_VALUE(m_Type, signalValue));
-		ASSERT(m_prFence);
+		ASSERT
+		(
+			CHECK_VALID_FENCE_VALUE(m_Type, signalValue) &&
+			m_prFence
+		);
+
 		m_prFence->Signal(signalValue);
 	}
 	void CustomFence::SignalCPUGPUFenceValue(uint64_t signalValue)
 	{
-		ASSERT(CHECK_VALID_FENCE_VALUE(m_Type, signalValue));
-		ASSERT(m_prFence);
-		ASSERT(m_pCommandQueue);
+		ASSERT
+		(
+			CHECK_VALID_FENCE_VALUE(m_Type, signalValue) &&
+			m_prFence && m_pCommandQueue
+		);
 		m_pCommandQueue->Signal(m_prFence, signalValue);
 	}
 
 	uint64_t CustomFence::IncreCPUGPUFenceValue()
 	{
-		ASSERT(m_pCommandQueue);
-		ASSERT(m_prFence);
+		ASSERT(m_pCommandQueue && m_prFence);
 		m_pCommandQueue->Signal(m_prFence, InterlockedGetValue(&m_rCPUSideNextFenceValue));
 		return InterlockedIncrement64((volatile LONG64*)&m_rCPUSideNextFenceValue) - 1;
 		// return m_rCPUSideNextFenceValue++;
@@ -169,14 +172,12 @@ namespace custom
 
 	bool CustomFence::IsFenceComplete(uint64_t fenceValue /*= 0*/)
 	{
-		ASSERT(m_prFence);
-
 		if (fenceValue == 0)
 		{
 			fenceValue = m_LastExecuteFenceValue;
 		}
 
-		ASSERT(CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
+		ASSERT(m_prFence && CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
 
 		if (InterlockedGetValue(&m_rLastCompletedGPUFenceValue) <= fenceValue)
 		{
@@ -198,9 +199,11 @@ namespace custom
 	}
 	HRESULT CustomFence::GPUSideWait(ID3D12Fence* pFence, uint64_t fenceValue)
 	{
-		ASSERT(pFence && fenceValue);
-		ASSERT(m_pCommandQueue);
-		ASSERT(CHECK_VALID_TYPE((D3D12_COMMAND_LIST_TYPE)(fenceValue >> 56)));
+		ASSERT
+		(
+			pFence && fenceValue && m_pCommandQueue &&
+			CHECK_VALID_TYPE((D3D12_COMMAND_LIST_TYPE)(fenceValue >> 56))
+		);
 
 		return m_pCommandQueue->Wait(pFence, fenceValue);
 	}
@@ -216,14 +219,12 @@ namespace custom
 
 	DWORD CustomFence::CPUSideWait(uint64_t fenceValue, bool WaitForCompletion)
 	{
-		ASSERT(m_prFence);
-
 		if (fenceValue == 0)
 		{
 			fenceValue = m_LastExecuteFenceValue;
 		}
 
-		ASSERT(CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
+		ASSERT(m_prFence && CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
 
 		if (IsFenceComplete(fenceValue))
 		{
@@ -250,11 +251,10 @@ namespace custom
 
 	DWORD CustomFence::CPUSideWait(CustomFence& customFence, bool WaitForCompletion)
 	{
-		ASSERT(m_prFence);
-
 		uint64_t FenceValue = customFence.GetLastExecuteFenceValue();
 		D3D12_COMMAND_LIST_TYPE Type = customFence.m_Type;
-		ASSERT(CHECK_VALID_FENCE_VALUE(Type, FenceValue));
+
+		ASSERT(m_prFence && CHECK_VALID_FENCE_VALUE(Type, FenceValue));
 
 		if (FenceValue < customFence.GetGPUCompletedValue(Type))
 		{

@@ -7,9 +7,10 @@ class IEntity;
 namespace custom
 {
 	class CommandContext;
+	class GraphicsContext;
 }
 
-class TransformConstants : public RenderingResource
+class TransformConstants final : public RenderingResource
 {
 public:
 	__declspec(align(16)) struct Transform
@@ -17,14 +18,14 @@ public:
 		Math::Matrix4 ModelMatrix;
 	};
 
-	TransformConstants(UINT RootIndex);
-	void Bind(custom::CommandContext& BaseContext) override;
-	void InitializeParentReference(const IEntity& _Entity) noexcept override;
+	TransformConstants(const UINT rootIndex);
+	void Bind(custom::CommandContext& baseContext, const uint8_t commandIndex) final;
+	void InitializeParentReference(const IEntity& _Entity) noexcept final;
 	// void UpdateBind(custom::CommandContext& BaseContext);
 	// Transform GetTransform(custom::CommandContext& BaseContext);
 
 private:
 	UINT m_RootIndex;
-	const IEntity* m_pParent = nullptr;
+	const IEntity* m_pParent;
 	Transform m_Transform;
 };

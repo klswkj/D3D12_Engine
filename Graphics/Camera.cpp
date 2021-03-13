@@ -6,7 +6,8 @@
 #include "CustomImgui.h"
 
 Camera::Camera(CameraManager* OwningManager, char* Name, bool Visible, Math::Vector3 InitPosition, float InitPitch, float InitYaw)
-	: m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
+	: 
+	m_Projector(*this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
 	m_Entity(this)
 {
 	m_Name         = Name;
@@ -26,7 +27,8 @@ Camera::Camera(CameraManager* OwningManager, char* Name, bool Visible, Math::Vec
 }
 
 Camera::Camera(CameraManager* OwningManager, const char* Name, bool Visible, Math::Vector3 InitPosition/* = Math::Vector3{ 0.0f, 0.0f, 0.0f }*/, float InitPitch/* = 0.0f*/, float InitYaw/* = 0.0f*/)
-	: m_Projector(this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
+	: 
+	m_Projector(*this, DirectX::XM_PIDIV4, 9.0f / 16.0f, 1.0f, 1000.0f),
 	m_Entity(this)
 {
 	m_Name = Name;

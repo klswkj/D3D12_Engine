@@ -2,144 +2,91 @@
 #include "Device.h"
 #include "CommandQueueManager.h"
 
-// namespace-device
-// ID3D12* g_pDevice;
+CommandQueueManager* CommandQueueManager::sm_pCommandQueueManager  = nullptr;
+uint64_t             CommandQueueManager::sm_NumUnnamedCommandList = 0ull;
 
-CommandQueueManager::CommandQueueManager() :
-    m_graphicsCommandQueue(D3D12_COMMAND_LIST_TYPE_DIRECT),
-    m_computeCommandQueue (D3D12_COMMAND_LIST_TYPE_COMPUTE),
-    m_copyCommandQueue    (D3D12_COMMAND_LIST_TYPE_COPY),
-    m_pDevice(nullptr),
-    m_lastSubmitFenceForSwapChain(nullptr),
-    m_swapChainWaitableObject(nullptr),
-    m_FenceEvent(nullptr),
-    m_LastFenceValueForSwapChain(0)
+CommandQueueManager::CommandQueueManager() 
+    :
+    m_pDevice                (nullptr),
+    m_swapChainWaitableObject(nullptr)
 {
-    m_FenceEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    ASSERT(m_FenceEvent != nullptr);
+    ASSERT(sm_pCommandQueueManager == nullptr);
+    sm_pCommandQueueManager = this;
 }
 
-void CommandQueueManager::Create(ID3D12Device* pDevice)
+void CommandQueueManager::CreateCommandQueueManager(ID3D12Device* pDevice)
 {
     ASSERT(pDevice != nullptr);
 
     m_pDevice = pDevice;
 
-    m_graphicsCommandQueue.Create(pDevice);
-    m_computeCommandQueue.Create(pDevice);
-    m_copyCommandQueue.Create(pDevice);
-    m_TaskFiberManager.Create(pDevice);
+    m_CommandQueue[DIRECT_TYPE] .CreateTypedQueue(pDevice, D3D12_COMMAND_LIST_TYPE_DIRECT);
+    m_CommandQueue[COMPUTE_TYPE].CreateTypedQueue(pDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+    m_CommandQueue[COPY_TYPE]   .CreateTypedQueue(pDevice, D3D12_COMMAND_LIST_TYPE_COPY);
 }
 
-void CommandQueueManager::CreateNewCommandList
+// Not Used.
+void CommandQueueManager::RequestCommandAllocatorList
 (
-    ID3D12GraphicsCommandList** List,
-    ID3D12CommandAllocator** Allocator,
-    D3D12_COMMAND_LIST_TYPE Type,
-    std::wstring ID
+    ID3D12CommandAllocator**      Allocator,
+    ID3D12GraphicsCommandList**   List,
+    const D3D12_COMMAND_LIST_TYPE Type
 )
 {
-    switch (Type)
-    {
-        case D3D12_COMMAND_LIST_TYPE_DIRECT:
-        {
-            *Allocator = m_graphicsCommandQueue.requestAllocator(); 
-            break;
-        }
-        case D3D12_COMMAND_LIST_TYPE_COMPUTE: 
-        {
-            *Allocator = m_computeCommandQueue.requestAllocator(); 
-            break;
-        }
-        case D3D12_COMMAND_LIST_TYPE_COPY: 
-        {
-            *Allocator = m_copyCommandQueue.requestAllocator(); 
-            break;
-        }
-        default:
-        {
-            ASSERT(0, "Wrong Command List Type.");
-        }
-    }
+    ASSERT(CHECK_VALID_TYPE(Type), "Wrong Command List Type.");
 
-    static HRESULT createCommandListHR;
+    *Allocator = m_CommandQueue[TYPE_TO_INDEX(Type)].requestAllocator();
 
-    ASSERT_HR(createCommandListHR = device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
-    
-    std::wstring  UnnamedCommandList = L"Noname CommandList ";
-    static size_t NumUnnamedCommandList = 0;
-
-    if (0 < ID.length())
-    {
-        ID += L"'s CommandList";
-        
-        (*List)->SetName(ID.c_str());
-    }
-    else
-    {
-        
-        (*List)->SetName((UnnamedCommandList + std::to_wstring(NumUnnamedCommandList)).c_str());
-    }
+    ASSERT_HR(device::g_pDevice->CreateCommandList(1, Type, *Allocator, nullptr, IID_PPV_ARGS(List)));
+    ASSERT_HR((*List)->Close());
 }
 
-// If CommandContext::Finish(true);
-// Wait CommandQueue.executeCommandList(m_commandList)
-void CommandQueueManager::WaitForFence(uint64_t FenceValue)
+void CommandQueueManager::RequestCommandAllocatorLists
+(
+    std::vector<ID3D12CommandAllocator*>& pAllocators,
+    std::vector<ID3D12GraphicsCommandList*>& pLists,
+    const D3D12_COMMAND_LIST_TYPE type,
+    const size_t numPair
+)
 {
-    custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
-    Producer.WaitForFence(FenceValue);
-}
+    size_t NumNeed = pAllocators.size();
 
-void CommandQueueManager::StallForFence(uint64_t FenceValue)
-{
-    custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
-    Producer.m_commandQueue->Wait(Producer.m_pFence, FenceValue);
-}
-
-void CommandQueueManager::WaitForSwapChain()
-{
-    uint64_t fenceValue = m_LastFenceValueForSwapChain;
-
-    // No fence was signaled.
-    if (fenceValue == 0)
-    {
-        return; 
-    }
-
-    m_LastFenceValueForSwapChain = 0;
-    uint64_t CompletedValue = m_lastSubmitFenceForSwapChain->GetCompletedValue();
-
-    // It is already done.
-    if (fenceValue <= CompletedValue)
+    ASSERT(CHECK_VALID_TYPE(type) && (pAllocators.size() == pLists.size()) && NumNeed < numPair);
+ 
+    if (NumNeed == numPair)
     {
         return;
     }
 
+    m_CommandQueue[TYPE_TO_INDEX(type)].requestAllocators(pAllocators, numPair);
+    pLists.reserve(numPair);
+
+    ID3D12GraphicsCommandList* pList = nullptr;
+
+    static uint64_t s_CommandListIndex = -1;
+
+    for (size_t i = pLists.size(); i < numPair; ++i)
     {
-        m_lastSubmitFenceForSwapChain->SetEventOnCompletion(fenceValue, m_FenceEvent);
-        WaitForSingleObject(m_FenceEvent, INFINITE);
+        ASSERT_HR(device::g_pDevice->CreateCommandList(1, type, pAllocators[i], nullptr, IID_PPV_ARGS((ID3D12CommandList**)&pList)));
+#if defined(_DEBUG)
+        wchar_t CLName[40];
+        swprintf(CLName, _countof(CLName), L"CommandQueueManager's CommandLists #%zu", ++s_CommandListIndex);
+        pList->SetName(CLName);
+#endif
+        pLists.push_back(pList);
     }
 }
 
-void CommandQueueManager::WaitForNextFrameResources()
+// If CommandContext::Finish(true);
+// Wait CommandQueue.executeCommandList(m_pCommandList)
+void CommandQueueManager::WaitFenceValueCPUSide(uint64_t FenceValue)
 {
-    HANDLE waitableObjects[] = { m_swapChainWaitableObject, nullptr };
-    DWORD numWaitableObjects = 1;
-
-    uint64_t fenceValue = m_LastFenceValueForSwapChain;
-
-    if (fenceValue != 0) // means no fence was signaled
-    {
-        m_LastFenceValueForSwapChain = 0;
-        m_lastSubmitFenceForSwapChain->SetEventOnCompletion(fenceValue, m_FenceEvent);
-        waitableObjects[1] = m_FenceEvent;
-        numWaitableObjects = 2;
-    }
-
-    WaitForMultipleObjects(numWaitableObjects, waitableObjects, TRUE, INFINITE);
+    custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
+    Producer.WaitFenceValueCPUSide(FenceValue);
 }
 
-void /*CommandQueueManager::*/AdvanceOrderNewCommandList(size_t NumCommandLists)
+void CommandQueueManager::WaitFenceValueGPUSide(uint64_t FenceValue)
 {
-
+    custom::CommandQueue& Producer = GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
+    Producer.m_pCommandQueue->Wait(Producer.m_pFence, FenceValue);
 }

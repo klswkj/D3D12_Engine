@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "RootSignature.h"
 #include "Device.h"
-#include "CommandContext.h"
+// #include "CommandContext.h"
+#include "ComputeContext.h"
 
 static std::map<size_t, ID3D12RootSignature*> s_RootSignatureMap;
 
@@ -18,19 +19,28 @@ namespace custom
         s_RootSignatureMap.clear();
     }
 
-    void RootSignature::Bind(CommandContext& BaseContext) DEBUG_EXCEPT
+    void RootSignature::Bind(CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT
     {
         ASSERT(m_finalized, "This RootSignature is not finalized yet");
 
-        GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-        graphicsContext.SetRootSignature(*this);
+        custom::GraphicsContext* graphicsContext = nullptr;
+        custom::ComputeContext* computeContext = nullptr;
+
+        if (graphicsContext = dynamic_cast<custom::GraphicsContext*>(&BaseContext))
+        {
+            graphicsContext->SetRootSignature(*this, commandIndex);
+        }
+        else if(computeContext = dynamic_cast<custom::ComputeContext*>(&BaseContext))
+        {
+            computeContext->SetRootSignature(*this, commandIndex);
+        }
     }
 
     void RootSignature::InitStaticSampler
     (
-        uint32_t Register,
+        const uint32_t Register,
         const D3D12_SAMPLER_DESC& NonStaticSamplerDesc,
-        D3D12_SHADER_VISIBILITY Visibility /* = D3D12_SHADER_VISIBILITY_ALL */
+        const D3D12_SHADER_VISIBILITY Visibility /* = D3D12_SHADER_VISIBILITY_ALL */
     )
     {
         ASSERT(m_numInitializedStaticSamplers < m_numStaticSamplers);
@@ -92,7 +102,7 @@ namespace custom
         }
     }
 
-    void RootSignature::Finalize(const std::wstring& name, D3D12_ROOT_SIGNATURE_FLAGS Flags /*= D3D12_ROOT_SIGNATURE_FLAG_NONE*/)
+    void RootSignature::Finalize(const std::wstring& name, const D3D12_ROOT_SIGNATURE_FLAGS Flags /*= D3D12_ROOT_SIGNATURE_FLAG_NONE*/)
     {
         ASSERT(m_finalized == false);
         ASSERT(m_numInitializedStaticSamplers == m_numStaticSamplers);

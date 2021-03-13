@@ -3,6 +3,18 @@
 #include "CommandQueue.h"
 #include "GPUWorkManager.h"
 
+#ifndef DIRECT_TYPE
+#define DIRECT_TYPE 0ul
+#endif
+
+#ifndef COMPUTE_TYPE
+#define COMPUTE_TYPE 1ul
+#endif
+
+#ifndef COPY_TYPE
+#define COPY_TYPE 2ul
+#endif
+
 namespace custom
 {
     class CommandContext;
@@ -19,71 +31,52 @@ public:
         Shutdown();
     }
 
-    void Create(ID3D12Device* pDevice);
+    void CreateCommandQueueManager(ID3D12Device* pDevice);
 
-    void CreateNewCommandList
+    void RequestCommandAllocatorList
     (
-        ID3D12GraphicsCommandList** List,
         ID3D12CommandAllocator** Allocator,
-        D3D12_COMMAND_LIST_TYPE Type,
-        std::wstring ID
+        ID3D12GraphicsCommandList** List,
+        const D3D12_COMMAND_LIST_TYPE Type
     );
 
-    // void AdvanceOrderNewCommandList(size_t NumTypeDirect, size_t );
-
+    void RequestCommandAllocatorLists
+    (
+        std::vector<ID3D12CommandAllocator*>& Allocators,
+        std::vector<ID3D12GraphicsCommandList*>& Lists,
+        const D3D12_COMMAND_LIST_TYPE Type,
+        const size_t NumPair
+    );
+    
     void Shutdown()
     {
-        m_graphicsCommandQueue.Shutdown();
-        m_computeCommandQueue.Shutdown();
-        m_copyCommandQueue.Shutdown();
-        m_TaskFiberManager.Shutdown();
-
-        if (m_FenceEvent)
-        { 
-            CloseHandle(m_FenceEvent);
-            m_FenceEvent = NULL;
-        }
+        m_CommandQueue[DIRECT_TYPE].Shutdown();
+        m_CommandQueue[COMPUTE_TYPE].Shutdown();
+        m_CommandQueue[COPY_TYPE].Shutdown();
+        // m_TaskFiberManager.Shutdown();
     }
 
     custom::CommandQueue& GetGraphicsQueue() 
     { 
-        return m_graphicsCommandQueue;
+        return m_CommandQueue[DIRECT_TYPE];
     }
     custom::CommandQueue& GetComputeQueue() 
     { 
-        return m_computeCommandQueue; 
+        return m_CommandQueue[COMPUTE_TYPE];
     }
     custom::CommandQueue& GetCopyQueue() 
     { 
-        return m_copyCommandQueue; 
+        return m_CommandQueue[COPY_TYPE];
     }
     custom::CommandQueue& GetQueue(D3D12_COMMAND_LIST_TYPE Type = D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
-        switch (Type)
-        {
-            case D3D12_COMMAND_LIST_TYPE_DIRECT:
-            {
-                return m_graphicsCommandQueue;
-            }
-            case D3D12_COMMAND_LIST_TYPE_COMPUTE: 
-            {
-                return m_computeCommandQueue; 
-            }
-            case D3D12_COMMAND_LIST_TYPE_COPY: 
-            {
-                return m_copyCommandQueue; 
-            }
-            default:
-            {
-                ASSERT(0, "Wrong Command List Type.");
-                return m_graphicsCommandQueue;
-            }
-        }
-    }
+        ASSERT(CHECK_VALID_TYPE(Type), "Wrong Command List Type.");
 
-    ID3D12CommandQueue* GetCommandQueue()
+        return m_CommandQueue[TYPE_TO_INDEX(Type)];
+    }
+    ID3D12CommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE Type = D3D12_COMMAND_LIST_TYPE_DIRECT)
     {
-        return m_graphicsCommandQueue.GetCommandQueue();
+        return m_CommandQueue[TYPE_TO_INDEX(Type)].GetCommandQueue();
     }
 
     // Test to see if a fence has already been reached
@@ -93,34 +86,28 @@ public:
     }
 
     // The CPU will wait for a fence to reach a specified value
-    void WaitForFence(uint64_t FenceValue);
-    void StallForFence(uint64_t FenceValue);
+    void WaitFenceValueCPUSide(uint64_t FenceValue);
+    void WaitFenceValueGPUSide(uint64_t FenceValue);
 
-    void WaitForSwapChain();
-    void WaitForNextFrameResources();
-
-    void SetFenceValueForSwapChain (uint64_t FenceValue)     { m_LastFenceValueForSwapChain  = FenceValue; }
-    void SetFenceForSwapChain      (ID3D12Fence* pFence)     { m_lastSubmitFenceForSwapChain = pFence; }
-    void SetSwapChainWaitableObject(HANDLE* WaitableObject)  { m_swapChainWaitableObject     = WaitableObject; }
+    void SetSwapChainWaitableObject(HANDLE* WaitableObject)  { m_swapChainWaitableObject = WaitableObject; }
 
     // The CPU will wait for all command queues to empty (so that the GPU is idle)
-    void IdleGPU()
+    void WaitIdleCPUSide()
     {
-        m_graphicsCommandQueue.WaitForIdle();
-        m_computeCommandQueue .WaitForIdle();
-        m_copyCommandQueue    .WaitForIdle();
+        m_CommandQueue[DIRECT_TYPE].WaitCPUSide();
+        m_CommandQueue[COMPUTE_TYPE].WaitCPUSide();
+        m_CommandQueue[COPY_TYPE].WaitCPUSide();
     }
 
 private:
+    static CommandQueueManager* sm_pCommandQueueManager;
+    static uint64_t             sm_NumUnnamedCommandList;
+private:
     ID3D12Device* m_pDevice; // = device::g_pDevice;
 
-    custom::CommandQueue     m_graphicsCommandQueue; //  { ID3D12CommandQueue*, CommandAllocatorPool, ID3D12Fence*}
-    custom::CommandQueue     m_computeCommandQueue;
-    custom::CommandQueue     m_copyCommandQueue;
-    custom::TaskFiberManager m_TaskFiberManager;
+    // 3D, Compute, Copy
+    custom::CommandQueue m_CommandQueue[3];
+    // custom::TaskFiberManager m_TaskFiberManager;
 
-    ID3D12Fence* m_lastSubmitFenceForSwapChain;
-    HANDLE*      m_swapChainWaitableObject; // = device::g_hSwapChainWaitableObject
-    HANDLE       m_FenceEvent;
-    uint64_t     m_LastFenceValueForSwapChain;
+    HANDLE* m_swapChainWaitableObject; // = device::g_hSwapChainWaitableObject, Not used yet.
 };

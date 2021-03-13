@@ -4,7 +4,7 @@
 
 namespace custom
 {
-    class CommandContext;
+    class CommandContextManager;
 }
 
 class MainLight;
@@ -17,7 +17,7 @@ public:
         memset(&m_ShadowMatrix, 0, sizeof(m_ShadowMatrix)); // ZeroMemory(&m_ShadowMatrix, sizeof(m_ShadowMatrix));
     }
 
-    void BindToGraphics(custom::CommandContext& BaseContext);
+    void BindToGraphics(custom::CommandContextManager& contextManager);
 
     void UpdateShadowMatrix
     (

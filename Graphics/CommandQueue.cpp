@@ -2,17 +2,25 @@
 #include "CommandQueue.h"
 #include "CommandQueueManager.h"
 #include "Device.h"
+#include "CustomFence.h"
 
 namespace custom
 {
-    CommandQueue::CommandQueue(D3D12_COMMAND_LIST_TYPE Type)
-        : 
-        m_type(Type), m_allocatorPool(Type),
-        m_commandQueue(nullptr), m_pFence(nullptr), 
+    CommandQueue::CommandQueue()
+        :
+        m_type(D3D12_COMMAND_LIST_TYPE_VIDEO_PROCESS),
+        m_pFence          (nullptr),
+        m_pCommandQueue   (nullptr),
         m_FenceEventHandle(nullptr),
-        m_CPUSideNextFenceValue((uint64_t)Type << 56 | 1),
-        m_LastCompletedFenceValue((uint64_t)Type << 56)
+        m_CS({}),
+        m_CPUSideNextFenceValue  (0ull),
+        m_LastCompletedFenceValue(0ull)
     {
+        // CustomFence::SetFence(m_pFence, Type);
+        if (!m_CS.DebugInfo)
+        {
+            ::InitializeCriticalSection(&m_CS);
+        }
     }
     CommandQueue::~CommandQueue()
     {
@@ -21,7 +29,7 @@ namespace custom
 
     void CommandQueue::Shutdown()
     {
-		if (m_commandQueue == nullptr)
+		if (m_pCommandQueue == nullptr)
 		{
 			return;
 		}
@@ -31,31 +39,39 @@ namespace custom
         CloseHandle(m_FenceEventHandle);
 
         SafeRelease(m_pFence);
-        SafeRelease(m_commandQueue);
+        SafeRelease(m_pCommandQueue);
+
+        if (m_CS.DebugInfo)
+        {
+            ::DeleteCriticalSection(&m_CS);
+        }
     }
 
-    void CommandQueue::Create(ID3D12Device* pDevice)
+    void CommandQueue::CreateTypedQueue(ID3D12Device* const pDevice, const D3D12_COMMAND_LIST_TYPE type)
     {
         ASSERT(pDevice != nullptr);
-        ASSERT(m_commandQueue == nullptr);
+        ASSERT(m_pCommandQueue == nullptr);
         ASSERT(m_allocatorPool.Size() == 0);
+
+        m_type                    = type;
+        m_CPUSideNextFenceValue   = (uint64_t)type << 56 | 1;
+        m_LastCompletedFenceValue = (uint64_t)type << 56;
+        m_allocatorPool.SetCommandType(type);
 
         D3D12_COMMAND_QUEUE_DESC commandQueueDesc;
         ZeroMemory(&commandQueueDesc, sizeof(D3D12_COMMAND_QUEUE_DESC));
         commandQueueDesc.Type = m_type;
         commandQueueDesc.NodeMask = 1;
-        ASSERT_HR(pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue)));
-
-        static size_t NumCommandQueue = -1;
+        ASSERT_HR(pDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_pCommandQueue)));
 
         ASSERT_HR(pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pFence)));
 
 #ifdef _DEBUG
+        static size_t NumCommandQueue = -1;
         m_pFence->SetName(StringToWString("CommandQueue::m_pFence" + std::to_string(++NumCommandQueue)).c_str());
-        m_commandQueue->SetName(StringToWString("CommandQueue::m_CommandQueue" + std::to_string(++NumCommandQueue)).c_str());
+        m_pCommandQueue->SetName(StringToWString("CommandQueue::m_CommandQueue" + std::to_string(NumCommandQueue)).c_str());
 #endif
-
-        m_pFence->Signal((uint64_t)m_type << 56);
+        m_pFence->Signal(((UINT64)(uint64_t)m_type << 56));
 
         m_FenceEventHandle = CreateEvent(nullptr, false, false, nullptr);
         ASSERT(m_FenceEventHandle != NULL);
@@ -64,95 +80,114 @@ namespace custom
     uint64_t CommandQueue::IncreaseCPUGPUFenceValue()
     {
         // std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
-        m_commandQueue->Signal(m_pFence, InterlockedGetValue(&m_CPUSideNextFenceValue));
+        HRESULT HardwareResult = S_OK;
+        // Signal the next fence value (with the GPU)
+        uint64_t ContextFenceValue = InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
+        ASSERT_HR(HardwareResult = m_pCommandQueue->Signal(m_pFence, ContextFenceValue));
+
         // return m_CPUSideNextFenceValue++;
-        return InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
+        return ContextFenceValue;
     }
 
-    bool CommandQueue::IsFenceComplete(uint64_t FenceValue)
+    bool CommandQueue::IsFenceComplete(const uint64_t fenceValue)
     {
-		if (InterlockedGetValue(&m_LastCompletedFenceValue) < FenceValue)
+        ASSERT(CHECK_VALID_FENCE_VALUE(m_type, fenceValue));
+
+		if (InterlockedGetValue(&m_LastCompletedFenceValue) < fenceValue)
 		{
+            uint64_t LastCompletedFenceValue = m_pFence->GetCompletedValue();
+
 			InterlockedExchange
 			(
 				&m_LastCompletedFenceValue,
-				(m_pFence->GetCompletedValue() < m_LastCompletedFenceValue) ?
-				m_LastCompletedFenceValue : m_pFence->GetCompletedValue()
+				(LastCompletedFenceValue < m_LastCompletedFenceValue) ?
+				m_LastCompletedFenceValue : LastCompletedFenceValue
 			);
 		}
 
-        return FenceValue <= m_LastCompletedFenceValue;
+        return fenceValue <= InterlockedGetValue(&m_LastCompletedFenceValue);
     }
 
     // GPU-Side Wait until Value.
-    void CommandQueue::StallForFence(uint64_t FenceValue)
+    void CommandQueue::WaitFenceValueGPUSide(const uint64_t fenceValue)
     {
-        CommandQueue& Producer = device::g_commandQueueManager.GetQueue((D3D12_COMMAND_LIST_TYPE)(FenceValue >> 56));
-        m_commandQueue->Wait(Producer.m_pFence, FenceValue);
+        CommandQueue& Producer = device::g_commandQueueManager.GetQueue((D3D12_COMMAND_LIST_TYPE)(fenceValue >> 56));
+        m_pCommandQueue->Wait(Producer.m_pFence, fenceValue);
     }
-    bool CommandQueue::StallForProducer(CommandQueue& Producer)
+    bool CommandQueue::WaitCommandQueueCompletedGPUSide(CommandQueue& customQueue)
     {
-        ASSERT(0 < InterlockedGetValue(&Producer.m_CPUSideNextFenceValue));
-        return SUCCEEDED(m_commandQueue->Wait(Producer.m_pFence, InterlockedGetValue(&Producer.m_CPUSideNextFenceValue) - 1));
+        uint64_t CPUSideNextFenceValue = InterlockedGetValue(&customQueue.m_CPUSideNextFenceValue);
+        ASSERT(CHECK_VALID_FENCE_VALUE(customQueue.m_type, CPUSideNextFenceValue));
+        return SUCCEEDED(m_pCommandQueue->Wait(customQueue.m_pFence, CPUSideNextFenceValue - 1));
     }
-    void CommandQueue::WaitForFence(uint64_t FenceValue)
+    void CommandQueue::WaitFenceValueCPUSide(const uint64_t fenceValue)
     {
-        if (IsFenceComplete(FenceValue))
+        ASSERT(CHECK_VALID_FENCE_VALUE(m_type, fenceValue));
+
+        if (IsFenceComplete(fenceValue))
         {
             return;
         }
-        // TODO:  Think about how this might affect a multi-threaded situation.  
-        // Suppose thread A wants to wait for fence 100, then thread B comes along and wants to wait for 99.  
-        // If the fence can only have one event set on completion, 
-        // then thread B has to wait for 100 before it knows 99 is ready.  
-        // Maybe insert sequential events?
-        {
-            // std::lock_guard<std::mutex> LockGuard(m_eventMutex);
 
-            m_pFence->SetEventOnCompletion(FenceValue, m_FenceEventHandle);
+        {
+            m_pFence->SetEventOnCompletion(fenceValue, m_FenceEventHandle);
             ::WaitForSingleObject(m_FenceEventHandle, INFINITE);
             // m_LastCompletedFenceValue = FenceValue;
             InterlockedExchange
             (
                 &m_LastCompletedFenceValue, 
-                (FenceValue < m_LastCompletedFenceValue)?
-                m_LastCompletedFenceValue : FenceValue
+                (fenceValue < m_LastCompletedFenceValue)?
+                m_LastCompletedFenceValue : fenceValue
             );
         }
     }
 
-    uint64_t CommandQueue::executeCommandList(ID3D12CommandList* List)
+    uint64_t CommandQueue::executeCommandList(ID3D12CommandList* const pList)
     {
         // std::lock_guard<std::mutex> LockGuard(m_fenceMutex);
 
-        ASSERT_HR(((ID3D12GraphicsCommandList*)List)->Close());
+        ASSERT_HR(((ID3D12GraphicsCommandList*)pList)->Close());
 
         // Kickoff the command list
-        m_commandQueue->ExecuteCommandLists(1, &List);
+        m_pCommandQueue->ExecuteCommandLists(1, &pList);
 
-		// Signal the next fence value (with the GPU)
-		HRESULT hr = m_commandQueue->Signal(m_pFence, InterlockedGetValue(&m_CPUSideNextFenceValue));
-        ASSERT_HR(hr);
-        // LDR Present /////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // D3D12 ERROR : ID3D12CommandQueue::ExecuteCommandLists : 
-        // A command list, which writes to a swapchain back buffer, 
-        // may only be executed when that back buffer is the back buffer that will be presented during the next call to Present*.
-        // => 스왑체인백퍼에 쓰기를 하는 commandlist는 다음 번의 "Present()"로 불려져서 다음에 화면에 보여질 백버퍼가 될 백버퍼만 execute할 수 있습니다.
-        // => 다다음번의 Present() 될 backbuffer를 미리 쓰고 execute했다는건가...
-
-        // Such a back buffer is also referred to as the "current back buffer".
-
-        // Swap Chain : 0x000002BD5EDCB610 : 'Unnamed Object' 
-        // - Current Back Buffer Buffer : 0x000002BD68C2E010 : 'g_DisplayColorBuffer 0' 
-        // - Attempted Write Buffer : 0x000002BD68C2F9F0 : 
-        // 'g_DisplayColorBuffer 2'[STATE_SETTING ERROR #907: EXECUTECOMMANDLISTS_WRONGSWAPCHAINBUFFERREFERENCE]
-        // And increment the fence value.
-
-        // End LRR
+        HRESULT HardwareResult = S_OK;
+        // Signal the next fence value (with the GPU)
+        uint64_t ContextFenceValue = InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
+        ASSERT_HR(HardwareResult = m_pCommandQueue->Signal(m_pFence, ContextFenceValue));
 
         // return m_CPUSideNextFenceValue++;
-        return InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
+        return ContextFenceValue;
+    }
+    uint64_t CommandQueue::executeCommandLists
+    (
+        const std::vector<ID3D12GraphicsCommandList*>& Lists, 
+        const size_t startIndex, const size_t endIndex
+    )
+    {
+        size_t Size = Lists.size();
+
+        ASSERT((startIndex <= endIndex) && (endIndex < Size));
+
+        for (size_t i = startIndex; i <= endIndex; ++i)
+        {
+           ASSERT_HR(Lists[i]->Close());
+        }
+
+        HRESULT HardwareResult = S_OK;
+
+        ::EnterCriticalSection(&m_CS);
+
+        // Execute CommandLists
+        m_pCommandQueue->ExecuteCommandLists((UINT)(endIndex - startIndex + 1), (ID3D12CommandList* const*)(Lists.data() + startIndex));
+
+        // Signal the next fence value (with the GPU)
+        uint64_t ContextFenceValue = InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
+        ASSERT_HR(HardwareResult = m_pCommandQueue->Signal(m_pFence, ContextFenceValue));
+
+        ::LeaveCriticalSection(&m_CS);
+
+        return ContextFenceValue;
     }
 
     ID3D12CommandAllocator* CommandQueue::requestAllocator()
@@ -161,8 +196,30 @@ namespace custom
 
         return m_allocatorPool.RequestAllocator(CompletedFence);
     }
-    void CommandQueue::discardAllocator(uint64_t FenceValue, ID3D12CommandAllocator* Allocator)
+    void CommandQueue::requestAllocators(std::vector<ID3D12CommandAllocator*>& commandAllocators, const size_t numAllocators)
     {
-        m_allocatorPool.DiscardAllocator(FenceValue, Allocator);
+        uint64_t CompletedFence = m_pFence->GetCompletedValue();
+        return m_allocatorPool.RequestAllocators(commandAllocators, numAllocators, CompletedFence);
+    }
+
+    void CommandQueue::discardAllocator(ID3D12CommandAllocator* pAllocator, const uint64_t fenceValue)
+    {
+        m_allocatorPool.DiscardAllocator(pAllocator, fenceValue);
+    }
+    void CommandQueue::discardAllAllocators
+    (
+        std::vector<ID3D12CommandAllocator*>& pCommandAllocators, 
+        const uint64_t fenceValue
+    )
+    {
+        m_allocatorPool.DiscardAllAllocators(pCommandAllocators, fenceValue);
+    }
+    void CommandQueue::discardAllocators
+    (
+        std::vector<ID3D12CommandAllocator*>& pCommandAllocators,
+        const uint64_t fenceValue, const size_t numAllocators
+    )
+    {
+        m_allocatorPool.DiscardAllocators(pCommandAllocators, fenceValue, numAllocators);
     }
 }

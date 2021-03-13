@@ -3,33 +3,48 @@
 #include "Graphics.h"
 #include "DepthBuffer.h"
 
-void DepthBuffer::Create(const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format)
+void DepthBuffer::Create
+(
+    const std::wstring& wName, 
+    const uint32_t width, 
+    const uint32_t height, 
+    const DXGI_FORMAT format
+)
 {
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(Width, Height, 1, 1, Format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1, 1, format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
     D3D12_CLEAR_VALUE ClearValue = {};
-    ClearValue.Format = Format;
-    CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    createDSV(device::g_pDevice, Format);
+    ClearValue.Format            = format;
+
+    CreateTextureCommittedResource(device::g_pDevice, wName, ResourceDesc, &ClearValue);
+    createDSV(device::g_pDevice, format);
 }
 
-void DepthBuffer::CreateSamples(const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t Samples, DXGI_FORMAT Format)
+void DepthBuffer::CreateSamples
+(
+    const std::wstring& wName, 
+    const uint32_t width,
+    const uint32_t height, 
+    const uint32_t samples,
+    const DXGI_FORMAT format
+)
 {
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(Width, Height, 1, 1, Format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-    ResourceDesc.SampleDesc.Count = Samples;
+    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1, 1, format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+    ResourceDesc.SampleDesc.Count    = samples;
 
     D3D12_CLEAR_VALUE ClearValue = {};
-    ClearValue.Format = Format;
-    CreateTextureResource(device::g_pDevice, Name, ResourceDesc, ClearValue);
-    createDSV(device::g_pDevice, Format);
+    ClearValue.Format            = format;
+
+    CreateTextureCommittedResource(device::g_pDevice, wName, ResourceDesc, &ClearValue);
+    createDSV(device::g_pDevice, format);
 }
 
-void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
+void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT format)
 {
     ID3D12Resource* Resource = m_pResource;
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-    dsvDesc.Format = GetDSVFormat(Format);
+    dsvDesc.Format = GetDSVFormat(format);
     m_Format = dsvDesc.Format;
 
     if (Resource->GetDesc().SampleDesc.Count == 1)
@@ -49,12 +64,12 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
     }
 
     dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
-    Device->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[0]);
+    pDevice->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[0]);
 
     dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
-    Device->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[1]);
+    pDevice->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[1]);
 
-    DXGI_FORMAT stencilReadFormat = GetStencilFormat(Format);
+    DXGI_FORMAT stencilReadFormat = GetStencilFormat(format);
 
     if (stencilReadFormat != DXGI_FORMAT_UNKNOWN)
     {
@@ -65,10 +80,10 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
         }
 
         dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_STENCIL;
-        Device->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[2]);
+        pDevice->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[2]);
 
         dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH | D3D12_DSV_FLAG_READ_ONLY_STENCIL;
-        Device->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[3]);
+        pDevice->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[3]);
     }
     else
     {
@@ -82,7 +97,7 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
 	}
 
     D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-    SRVDesc.Format = GetDepthFormat(Format);
+    SRVDesc.Format = GetDepthFormat(format);
 
 
     if (dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
@@ -96,7 +111,7 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
     }
 
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    Device->CreateShaderResourceView(Resource, &SRVDesc, m_hDepthSRV);
+    pDevice->CreateShaderResourceView(Resource, &SRVDesc, m_hDepthSRV);
 
     if (stencilReadFormat != DXGI_FORMAT_UNKNOWN)
     {
@@ -106,7 +121,7 @@ void DepthBuffer::createDSV(ID3D12Device* Device, DXGI_FORMAT Format)
 		}
 
         SRVDesc.Format = stencilReadFormat;
-        Device->CreateShaderResourceView(Resource, &SRVDesc, m_hStencilSRV);
+        pDevice->CreateShaderResourceView(Resource, &SRVDesc, m_hStencilSRV);
     }
 }
 /*

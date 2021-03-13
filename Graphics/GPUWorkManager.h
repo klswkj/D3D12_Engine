@@ -25,14 +25,15 @@ namespace custom
 	public:
 		explicit TaskFiber(CustomCommandQALPool* pPool, ID3D12CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE type);
 		~TaskFiber();
-		D3D12_COMMAND_LIST_TYPE GetCommandType()  const { return m_Type; }
-		ID3D12CommandQueue*     GetCommandQueue() const { return m_pCommandQueue; }
-		ID3D12Fence*            GetFence()        const { return m_CustomFence.GetFence(); }
-		size_t          GetNumCommandAllocators() const { return m_CommandAllocators.size(); }
-		size_t          GetNumCommandLists()      const { return m_CommandLists.size(); }
+		D3D12_COMMAND_LIST_TYPE    GetCommandType()  const { return m_Type; }
+		ID3D12CommandQueue*        GetCommandQueue() const { return m_pCommandQueue; }
+		ID3D12Fence*               GetFence()        const { return m_CustomFence.GetFence(); }
 		ID3D12CommandAllocator*    GetCommandAllocator(size_t index) { if (index < m_CommandAllocators.size()) return m_CommandAllocators[index]; else return nullptr; }
 		ID3D12GraphicsCommandList* GetCommandList(size_t index)      { if (index < m_CommandLists.size()) return m_CommandLists[index]; else return nullptr; }
-		
+		size_t GetNumCommandAllocators()  const { return m_CommandAllocators.size(); }
+		size_t GetNumCommandLists()       const { return m_CommandLists.size(); }
+		size_t GetLastExecuteFenceValue() const { return m_CustomFence.GetLastExecuteFenceValue(); }
+
 		void SetCommandQueue(ID3D12CommandQueue* pCommandQueue, D3D12_COMMAND_LIST_TYPE type);
 		_Check_return_ bool ResetAllocatorLists(size_t numPair, ID3D12CommandAllocator** pAllocatorArray, ID3D12GraphicsCommandList** pListArray, D3D12_COMMAND_LIST_TYPE type);
 		void PushbackAllocatorLists(size_t numPair, ID3D12CommandAllocator** pAllocatorArray, ID3D12GraphicsCommandList** pListArray, D3D12_COMMAND_LIST_TYPE type);
@@ -53,7 +54,9 @@ namespace custom
 
 		D3D12_COMMAND_LIST_TYPE m_Type;
 	};
-	
+}
+namespace custom
+{
 	class TaskFiberManager
 	{
 	public:
@@ -64,9 +67,10 @@ namespace custom
 		void Create(ID3D12Device* pDevice);
 		void Shutdown();
 
-		TaskFiber* RequestWorkSubmission(size_t numPairALs, D3D12_COMMAND_LIST_TYPE type, uint64_t completedFenceValue = 0); // pseudo
-		void Release(TaskFiber* pWorkSubmission);
-		
+		// 여기서 FenceValue 생각하고 다시한번 체크하자.
+		static TaskFiber* RequestWorkSubmission(size_t numPairALs, D3D12_COMMAND_LIST_TYPE type, uint64_t completedFenceValue = 0);
+		static void Release(TaskFiber* pWorkSubmission);
+
 		CustomCommandQALPool* GetQALPool(D3D12_COMMAND_LIST_TYPE type);
 
 	private:
@@ -80,7 +84,7 @@ namespace custom
 
 		// COMMAND_LIST_TYPE [DIRECT, COMPUTE, COPY]
 		std::vector<TaskFiber*> m_ProcessingTask[3];
-		CustomCommandQALPool m_QALPool[3];
+		CustomCommandQALPool    m_QALPool[3];
 
 		CRITICAL_SECTION m_CS; // Not used yet.
 	};

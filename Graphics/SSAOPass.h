@@ -14,24 +14,33 @@ class IBaseCamera;
 class Camera;
 class ColorBuffer;
 
-// TODO : Camera* m_pCurrentCamera 만들어서 카메라 받고 렌더링하기
-class SSAOPass : public Pass
+class SSAOPass final : public ID3D12ScreenPass
 {
 	friend class MasterRenderGraph;
 	friend class MainRenderPass;
+	friend class ShadowMappingPass;
 public:
-	SSAOPass(std::string pName);
-	~SSAOPass() {}
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
-	void Reset() DEBUG_EXCEPT override;
-	void ComputeAO(custom::ComputeContext& BaseContext, ColorBuffer& Result, ColorBuffer& _DepthBuffer, const float TangentHalfFOVHorizontal);
+	SSAOPass(std::string name);
+	~SSAOPass();
+	void ExecutePass() DEBUG_EXCEPT final;
+	void Reset() DEBUG_EXCEPT final;
+
+	// 멀티스레딩 해야됨.
+	void ComputeAO(custom::ComputeContext& computeContext, uint8_t commandIndex, ColorBuffer& Result, ColorBuffer& _DepthBuffer, const float TangentHalfFOVHorizontal);
+	
+	// 멀티스레딩 해야됨.
 	void BlurAndUpsampling
 	(
-		custom::ComputeContext& Context, 
+		custom::ComputeContext& Context, uint8_t commandIndex,
 		ColorBuffer& Result, ColorBuffer& HighResolutionDepth, ColorBuffer& LowResolutionDepth,
 		ColorBuffer* InterleavedAO, ColorBuffer* HighQualityAO, ColorBuffer* HighResolutionAO
 	);
 	void RenderWindow();
+
+private:
+	void DecompressingDownsampling(void* ptr);
+	void AnalyzingDepthRange(void* ptr);
+
 public:
 	bool m_bEnable;
 	bool m_bDebugDraw;     // When DebugDraw is Enable, after all of passes' draw will be disabled.
@@ -40,6 +49,7 @@ public:
 private:
 	static SSAOPass* s_pSSAOPass;
 
+	float m_FovTangent;
 	float m_NoiseFilterTolerance; // or be named Threhold
 	float m_BlurTolerance;
 	float m_UpsampleTolerance;
@@ -47,6 +57,8 @@ private:
 	float m_Accentuation;
 	float m_ScreenSpaceDiameter;
 	int m_HierarchyDepth;
+
+	CRITICAL_SECTION m_CS;
 
 	enum class QualityLevel { kVeryLow = 0, kLow, kMedium, kHigh, kVeryHigh, kCount };
 	const char* m_QualityLabel[5] = { "VeryLow", "Low", "Medium", "High", "VeryHigh" };

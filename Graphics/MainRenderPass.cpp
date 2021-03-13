@@ -2,6 +2,7 @@
 #include "MainRenderPass.h"
 #include "Device.h"
 #include "CommandQueueManager.h"
+#include "CommandContextManager.h"
 
 #include "PreMadePSO.h"
 #include "ColorBuffer.h"
@@ -38,8 +39,13 @@
 
 MainRenderPass* MainRenderPass::s_pMainRenderPass = nullptr;
 
-MainRenderPass::MainRenderPass(std::string Name, custom::RootSignature* pRootSignature, GraphicsPSO* pPSO)
-	: RenderQueuePass(Name), m_pRootSignature(pRootSignature), m_pPSO(pPSO)
+MainRenderPass::MainRenderPass(std::string name, custom::RootSignature* pRootSignature, GraphicsPSO* pPSO)
+	: 
+	ID3D12RenderQueuePass(name, JobFactorization::ByNone), 
+	m_pRootSignature(pRootSignature), 
+	m_pPSO(pPSO),
+	m_bAllocateRootSignature(false),
+	m_bAllocatePSO(false)
 {
 	ASSERT(s_pMainRenderPass == nullptr);
 	s_pMainRenderPass = this;
@@ -115,83 +121,72 @@ MainRenderPass::~MainRenderPass()
 	}
 }
 
-void MainRenderPass::Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT
+void MainRenderPass::ExecutePass() DEBUG_EXCEPT
 {
+#ifdef _DEBUG
+	graphics::InitDebugStartTick();
+	float DeltaTime1 = graphics::GetDebugFrameTime();
+#endif
+
 	if (SSAOPass::s_pSSAOPass->m_bEnable && SSAOPass::s_pSSAOPass->m_bAsyncCompute)
 	{
-		// Flush-> Reset()
-		BaseContext.Flush();
-		// Make the 3D queue wait for the Compute queue to finish SSAO
-		ASSERT(device::g_commandQueueManager.GetGraphicsQueue().StallForProducer(device::g_commandQueueManager.GetComputeQueue()));
+		custom::CommandQueue& GraphicsQueue = device::g_commandQueueManager.GetGraphicsQueue();
+		custom::CommandQueue& ComputeQueue = device::g_commandQueueManager.GetComputeQueue();
+
+		ASSERT(GraphicsQueue.WaitCommandQueueCompletedGPUSide(ComputeQueue));
 	}
 	if (SSAOPass::s_pSSAOPass->m_bDebugDraw)
 	{
 		return;
 	}
 
-	BaseContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, false);
-	BaseContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ,            false);
-	BaseContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET,          true);
-	BaseContext.SetMainCamera(*BaseContext.GetpMainCamera());
-	BaseContext.GetGraphicsContext().SetSync();
+	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::GetRecentContext();
 
-	if (m_MultiThreading)
-	{
-		ExecuteWithMultiThread();
-	}
-	else
-	{
-		ExecuteWithSingleThread(BaseContext);
-	}
-}
+	uint8_t StartJobIndex = 0u;
+	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
 
-void MainRenderPass::ExecuteWithSingleThread(custom::CommandContext& BaseContext)
-{
+	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
+	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4u, this, &graphicsContext, StartJobIndex, MaxCommandIndex);
+
+	graphicsContext.PIXBeginEvent(L"7_MainRenderPass", StartJobIndex);
+	graphicsContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // UAV -> PIXEL_SHADER_RESOURCE
+	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // 
+	// graphicsContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE); // Suboptimal Trasition
+	graphicsContext.TransitionResource(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // ShadowPrePass->Z_PrePass¿¡¼­ ÇÔ.
+	graphicsContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ); // Suboptimal Trasition
+	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.SubmitResourceBarriers(StartJobIndex);
+
+	graphicsContext.SetMainCamera(*CommandContextManager::GetMainCamera());
+	graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	graphicsContext.SetViewportAndScissorRange(bufferManager::g_SceneColorBuffer, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetPipelineStateRange(*m_pPSO, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetRenderTargetsRange(1, &bufferManager::g_SceneColorBuffer.GetRTV(), bufferManager::g_SceneDepthBuffer.GetDSV_DepthReadOnly(), StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetDynamicDescriptorsRange(SSAOShadowRootIndex, 0u, _countof(m_SSAOShadowSRVs), m_SSAOShadowSRVs, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetVSConstantsBufferRange(0u, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetPSConstantsBufferRange(2u, StartJobIndex, MaxCommandIndex);
 #ifdef _DEBUG
-	graphics::InitDebugStartTick();
-	float DeltaTime1 = graphics::GetDebugFrameTime();
+	custom::ThreadPool::WaitAllFinished(); // Wait Set Params.
 #endif
+	custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint8_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
+	ContextWorkerThread(&m_Params[0]);
+	custom::ThreadPool::WaitAllFinished();
 
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.PIXBeginEvent(L"7_MainRenderPass");
-
-	// Set Fundmental Context.
-	{
-		graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
-		graphicsContext.SetRootSignature(*m_pRootSignature);
-		graphicsContext.SetPipelineState(*m_pPSO);
-		graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	}
-
-	graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), bufferManager::g_SceneDepthBuffer.GetDSV_DepthReadOnly());
-	graphicsContext.SetDynamicDescriptors(SSAOShadowRootIndex, 0u, _countof(m_SSAOShadowSRVs), m_SSAOShadowSRVs);
-
-	graphicsContext.SetVSConstantsBuffer(0u);
-	graphicsContext.SetPSConstantsBuffer(2u);
-
-	RenderQueuePass::Execute(BaseContext);
-
-	graphicsContext.PIXEndEvent();
-#ifdef _DEBUG
-	float DeltaTime2 = graphics::GetDebugFrameTime();
-	m_DeltaTime = DeltaTime2 - DeltaTime1;
-#endif
-}
-void MainRenderPass::ExecuteWithMultiThread()
-{
-#ifdef _DEBUG
-	graphics::InitDebugStartTick();
-	float DeltaTime1 = graphics::GetDebugFrameTime();
-#endif
-
-
-#ifdef _DEBUG
-	float DeltaTime2 = graphics::GetDebugFrameTime();
-	m_DeltaTime = DeltaTime2 - DeltaTime1;
-#endif
-}
-
-void MainRenderPass::WorkThread(size_t ThreadIndex)
-{
+	graphicsContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_COMMON);
+	graphicsContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_COMMON);
+	graphicsContext.TransitionResource(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_COMMON);
+	graphicsContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_COMMON);
+	graphicsContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_COMMON);
+	graphicsContext.SubmitResourceBarriers(MaxCommandIndex);
+	graphicsContext.PIXEndEvent(MaxCommandIndex); // End SSAOPass 
+	graphicsContext.Finish(false);
 	
+#ifdef _DEBUG
+	float DeltaTime2 = graphics::GetDebugFrameTime();
+	m_DeltaTime = DeltaTime2 - DeltaTime1;
+#endif
 }

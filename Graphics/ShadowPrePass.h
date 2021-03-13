@@ -1,4 +1,5 @@
 #pragma once
+#include "Pass.h"
 #include "RenderQueuePass.h"
 
 namespace custom
@@ -10,20 +11,22 @@ namespace custom
 class ShadowCamera;
 class GraphicsPSO;
 
-class ShadowPrePass : public RenderQueuePass
+class ShadowPrePass final : public ID3D12RenderQueuePass
 {
 public:
 	ShadowPrePass(std::string pName, custom::RootSignature* pRootSignature = nullptr, GraphicsPSO* pShadowPSO = nullptr);
 	~ShadowPrePass();
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+	void ExecutePass() DEBUG_EXCEPT final;
+	// void RenderWindow() DEBUG_EXCEPT final; Not Used.
 
 private:
-	static ShadowPrePass* s_pShadowPrePass;
+	static ShadowPrePass* sm_pShadowPrePass;
 
+private:
 	custom::RootSignature* m_pRootSignature;
 	GraphicsPSO*           m_pShadowPSO;
 
-	bool m_bAllocateRootSignature = false;
-	bool m_bAllocatePSO = false;
+	bool m_bAllocateRootSignature;
+	bool m_bAllocatePSO;
 };
 

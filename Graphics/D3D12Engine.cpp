@@ -6,7 +6,6 @@
 #include "MyKeyboard.h"
 #include "MyMouse.h"
 #include "Profiling.h"
-#include "CommandContext.h"
 #include "BufferManager.h"
 #include "ObjectFilterFlag.h"
 #include "CommandContextManager.h"
@@ -47,13 +46,14 @@ D3D12Engine::D3D12Engine(const std::string& CommandLine)
 	m_MainViewport.MinDepth = 0.0f;
 	m_MainViewport.MaxDepth = 1.0f;
 
-	m_MainScissor.left = 0l;
-	m_MainScissor.top = 0l;
+	m_MainScissor.left   = 0l;
+	m_MainScissor.top    = 0l;
 	m_MainScissor.right  = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
 	m_MainScissor.bottom = (LONG)bufferManager::g_SceneColorBuffer.GetHeight();
 
 	m_MasterRenderGraph.BindMainLightContainer(m_MainLightManager.GetContainer());
 	m_CameraManager.SetCaptureBox(&m_ObjModelManager.GetBoundingBox());
+
 
 	m_ObjModelManager.LinkTechniques(m_MasterRenderGraph);
 }
@@ -66,13 +66,11 @@ D3D12Engine::~D3D12Engine()
 
 void D3D12Engine::Render()
 {
-	custom::CommandContext&  BaseContext     = custom::CommandContext::Begin(L"Scene Renderer");
-	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
-	graphicsContext.SetViewportAndScissor(m_MainViewport, m_MainScissor);
+	device::g_commandContextManager.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
 	BeginFrame();
-	m_MasterRenderGraph.Execute(BaseContext);
-	EndFrame(BaseContext);
+	m_MasterRenderGraph.Execute();
+	EndFrame();
 	
 #ifdef _DEBUG
 	if (!(m_CurrentTick % 100ull))
@@ -81,7 +79,7 @@ void D3D12Engine::Render()
 		printf("Current Index : %lld.\n\n", m_CurrentTick);
 		m_MasterRenderGraph.Profiling();
 
-		VSConstants temp = BaseContext.GetVSConstants();
+		VSConstants temp = device::g_commandContextManager.GetVSConstants();
 		auto tempX = DirectX::XMFLOAT4(temp.modelToProjection.GetX());
 		auto tempY = DirectX::XMFLOAT4(temp.modelToProjection.GetY());
 		auto tempZ = DirectX::XMFLOAT4(temp.modelToProjection.GetZ());
@@ -96,20 +94,16 @@ void D3D12Engine::Render()
 		printf("Position : %.5f, %.5f, %.5f \n", temp.viewerPos.x, temp.viewerPos.y, temp.viewerPos.z);
 	}
 #endif
-	
-	BaseContext.PIXEndEvent(); // End of Scene Render
-	BaseContext.Finish(true);
 
 	m_MasterRenderGraph.Reset();
 	++m_CurrentTick;
-	// -> Then graphics::Present()
 }
 
 bool D3D12Engine::Update(float DeltaTime)
 {
 	m_ObjModelManager.Submit(eObjectFilterFlag::kOpaque);
 
-	Profiling::Update();
+	// Profiling::Update(); ASSERT(flase); // 아직 에러남.
 	windowInput::Update(DeltaTime);
 	m_CameraManager.Update(DeltaTime);
 	m_MasterRenderGraph.BindMainCamera(m_CameraManager.GetActiveCamera().get());
@@ -263,26 +257,28 @@ void D3D12Engine::BeginFrame()
 	}
 }
 
-void D3D12Engine::EndFrame(custom::CommandContext& BaseContext)
+void D3D12Engine::EndFrame()
 {
 	if (m_bEnableImgui)
 	{
-		custom::GraphicsContext& ImGuiContext = BaseContext.GetGraphicsContext();
-		ImGuiContext.PIXBeginEvent(L"Render_Imgui");
+		custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(1);
+
+		graphicsContext.PIXBeginEvent(L"Render_Imgui", 0);
 
 		m_CameraManager.RenderWindows();
 		m_ObjModelManager.RenderComponentWindows();
 
-		ImGuiContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer);
-		ImGuiContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, true);
-		ImGuiContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV());
-		// ImGuiContext.SetViewportAndScissor(0, 0, bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight());
+		graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer, 0);
+		graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		graphicsContext.SubmitResourceBarriers(0);
+		graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), 0);
+		// graphicsContext.SetViewportAndScissor(0, 0, bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight());
 
-		ImGuiContext.GetCommandList()->SetDescriptorHeaps(1, &device::g_ImguiFontHeap);
+		graphicsContext.GetCommandList(0)->SetDescriptorHeaps(1, &device::g_ImguiFontHeap);
 		ImGui::Render();
-		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), ImGuiContext.GetCommandList());
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), graphicsContext.GetCommandList(0));
 
-		ImGuiContext.PIXEndEvent();
-		// ImGuiContext.Finish(true);
+		graphicsContext.PIXEndEvent(0);
+		graphicsContext.Finish(false);
 	}
 }

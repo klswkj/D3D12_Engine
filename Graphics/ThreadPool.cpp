@@ -18,13 +18,15 @@ namespace custom
 		ASSERT(sm_pThreadPool == nullptr);
 		sm_pThreadPool = this;
 
-		sm_LogicalProcessors = ::GetNumLogicalProcessors() - 1;
+		sm_LogicalProcessors = GetNumLogicalProcessors() - 1;
 
-		m_hWakeUpEvent     = CreateEvent(nullptr, true, false, nullptr); // ManualInit is true.
-		m_hWorkFinishEvent = CreateEvent(nullptr, false, false, nullptr);
+		m_hWakeUpEvent     = CreateEvent(nullptr, true, true, nullptr); // ManualInit, InitState is true.
+		m_hWorkFinishEvent = CreateEvent(nullptr, true, true, nullptr);
 
-		InitializeCriticalSection(&m_OrderCS);
-		InitializeCriticalSection(&m_QueueCS);
+		ASSERT(m_hWakeUpEvent && m_hWorkFinishEvent && sm_LogicalProcessors < 0x40ull);
+
+		::InitializeCriticalSection(&m_OrderCS);
+		::InitializeCriticalSection(&m_QueueCS);
 	}
 	ThreadPool::~ThreadPool()
 	{
@@ -58,13 +60,11 @@ namespace custom
 		{
 			m_Threads.emplace_back
 			(
-				HANDLE(reinterpret_cast<HANDLE>(
-					_beginthreadex(
+				HANDLE(reinterpret_cast<HANDLE>(::_beginthreadex(
 						nullptr, 0,
 						ThreadPool::sm_WorkerProcess,
 						reinterpret_cast<LPVOID>(m_ThreadWorkFinishEvents[i]),
-						0, nullptr
-					)))
+						0, nullptr)))
 			);
 		}
 
@@ -75,36 +75,38 @@ namespace custom
 
 	void ThreadPool::AddThreads(uint32_t NumAddThreads)
 	{
-		// Not yet.
+		// Not implementation yet.
 		ASSERT(false);
 	}
 	void ThreadPool::Resize(uint32_t NumNewThreads)
 	{
-		// Not yet.
+		// Not implementation yet.
 		ASSERT(false);
 	}
 	void ThreadPool::ThreadsShutdown()
-	{	
+	{
+		WaitFinishedAllThreads();
+
 		m_bThreadShutdown = true;
-		SetEvent(m_hWakeUpEvent);
+		::SetEvent(m_hWakeUpEvent);
 
 		WaitFinishedAllThreads();
-		ASSERT(WorkQueueEmpty());
+
 		for (auto& e : m_ThreadWorkFinishEvents)
 		{
-			CloseHandle(e);
+			::CloseHandle(e);
 		}
 		for (auto& e : m_Threads)
 		{
-			CloseHandle(e);
+			::CloseHandle(e);
 		}
 
 		m_ThreadWorkFinishEvents.clear();
 		m_Threads.clear();
-		CloseHandle(m_hWakeUpEvent);
-		CloseHandle(m_hWorkFinishEvent);
-		DeleteCriticalSection(&m_OrderCS);
-		DeleteCriticalSection(&m_QueueCS);
+		::CloseHandle(m_hWakeUpEvent);
+		::CloseHandle(m_hWorkFinishEvent);
+		::DeleteCriticalSection(&m_OrderCS);
+		::DeleteCriticalSection(&m_QueueCS);
 	}
 
 	STATIC void ThreadPool::Enqueue
@@ -115,12 +117,12 @@ namespace custom
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 
-		EnterCriticalSection(&pThreadPool->m_QueueCS);
+		::EnterCriticalSection(&pThreadPool->m_QueueCS);
 
 		pThreadPool->m_WorkQueue.push_back({ pWork, pParameter });
-		SetEvent(pThreadPool->m_hWakeUpEvent);
+		::SetEvent(pThreadPool->m_hWakeUpEvent);
 
-		LeaveCriticalSection(&pThreadPool->m_QueueCS);
+		::LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::Enqueue
@@ -131,9 +133,28 @@ namespace custom
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 
-		EnterCriticalSection(&pThreadPool->m_QueueCS);
+		::EnterCriticalSection(&pThreadPool->m_QueueCS);
 
 		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, pParameter }));
+		SetEvent(pThreadPool->m_hWakeUpEvent);
+
+		::LeaveCriticalSection(&pThreadPool->m_QueueCS);
+	}
+
+	STATIC void ThreadPool::EnqueueVariadic
+	(
+		_In_ std::function<void(void*)>&& pWork,
+		int NumParam, ...
+	)
+	{
+		custom::ThreadPool* pThreadPool = sm_pThreadPool;
+
+		va_list VaList;
+		va_start(VaList, NumParam);
+
+		EnterCriticalSection(&pThreadPool->m_QueueCS);
+
+		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, VaList }));
 		SetEvent(pThreadPool->m_hWakeUpEvent);
 
 		LeaveCriticalSection(&pThreadPool->m_QueueCS);
@@ -141,43 +162,89 @@ namespace custom
 
 	STATIC void ThreadPool::MultipleEnqueue
 	(
-		std::function<void(void*)> pWork[],
-		size_t ElementSize,
-		void* pParameter[]
+		std::function<void(void*)> pWorks[],
+		size_t numElements,
+		void* pParameters[],
+		size_t ElementSize
 	)
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 
-		EnterCriticalSection(&pThreadPool->m_QueueCS);
+		::EnterCriticalSection(&pThreadPool->m_QueueCS);
 
-		if (pParameter)
+		if (pParameters)
 		{
-			for (size_t i = 0; i < ElementSize; ++i)
+			if (ElementSize)
 			{
-				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWork + i), *(pParameter + i) }));
+				for (size_t i = 0; i < numElements; ++i)
+				{
+					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), reinterpret_cast<void*>(reinterpret_cast<size_t>(pParameters) + i * ElementSize) }));
+				}
+			}
+			else
+			{
+				for (size_t i = 0; i < numElements; ++i)
+				{
+					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), *(pParameters + i) }));
+				}
 			}
 		}
 		else
 		{
-			for (size_t i = 0; i < ElementSize; ++i)
+			for (size_t i = 0; i < numElements; ++i)
 			{
-				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWork + i), nullptr }));
+				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), nullptr }));
 			}
 		}
-		SetEvent(pThreadPool->m_hWakeUpEvent);
+		::SetEvent(pThreadPool->m_hWakeUpEvent);
 
-		LeaveCriticalSection(&pThreadPool->m_QueueCS);
+		::LeaveCriticalSection(&pThreadPool->m_QueueCS);
+	}
+
+	STATIC void ThreadPool::MultipleEnqueue
+	(
+		_In_ std::function<void(void*)> pWork,
+		_In_ size_t numElements,
+		_In_opt_ void* pParameters[],
+		size_t ElementSize
+	)
+	{
+		custom::ThreadPool* pThreadPool = sm_pThreadPool;
+		::EnterCriticalSection(&pThreadPool->m_QueueCS);
+
+		if (pParameters)
+		{
+			if (ElementSize)
+			{
+				for (size_t i = 0; i < numElements; ++i)
+				{
+					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, reinterpret_cast<void*>(reinterpret_cast<size_t>(pParameters) + i * ElementSize) }));
+				}
+			}
+			else
+			{
+				for (size_t i = 0; i < numElements; ++i)
+				{
+					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, *(pParameters + i) }));
+				}
+			}
+		}
+		else
+		{
+			for (size_t i = 0; i < numElements; ++i)
+			{
+				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, nullptr }));
+			}
+		}
+
+		::SetEvent(pThreadPool->m_hWakeUpEvent);
+		::LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::WaitAllFinished(HANDLE hFinishEvent /*= nullptr*/)
 	{
 		std::vector<HANDLE>& FinishEvents = sm_pThreadPool->m_ThreadWorkFinishEvents;
-		custom::ThreadPool* pThreadPool = sm_pThreadPool;
-
-		if (!FinishEvents.size())
-		{
-			return;
-		}
+		custom::ThreadPool*  pThreadPool  = sm_pThreadPool;
 
 		struct FunctionWrapper
 		{
@@ -188,15 +255,15 @@ namespace custom
 
 				while (1)
 				{
-					sm_pThreadPool->WaitFinishedAllThreads();
-
 					if (sm_pThreadPool->WorkQueueEmpty())
 					{
 						break;
 					}
 				}
 
-				SetEvent(FinishHandle);
+				sm_pThreadPool->WaitFinishedAllThreads();
+
+				::SetEvent(FinishHandle);
 				return 0;
 			};
 
@@ -214,24 +281,22 @@ namespace custom
 			Param.pHandles = &FinishEvents;
 			Param.pHandle = hFinishEvent;
 
-			_beginthreadex(nullptr, 0, FunctionWrapper::ReturnEvent, reinterpret_cast<LPVOID>(&Param), 0, nullptr);
+			::_beginthreadex(nullptr, 0, FunctionWrapper::ReturnEvent, reinterpret_cast<LPVOID>(&Param), 0, nullptr);
 			return;
 		}
 		else
 		{
 			while (1)
 			{
-				sm_pThreadPool->WaitFinishedAllThreads();
-
-				while (1)
+				if (sm_pThreadPool->WorkQueueEmpty())
 				{
-					if (sm_pThreadPool->WorkQueueEmpty())
-					{
-						return;
-					}
+					break;
 				}
 			}
+
+			sm_pThreadPool->WaitFinishedAllThreads();
 		}
+
 	}
 
 	STATIC unsigned int WINAPI ThreadPool::sm_WorkerProcess(LPVOID pPTR)
@@ -239,46 +304,49 @@ namespace custom
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
 		HANDLE              PrivateWorkFinishEvent = reinterpret_cast<HANDLE>(pPTR);
 
-		SetEvent(PrivateWorkFinishEvent);
+		::SetEvent(PrivateWorkFinishEvent);
 
 		std::function<void(void*)> Function;
 		void* Parameter;
 
 		while (1)
 		{
-			EnterCriticalSection(&pThreadPool->m_OrderCS);
-			WaitForSingleObject(sm_pThreadPool->m_hWakeUpEvent, INFINITE);
+			::EnterCriticalSection(&pThreadPool->m_OrderCS);
+			::WaitForSingleObject(pThreadPool->m_hWakeUpEvent, INFINITE);
 
-			if (!sm_pThreadPool->WorkQueueEmpty())
+			if (!pThreadPool->WorkQueueEmpty())
 			{
+				::EnterCriticalSection(&pThreadPool->m_QueueCS);
+				::ResetEvent(pThreadPool->m_hWorkFinishEvent);
+				InterlockedIncrement(&pThreadPool->m_NumWorkingThreads);
 				{
-					EnterCriticalSection(&pThreadPool->m_QueueCS);
-					++sm_pThreadPool->m_NumWorkingThreads;
-
 					std::pair<std::function<void(void*)>, void*>& front = pThreadPool->m_WorkQueue.front();
-					Function = front.first;
+					Function  = front.first;
 					Parameter = front.second;
-
-					pThreadPool->m_WorkQueue.pop_front();	
-					LeaveCriticalSection(&pThreadPool->m_QueueCS);
 				}
+				pThreadPool->m_WorkQueue.pop_front();
 
-				LeaveCriticalSection(&pThreadPool->m_OrderCS);
+				::LeaveCriticalSection(&pThreadPool->m_QueueCS);
+				::LeaveCriticalSection(&pThreadPool->m_OrderCS);
+
 				Function(Parameter);
 
-				SetEvent(PrivateWorkFinishEvent);
+				InterlockedDecrement(&pThreadPool->m_NumWorkingThreads);
+				::SetEvent(PrivateWorkFinishEvent);
 			}
 			else
 			{
 				if (!pThreadPool->m_bThreadShutdown)
 				{
-					ResetEvent(sm_pThreadPool->m_hWakeUpEvent);
-					LeaveCriticalSection(&pThreadPool->m_OrderCS);
+					::ResetEvent(pThreadPool->m_hWakeUpEvent);
+					::SetEvent(pThreadPool->m_hWorkFinishEvent);
+					::LeaveCriticalSection(&pThreadPool->m_OrderCS);
 	            }
 				else
 				{
-					LeaveCriticalSection(&pThreadPool->m_OrderCS);
-					SetEvent(PrivateWorkFinishEvent);
+					::LeaveCriticalSection(&pThreadPool->m_OrderCS);
+					::SetEvent(PrivateWorkFinishEvent);
+					::SetEvent(pThreadPool->m_hWorkFinishEvent);
 					return 0;
 				}
 			}

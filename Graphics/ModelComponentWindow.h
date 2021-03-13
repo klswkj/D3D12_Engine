@@ -10,7 +10,7 @@ class Step;
 class IWindow
 {
 public:
-	virtual ~IWindow() {}
+	virtual ~IWindow() = default;
 
 	void SetTechnique(Technique* pTech_in)
 	{
@@ -40,7 +40,7 @@ class MaterialWindow : public IWindow
 {
 	void OnSetTechnique() override
 	{
-		ImGui::TextColored({0.4f, 1.0f, 0.6f, 1.0f}, m_pTech->GetName().c_str());
+		ImGui::TextColored({0.4f, 1.0f, 0.6f, 1.0f}, m_pTech->GetTargetPassName());
 		bool bActive = m_pTech->IsActive();
 		ImGui::Checkbox((std::string("Tech Active ") + std::to_string(m_TechIndex)).c_str(), &bActive);
 		m_pTech->SetActiveState(bActive);

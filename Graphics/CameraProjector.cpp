@@ -4,14 +4,14 @@
 #include "Camera.h"
 #include "ObjectFilterFlag.h"
 
-CameraProjector::CameraProjector(Camera* pParent, float VerticalFOV, float AspectHeightOverWidth, float NearZClip, float FarZClip)
+CameraProjector::CameraProjector(Camera& rParent, const float VerticalFOV, const float AspectHeightOverWidth, const float NearZClip, const float FarZClip)
 	:
-	m_pParentCamera(pParent),
+	m_pParentCamera(&rParent),
 	m_aspectHeightOverWidth(AspectHeightOverWidth),
 	m_width(1.0f), m_height(1.0f / m_aspectHeightOverWidth),
 	m_nearZClip(NearZClip), m_farZClip(FarZClip),
 	m_verticalFOV(VerticalFOV),
-	m_CameraFrustum(pParent, AspectHeightOverWidth, NearZClip, FarZClip),
+	m_CameraFrustum(rParent, AspectHeightOverWidth, NearZClip, FarZClip),
 	m_initAspect(AspectHeightOverWidth), m_initNearZClip(NearZClip), m_initFarZClip(FarZClip)
 {
 }
@@ -41,14 +41,14 @@ void CameraProjector::RenderWidgets()
 	}
 }
 
-void CameraProjector::Submit(eObjectFilterFlag Filter) const
+void CameraProjector::Submit(const eObjectFilterFlag filter)
 {
-	m_CameraFrustum.Submit(Filter);
+	m_CameraFrustum.Submit(filter);
 }
 
-void CameraProjector::LinkTechniques(MasterRenderGraph& _MasterRenderGraph)
+void CameraProjector::LinkTechniques(const MasterRenderGraph& masterRG)
 {
-	m_CameraFrustum.LinkTechniques(_MasterRenderGraph);
+	m_CameraFrustum.LinkTechniques(masterRG);
 }
 
 void CameraProjector::Reset()

@@ -8,12 +8,12 @@ namespace custom
 	class CommandContext;
 }
 
-class DebugShadowMapPass : public Pass
+class DebugShadowMapPass final : public D3D12Pass
 {
 public:
 	DebugShadowMapPass(std::string Name);
 	~DebugShadowMapPass();
-	void Execute(custom::CommandContext& BaseContext) DEBUG_EXCEPT override;
+	void ExecutePass() DEBUG_EXCEPT final;
 
 private:
 	static DebugShadowMapPass* s_pDebugWireFramePass;

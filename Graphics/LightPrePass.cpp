@@ -21,33 +21,8 @@ constexpr uint32_t LightPrePass::sm_kMinWorkGroupSize = 8u;
 constexpr uint32_t LightPrePass::sm_kLightGridCells = 0x7e90u;
 constexpr uint32_t LightPrePass::sm_lightGridBitMaskSizeBytes = 0x7e900u;
 
-/*
-struct LightData
-{
-	float pos[3];
-	float radiusSq;
-	float color[3];
-
-	uint32_t type;
-
-	float coneDir[3];
-	float coneAngles[2];
-
-	float shadowTextureMatrix[16];
-};
-
-struct CSConstants
-{
-    uint32_t ViewportWidth, ViewportHeight;
-    float InvTileDim;
-    float RcpZMagic;
-    uint32_t TileCount;
-    Math::Matrix4 ViewProjMatrix;
-    // float ViewPorjMatrx[16];
-};
-*/
 LightPrePass::LightPrePass(std::string pName)
-    : Pass(pName)
+    : D3D12Pass(pName)
 {
     bufferManager::g_Lights.reserve(sm_MaxLight * 2 + 1);
     bufferManager::g_LightShadowMatrixes.reserve(sm_MaxLight * 2 + 1);
@@ -56,11 +31,11 @@ LightPrePass::LightPrePass(std::string pName)
     CreateConeLight();
     CreateConeShadowedLight();
 
-    bufferManager::g_LightGridBitMask.Create(L"g_LightGridBitMask", sm_lightGridBitMaskSizeBytes, 1, nullptr);
+    bufferManager::g_LightGridBitMask.CreateUAVCommitted(L"g_LightGridBitMask", sm_lightGridBitMaskSizeBytes, 1, nullptr);
     bufferManager::g_CumulativeShadowBuffer.Create(L"g_CumulativeShadowBuffer", sm_kShadowBufferSize, sm_kShadowBufferSize);
 }
 
-void LightPrePass::Execute(custom::CommandContext& BaseContext)
+void LightPrePass::ExecutePass()
 {
 #ifdef _DEBUG
     graphics::InitDebugStartTick();
@@ -83,7 +58,6 @@ void LightPrePass::Execute(custom::CommandContext& BaseContext)
 
 void LightPrePass::RenderWindow() DEBUG_EXCEPT
 {
-
     /*
     ImGui::BeginChild("LightPrePass"); // 여기 Begin말고, ImGui::BeginChild해야, 
 
@@ -227,7 +201,7 @@ void LightPrePass::RenderWindow() DEBUG_EXCEPT
     */
 }
 
-void LightPrePass::CreateLight(UINT LightType)
+void LightPrePass::CreateLight(const uint32_t LightType)
 {
     std::vector<LightData>& m_Lights = bufferManager::g_Lights;
     std::vector<Math::Matrix4>& m_LightShadowMatrixes = bufferManager::g_LightShadowMatrixes;
@@ -296,9 +270,9 @@ void LightPrePass::recreateBuffers()
 	{
 		uint32_t lightGridSizeBytes = sm_kLightGridCells * (4 + (uint32_t)LightDataSize * 4);
 
-		bufferManager::g_LightBuffer.Create(L"g_LightBuffer", (uint32_t)LightDataSize, sizeof(LightData), m_Lights.data());
-		bufferManager::g_LightGrid.Create(L"g_LightGrid", lightGridSizeBytes, 1, nullptr);
-		bufferManager::g_LightShadowArray.CreateArray(L"g_LightShadowArray", sm_kShadowBufferSize, sm_kShadowBufferSize, (uint32_t)LightDataSize, DXGI_FORMAT_R16_UNORM);
+		bufferManager::g_LightBuffer.CreateUAVCommitted(L"g_LightBuffer", (uint32_t)LightDataSize, sizeof(LightData), m_Lights.data());
+		bufferManager::g_LightGrid.CreateUAVCommitted(L"g_LightGrid", lightGridSizeBytes, 1, nullptr);
+		bufferManager::g_LightShadowArray.CreateCommittedArray(L"g_LightShadowArray", sm_kShadowBufferSize, sm_kShadowBufferSize, (uint32_t)LightDataSize, DXGI_FORMAT_R16_UNORM);
 	}
 }
 

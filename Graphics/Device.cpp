@@ -7,8 +7,10 @@
 #include "CommandContextManager.h"
 #include "CommandContext.h"
 #include "DescriptorHeapManager.h"
-#include "ImGuiManager.h" // For Resize
 #include "DynamicDescriptorHeap.h"
+#include "PSO.h"
+#include "RootSignature.h"
+#include "ImGuiManager.h" // For Resize
 
 #if USING_THREAD_POOL
 #include "ThreadPool.h"
@@ -94,13 +96,14 @@ namespace device
 		CreateD3D12Devices();
 		
 		premade::Initialize();
-		
-		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
-		// TODO : TextRender Init
 
 #if USING_THREAD_POOL
 		g_ThreadPoolManager.Create();
 #endif
+
+		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
+		// TODO 0 : TextRender Init
+
 		return S_OK;
 	}
 
@@ -122,15 +125,10 @@ namespace device
 			return S_OK;
 		}
 
-		// Order??
-		g_commandQueueManager.WaitForSwapChain();
-		g_commandQueueManager.IdleGPU();
-		// g_commandQueueManager.WaitForNextFrameResources();
+		g_commandQueueManager.WaitIdleCPUSide();
 
 		g_DisplayWidth  = width;
 		g_DisplayHeight = height;
-
-		// printf("Changing display resolution to %ux%u\n", width, height);
 
 		// Buffer for Zoom.
 		// g_PreDisplayBuffer.Create(L"PreDisplay Buffer", width, height, 1, SwapChainFormat);
@@ -181,21 +179,20 @@ namespace device
 				++DisplayBufferName.back();
 			}
 		}
-
-		bufferManager::DestroyRenderingBuffers();
+		
+		g_commandQueueManager.WaitIdleCPUSide();
 		bufferManager::InitializeAllBuffers(width, height);
 
-		if (imguiManager::bImguiEnabled)
-		{
-
-		}
+		// if (imguiManager::bImguiEnabled)
+		// {
+		// }
 
 		return S_OK;
 	}
 
 	void Destroy()
 	{
-		g_commandQueueManager.IdleGPU();
+		g_commandQueueManager.WaitIdleCPUSide();
 		g_pDXGISwapChain->SetFullscreenState(FALSE, nullptr);
 
 		SafeRelease(g_pDXGISwapChain);
@@ -306,7 +303,7 @@ namespace device
 
 		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device::g_pDevice)));
 		g_pDevice->SetName(L"device::g_pDevice");
-		g_commandQueueManager.Create(g_pDevice);
+		g_commandQueueManager.CreateCommandQueueManager(g_pDevice);
 		/*
 #ifndef RELEASE
 		{

@@ -2,6 +2,7 @@
 #include "ComputeContext.h"
 #include "Device.h"
 #include "Graphics.h"
+#include "RootSignature.h"
 #include "UAVBuffer.h"
 #include "ColorBuffer.h"
 #include "CommandContextManager.h"
@@ -13,196 +14,268 @@
 
 namespace custom
 {
-    ComputeContext& ComputeContext::Begin(const std::wstring& ID, bool Async)
+    STATIC ComputeContext& ComputeContext::Begin
+    (
+        uint8_t numCommandALs /*= 1*/
+    )
     {
-        ComputeContext& NewContext = device::g_commandContextManager.AllocateContext
-        (Async ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_DIRECT, ID)->GetComputeContext();
+        ASSERT(numCommandALs < UCHAR_MAX);
+        ComputeContext* NewContext = reinterpret_cast<ComputeContext*>(device::g_commandContextManager.AllocateContext(D3D12_COMMAND_LIST_TYPE_COMPUTE, numCommandALs));
 
-        NewContext.setName(ID);
-
-        //if (0 < ID.length())
-        ////{
-        //    Profiling::BeginBlock(ID, &NewContext);
-        //}
-
-        return NewContext;
+        return *NewContext;
     }
-
-    void ComputeContext::SetRootSignature(const RootSignature& RootSig)
+    STATIC ComputeContext& ComputeContext::Resume(uint64_t contextID)
     {
-		if (RootSig.GetSignature() == m_pCurrentComputeRootSignature)
+        custom::CommandContext* ret = nullptr;
+        ret = device::g_commandContextManager.GetRecordingContext(D3D12_COMMAND_LIST_TYPE_COMPUTE, contextID);
+        ASSERT(ret && ret->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        return *reinterpret_cast<custom::ComputeContext*>(ret);
+    }
+    STATIC ComputeContext& ComputeContext::GetRecentContext()
+    {
+        custom::CommandContext* ret = nullptr;
+        ret = device::g_commandContextManager.GetRecentContext(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        ASSERT(ret && ret->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        return *reinterpret_cast<custom::ComputeContext*>(ret);
+    }
+    void ComputeContext::SetRootSignature(const RootSignature& customRS, const uint8_t commandIndex/* = 0u*/)
+    {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+		if (customRS.GetSignature() == m_GPUTaskFiberContexts[commandIndex].pCurrentComputeRS)
 		{
 			return;
 		}
 
-        m_commandList->SetComputeRootSignature(m_pCurrentComputeRootSignature = RootSig.GetSignature());
-
-        m_DynamicViewDescriptorHeap.ParseComputeRootSignature(RootSig);
-        m_DynamicSamplerDescriptorHeap.ParseComputeRootSignature(RootSig);
+        m_pCommandLists[commandIndex]->SetComputeRootSignature(m_GPUTaskFiberContexts[commandIndex].pCurrentComputeRS = customRS.GetSignature());
+        m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.ParseComputeRootSignature(customRS);
+        m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.ParseComputeRootSignature(customRS);
+        INCRE_DEBUG_SET_RS_COUNT;
     }
 
-    void ComputeContext::SetConstantArray(UINT RootIndex, UINT NumConstants, const void* pConstants, UINT Offset /* = 0*/)
+    void ComputeContext::SetRootSignatureRange(const RootSignature& customRS, const uint8_t startCommandIndex, const uint8_t endCommandIndex)
     {
-        m_commandList->SetComputeRoot32BitConstants(RootIndex, NumConstants, pConstants, Offset);
+        ASSERT((startCommandIndex <= endCommandIndex) && (endCommandIndex < m_NumCommandPair));
+
+        for (size_t i = startCommandIndex; i <= endCommandIndex; ++i)
+        {
+            if (customRS.GetSignature() == m_GPUTaskFiberContexts[i].pCurrentComputeRS)
+            {
+                continue;
+            }
+
+            m_pCommandLists[i]->SetComputeRootSignature(m_GPUTaskFiberContexts[i].pCurrentComputeRS = customRS.GetSignature());
+
+            m_GPUTaskFiberContexts[i].DynamicViewDescriptorHeaps.ParseComputeRootSignature(customRS);
+            m_GPUTaskFiberContexts[i].DynamicSamplerDescriptorHeaps.ParseComputeRootSignature(customRS);
+            INCRE_DEBUG_SET_RS_COUNT_I;
+        }
     }
 
-    void ComputeContext::SetConstant(UINT RootIndex, UINT Val, UINT Offset /* = 0*/)
+    void ComputeContext::SetConstantArray(UINT rootIndex, UINT numConstants, const void* pConstants, UINT offset /* = 0*/, const uint8_t commandIndex/* = 0u*/)
     {
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val, Offset);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstants(rootIndex, numConstants, pConstants, offset);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2)
+    void ComputeContext::SetConstant(UINT rootIndex, UINT val, UINT offset /* = 0*/, const uint8_t commandIndex/* = 0u*/)
     {
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
-    }
-    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3)
-    {
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val3, 2);
-    }
-    void ComputeContext::SetConstants(UINT RootIndex, UINT Val1, UINT Val2, UINT Val3, UINT Val4)
-    {
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val1, 0);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val2, 1);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val3, 2);
-        m_commandList->SetComputeRoot32BitConstant(RootIndex, Val4, 3);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val, offset);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetConstantBuffer(UINT RootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV)
+    void ComputeContext::SetConstants(UINT rootIndex, UINT val1, UINT val2, const uint8_t commandIndex/* = 0u*/)
     {
-        m_commandList->SetComputeRootConstantBufferView(RootIndex, CBV);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val1, 0);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val2, 1);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+    }
+    void ComputeContext::SetConstants(UINT rootIndex, UINT val1, UINT val2, UINT val3, const uint8_t commandIndex/* = 0u*/)
+    {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val1, 0);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val2, 1);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val3, 2);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+    }
+    void ComputeContext::SetConstants(UINT rootIndex, UINT val1, UINT val2, UINT val3, UINT val4, const uint8_t commandIndex/* = 0u*/)
+    {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val1, 0);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val2, 1);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val3, 2);
+        m_pCommandLists[commandIndex]->SetComputeRoot32BitConstant(rootIndex, val4, 3);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetDynamicConstantBufferView(UINT RootIndex, size_t BufferSize, const void* BufferData)
+    void ComputeContext::SetConstantBuffer(UINT rootIndex, D3D12_GPU_VIRTUAL_ADDRESS CBV, const uint8_t commandIndex/* = 0u*/)
     {
-        ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(BufferSize);
-        SIMDMemCopy(CPUBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-        // memcpy(CPUBuffer.pData, BufferData, BufferSize);
-        m_commandList->SetComputeRootConstantBufferView(RootIndex, CPUBuffer.GPUAddress);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRootConstantBufferView(rootIndex, CBV);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetDynamicSRV(UINT RootIndex, size_t BufferSize, const void* BufferData)
+    void ComputeContext::SetDynamicConstantBufferView(UINT rootIndex, size_t bufferSize, const void* pBufferData, const uint8_t commandIndex/* = 0u*/)
     {
-        ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16));
-        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(BufferSize);
-        SIMDMemCopy(CPUBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-        m_commandList->SetComputeRootShaderResourceView(RootIndex, CPUBuffer.GPUAddress);
+        ASSERT(pBufferData != nullptr && HashInternal::IsAligned(pBufferData, 16) && CHECK_VALID_COMMAND_INDEX);
+        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(bufferSize);
+        SIMDMemCopy(CPUBuffer.pData, pBufferData, HashInternal::AlignUp(bufferSize, 16) >> 4);
+        // memcpy(CPUBuffer.pData, pBufferData, bufferSize);
+        m_pCommandLists[commandIndex]->SetComputeRootConstantBufferView(rootIndex, CPUBuffer.GPUAddress);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetBufferSRV(UINT RootIndex, const UAVBuffer& SRV, UINT64 Offset)
+    void ComputeContext::SetDynamicSRV(UINT rootIndex, size_t bufferSize, const void* pBufferData, const uint8_t commandIndex/* = 0u*/)
     {
-        ASSERT((SRV.m_currentState & D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) != 0);
-        m_commandList->SetComputeRootShaderResourceView(RootIndex, SRV.GetGpuVirtualAddress() + Offset);
+        ASSERT(pBufferData != nullptr && HashInternal::IsAligned(pBufferData, 16) && CHECK_VALID_COMMAND_INDEX);
+        LinearBuffer CPUBuffer = m_CPULinearAllocator.Allocate(bufferSize);
+        SIMDMemCopy(CPUBuffer.pData, pBufferData, HashInternal::AlignUp(bufferSize, 16) >> 4);
+        m_pCommandLists[commandIndex]->SetComputeRootShaderResourceView(rootIndex, CPUBuffer.GPUAddress);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::SetBufferUAV(UINT RootIndex, const UAVBuffer& UAV, UINT64 Offset)
+    void ComputeContext::SetBufferSRV(UINT rootIndex, const UAVBuffer& SRV, UINT64 offset, const uint8_t commandIndex/* = 0u*/)
     {
-        ASSERT((UAV.m_currentState & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0);
-        m_commandList->SetComputeRootUnorderedAccessView(RootIndex, UAV.GetGpuVirtualAddress() + Offset);
+        ASSERT((SRV.m_currentState & D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) != 0 && CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRootShaderResourceView(rootIndex, SRV.GetGpuVirtualAddress() + offset);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::Dispatch(size_t GroupCountX, size_t GroupCountY, size_t GroupCountZ)
+    void ComputeContext::SetBufferUAV(UINT rootIndex, const UAVBuffer& UAV, UINT64 offset, const uint8_t commandIndex/* = 0u*/)
     {
-        FlushResourceBarriers();
-        m_DynamicViewDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);
-        m_DynamicSamplerDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);
-        m_commandList->Dispatch((UINT)GroupCountX, (UINT)GroupCountY, (UINT)GroupCountZ);
+        ASSERT((UAV.m_currentState & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0 && CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRootUnorderedAccessView(rootIndex, UAV.GetGpuVirtualAddress() + offset);
+        INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
     }
 
-    void ComputeContext::Dispatch1D(size_t ThreadCountX, size_t GroupSizeX)
+    void ComputeContext::Dispatch(size_t groupCountX, size_t groupCountY, size_t groupCountZ, const uint8_t commandIndex/* = 0u*/)
     {
-        Dispatch(HashInternal::DivideByMultiple(ThreadCountX, GroupSizeX), 1, 1);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        // SubmitResourceBarriers();
+        m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetComputeRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+        m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetComputeRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+        m_pCommandLists[commandIndex]->Dispatch((UINT)groupCountX, (UINT)groupCountY, (UINT)groupCountZ);
     }
 
-    void ComputeContext::Dispatch2D(size_t ThreadCountX, size_t ThreadCountY, size_t GroupSizeX, size_t GroupSizeY)
+    void ComputeContext::Dispatch1D(size_t threadCountX, size_t groupSizeX, const uint8_t commandIndex/* = 0u*/)
     {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        Dispatch(HashInternal::DivideByMultiple(threadCountX, groupSizeX), 1, 1, commandIndex); 
+        INCRE_DEBUG_DRAW_JOB_COUNT;
+    }
+
+    void ComputeContext::Dispatch2D(size_t threadCountX, size_t threadCountY, size_t groupSizeX, size_t groupSizeY, const uint8_t commandIndex/* = 0u*/)
+    {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
         Dispatch
         (
-            HashInternal::DivideByMultiple(ThreadCountX, GroupSizeX),
-            HashInternal::DivideByMultiple(ThreadCountY, GroupSizeY), 1
+            HashInternal::DivideByMultiple(threadCountX, groupSizeX),
+            HashInternal::DivideByMultiple(threadCountY, groupSizeY), 1,
+            commandIndex
         );
+        INCRE_DEBUG_DRAW_JOB_COUNT;
     }
 
-    void ComputeContext::Dispatch3D(size_t ThreadCountX, size_t ThreadCountY, size_t ThreadCountZ, size_t GroupSizeX, size_t GroupSizeY, size_t GroupSizeZ)
+    void ComputeContext::Dispatch3D(size_t threadCountX, size_t threadCountY, size_t threadCountZ, size_t groupSizeX, size_t groupSizeY, size_t groupSizeZ, const uint8_t commandIndex/* = 0u*/)
     {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
         Dispatch
         (
-            HashInternal::DivideByMultiple(ThreadCountX, GroupSizeX),
-            HashInternal::DivideByMultiple(ThreadCountY, GroupSizeY),
-            HashInternal::DivideByMultiple(ThreadCountZ, GroupSizeZ)
+            HashInternal::DivideByMultiple(threadCountX, groupSizeX),
+            HashInternal::DivideByMultiple(threadCountY, groupSizeY),
+            HashInternal::DivideByMultiple(threadCountZ, groupSizeZ),
+            commandIndex
         );
+        INCRE_DEBUG_DRAW_JOB_COUNT;
     }
 
-    void ComputeContext::SetDynamicDescriptor(UINT RootIndex, UINT Offset, D3D12_CPU_DESCRIPTOR_HANDLE Handle)
+    void ComputeContext::SetDynamicDescriptor(const UINT rootIndex, const UINT offset, const D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle, const uint8_t commandIndex/* = 0u*/)
     {
-        SetDynamicDescriptors(RootIndex, Offset, 1, &Handle);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        SetDynamicDescriptors(rootIndex, offset, 1, &CPUHandle, commandIndex);
     }
 
-    void ComputeContext::SetDynamicDescriptors(UINT RootIndex, UINT Offset, UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[])
+    void ComputeContext::SetDynamicDescriptors(const UINT rootIndex, const UINT offset, const UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE CPUHandles[], const uint8_t commandIndex/* = 0u*/)
     {
-        m_DynamicViewDescriptorHeap.SetComputeDescriptorHandles(RootIndex, Offset, Count, Handles);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetComputeDescriptorHandles(rootIndex, offset, Count, CPUHandles);
     }
 
-    void ComputeContext::SetDynamicSampler(UINT RootIndex, UINT Offset, D3D12_CPU_DESCRIPTOR_HANDLE Handle)
+    void ComputeContext::SetDynamicSampler(const UINT rootIndex, const UINT offset, const D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle, const uint8_t commandIndex/* = 0u*/)
     {
-        SetDynamicSamplers(RootIndex, Offset, 1, &Handle);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        SetDynamicSamplers(rootIndex, offset, 1, &CPUHandle, commandIndex);
     }
 
-    void ComputeContext::SetDynamicSamplers(UINT RootIndex, UINT Offset, UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE Handles[])
+    void ComputeContext::SetDynamicSamplers(const UINT rootIndex, const UINT offset, const UINT Count, const D3D12_CPU_DESCRIPTOR_HANDLE CPUhandles[], const uint8_t commandIndex/* = 0u*/)
     {
-        m_DynamicSamplerDescriptorHeap.SetComputeDescriptorHandles(RootIndex, Offset, Count, Handles);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetComputeDescriptorHandles(rootIndex, offset, Count, CPUhandles);
     }
 
-    void ComputeContext::SetDescriptorTable(UINT RootIndex, D3D12_GPU_DESCRIPTOR_HANDLE FirstHandle)
+    void ComputeContext::SetDescriptorTable(const UINT rootIndex, const D3D12_GPU_DESCRIPTOR_HANDLE firstGPUHandle, const uint8_t commandIndex/* = 0u*/)
     {
-        m_commandList->SetComputeRootDescriptorTable(RootIndex, FirstHandle);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        m_pCommandLists[commandIndex]->SetComputeRootDescriptorTable(rootIndex, firstGPUHandle);
     }
 
-    void ComputeContext::DispatchIndirect(UAVBuffer& ArgumentBuffer, uint64_t ArgumentBufferOffset)
+    void ComputeContext::DispatchIndirect(UAVBuffer& argumentBuffer, uint64_t argumentBufferOffset, const uint8_t commandIndex/* = 0u*/)
     {
-        // ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, ArgumentBuffer, ArgumentBufferOffset);
+        // ASSERT(CHECK_VALID_COMMAND_INDEX);
+        // ExecuteIndirect(graphics::g_DispatchIndirectCommandSignature, argumentBuffer, argumentBufferOffset, commandIndex);
     }
 
     void ComputeContext::ExecuteIndirect
     (
-        CommandSignature& CommandSig,
-        UAVBuffer& ArgumentBuffer, uint64_t ArgumentStartOffset /*= 0*/,
-        uint32_t MaxCommands/*= 1*/, UAVBuffer* CommandCounterBuffer /*= nullptr*/, uint64_t CounterOffset/*= 0*/
+        const CommandSignature& commandSignature,
+        const UAVBuffer& argumentBuffer, const uint64_t argumentStartOffset /*= 0*/,
+        const uint32_t maxCommands/*= 1*/, UAVBuffer* commandCounterBuffer /*= nullptr*/, const uint64_t counterOffset/*= 0*/,
+        const uint8_t commandIndex
     )
     {
-        FlushResourceBarriers();
-        m_DynamicViewDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);
-        m_DynamicSamplerDescriptorHeap.CommitComputeRootDescriptorTables(m_commandList);
-        m_commandList->ExecuteIndirect(CommandSig.GetSignature(), MaxCommands,
-            ArgumentBuffer.GetResource(), ArgumentStartOffset,
-            CommandCounterBuffer == nullptr ? nullptr : CommandCounterBuffer->GetResource(), CounterOffset);
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
+        // SubmitResourceBarriers();
+        m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.SetComputeRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+        m_GPUTaskFiberContexts[commandIndex].DynamicSamplerDescriptorHeaps.SetComputeRootDescriptorTables(m_pCommandLists[commandIndex], commandIndex);
+        m_pCommandLists[commandIndex]->ExecuteIndirect(commandSignature.GetSignature(), maxCommands,
+            argumentBuffer.GetResource(), argumentStartOffset,
+            commandCounterBuffer == nullptr ? nullptr : commandCounterBuffer->GetResource(), counterOffset);
     }
 
-    void ComputeContext::ClearUAV(UAVBuffer& Target)
+    void ComputeContext::ClearUAV(const UAVBuffer& target, const uint8_t commandIndex/* = 0u*/)
     {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
         // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV (because it essentially runs
         // a shader to set all of the values).
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
+        D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.UploadDirect(target.GetUAV(), commandIndex);
         const UINT ClearColor[4] = {};
-        m_commandList->ClearUnorderedAccessViewUint(GpuVisibleHandle, Target.GetUAV(), Target.GetResource(), ClearColor, 0, nullptr);
+        m_pCommandLists[commandIndex]->ClearUnorderedAccessViewUint(GpuVisibleHandle, target.GetUAV(), target.GetResource(), ClearColor, 0, nullptr);
+        INCRE_DEBUG_ASYNC_THING_COUNT;
     }
 
-    void ComputeContext::ClearUAV(ColorBuffer& Target)
+    void ComputeContext::ClearUAV(const ColorBuffer& target, const uint8_t commandIndex/* = 0u*/)
     {
+        ASSERT(CHECK_VALID_COMMAND_INDEX);
         // After binding a UAV, we can get a GPU handle that is required to clear it as a UAV 
         // (because it essentially runs a shader to set all of the values).
-        D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_DynamicViewDescriptorHeap.UploadDirect(Target.GetUAV());
-        CD3DX12_RECT ClearRect(0L, 0L, (LONG)Target.GetWidth(), (LONG)Target.GetHeight());
+        D3D12_GPU_DESCRIPTOR_HANDLE GpuVisibleHandle = m_GPUTaskFiberContexts[commandIndex].DynamicViewDescriptorHeaps.UploadDirect(target.GetUAV(), commandIndex);
+        CD3DX12_RECT ClearRect(0L, 0L, (LONG)target.GetWidth(), (LONG)target.GetHeight());
 
-        const float* ClearColor = Target.GetClearColor().GetPtr();
-        m_commandList->ClearUnorderedAccessViewFloat
+        const float* ClearColor = target.GetClearColor().GetPtr();
+        m_pCommandLists[commandIndex]->ClearUnorderedAccessViewFloat
         (
-            GpuVisibleHandle, Target.GetUAV(), 
-            Target.GetResource(), ClearColor, 
+            GpuVisibleHandle, target.GetUAV(), 
+            target.GetResource(), ClearColor, 
             1, &ClearRect
         );
+        INCRE_DEBUG_ASYNC_THING_COUNT;
     }
 }

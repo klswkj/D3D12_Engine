@@ -8,29 +8,29 @@ namespace custom
 
 class IWindow;
 
-class Color3Buffer : public RenderingResource
+class Color3Buffer final : public RenderingResource
 {
 public:
-	Color3Buffer(UINT RootIndex, DirectX::XMFLOAT3 InputColor = { 0.2f, 0.2f, 0.2f });
-	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
-	void RenderingWindow(IWindow& _IWindow) override;
+	Color3Buffer(const UINT RootIndex, const DirectX::XMFLOAT3 InputColor = { 0.2f, 0.2f, 0.2f });
+	void Bind(custom::CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT final;
+	void RenderingWindow(const IWindow& _IWindow) final;
 
-	void SetColor(DirectX::XMFLOAT3 InputColor);
-	void SetColorByComponent(float R, float G, float B);
+	void SetColor(const DirectX::XMFLOAT3& InputColor);
+	void SetColorByComponent(const float R, const float G, const float B);
 
 	__declspec(align(16)) DirectX::XMFLOAT3 Color;
 	UINT m_RootIndex;
 };
 
-class Color4Buffer : public RenderingResource
+class Color4Buffer final : public RenderingResource
 {
 public:
-	Color4Buffer(UINT RootIndex, DirectX::XMFLOAT4 InputColor = { 0.2f, 0.2f, 0.2f, 1.0f });
-	void Bind(custom::CommandContext& BaseContext) DEBUG_EXCEPT;
-	void RenderingWindow(IWindow& _IWindow) override;
+	Color4Buffer(const UINT RootIndex, const DirectX::XMFLOAT4 InputColor = { 0.2f, 0.2f, 0.2f, 1.0f });
+	void Bind(custom::CommandContext& BaseContext, const uint8_t commandIndex) DEBUG_EXCEPT final;
+	void RenderingWindow(const IWindow& _IWindow) final;
 
-	void SetColor(DirectX::XMFLOAT4 InputColor);
-	void SetColorByComponent(float R, float G, float B, float A);
+	void SetColor(const DirectX::XMFLOAT4& InputColor);
+	void SetColorByComponent(const float R, const float G, const float B, const float A);
 
 	__declspec(align(16)) DirectX::XMFLOAT4 Color;
 	UINT m_RootIndex;

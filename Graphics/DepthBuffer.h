@@ -8,8 +8,11 @@ public:
     friend class RenderTarget;
     friend class DepthStencil;
 
-    DepthBuffer(float ClearDepth = 0.0f, uint8_t ClearStencil = 0)
-        : m_ClearDepth(ClearDepth), m_ClearStencil(ClearStencil), m_Format(DXGI_FORMAT_UNKNOWN)
+    DepthBuffer(const float ClearDepth = 0.0f, const uint8_t ClearStencil = 0u)
+        : 
+        m_ClearDepth(ClearDepth), 
+        m_ClearStencil(ClearStencil), 
+        m_Format(DXGI_FORMAT_UNKNOWN)
     {
         m_hDSV[0].ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
         m_hDSV[1].ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -18,10 +21,11 @@ public:
         m_hDepthSRV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
         m_hStencilSRV.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
     }
+    virtual ~DepthBuffer() = default;
 
-    void Create(const std::wstring& Name, uint32_t Width, uint32_t Height, DXGI_FORMAT Format);
+    void Create(const std::wstring& wName, const uint32_t width, const uint32_t height, const DXGI_FORMAT format);
 
-    void CreateSamples(const std::wstring& Name, uint32_t Width, uint32_t Height, uint32_t NumSamples, DXGI_FORMAT Format);
+    void CreateSamples(const std::wstring& Name, const uint32_t width, const uint32_t height, const uint32_t numSamples, const DXGI_FORMAT format);
 
     // Get pre-created CPU-visible descriptor handles
     const D3D12_CPU_DESCRIPTOR_HANDLE& GetDSV() const 
@@ -63,11 +67,11 @@ public:
     }
 
 private:
-    void createDSV(ID3D12Device* Device, DXGI_FORMAT Format);
+    void createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT format);
 
 protected:
-    float m_ClearDepth;
-    uint8_t m_ClearStencil;
+    const float   m_ClearDepth;
+    const uint8_t m_ClearStencil;
     DXGI_FORMAT m_Format;
 
     D3D12_CPU_DESCRIPTOR_HANDLE m_hDSV[4]; // -> DSV(0), DSV_DepthReadOnly(1), DSV_StencilReadOnly(2),  DSV_ReadOnly(3)

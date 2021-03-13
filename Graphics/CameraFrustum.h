@@ -8,19 +8,19 @@
 
 class Camera;
 
-class CameraFrustum : public IEntity
+class CameraFrustum final : public IEntity
 {
 public:
 	// width, height is given -> near Z plane is normalized, -> multiplication with m_AspectRatio.
 	// width / height will be VerticalFOV
-	CameraFrustum(Camera* pCamera, float AspectHeightOverWidth, float NearZClip, float FarZClip);
-	void SetVertices(float Width, float Height, float NearZClip, float FarZClip);
-	void SetVertices(float AspectHeightOverWidth, float NearZClip, float FarZClip);
-	void SetPosition(DirectX::XMFLOAT3& Position) noexcept;
-	void SetPosition(Math::Vector3& Position) noexcept;
-	void SetRotation(const DirectX::XMFLOAT3& Position) noexcept;
-	void SetRotation(Math::Vector3& Position) noexcept;
-	Math::Matrix4 GetTransform() const noexcept override;
+	CameraFrustum(Camera& rCamera, const float aspectHeightOverWidth, const float nearZClip, const float farZClip);
+	void SetVertices(const float width, const float Height, const float nearZClip, const float farZClip);
+	void SetVertices(const float aspectHeightOverWidth, const float nearZClip, const float farZClip);
+	void SetPosition(const DirectX::XMFLOAT3& position) noexcept;
+	void SetPosition(const Math::Vector3& position) noexcept;
+	void SetRotation(const DirectX::XMFLOAT3& position) noexcept;
+	void SetRotation(const Math::Vector3& position) noexcept;
+	Math::Matrix4 GetTransform() const noexcept final;
 
 private:
 	Math::Vector3 m_CameraPosition = { 0.0f,0.0f,0.0f };          // Convert to Orthogonal Transform
