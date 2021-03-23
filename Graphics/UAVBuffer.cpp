@@ -60,23 +60,25 @@ namespace custom
 		m_elementSize  = elementSize;
 		m_bufferSize   = (size_t)numElements * (size_t)elementSize;
 
+		m_numSubResource = 1u;
+		m_currentStates.resize(1ul, D3D12_RESOURCE_STATE_COMMON);
+		m_pendingStates.resize(1ul, D3D12_RESOURCE_STATES(-1));
+
 		D3D12_RESOURCE_DESC ResourceDesc = resourceDescriptor();
 
-		m_currentState = D3D12_RESOURCE_STATE_COMMON;
-
-		D3D12_HEAP_PROPERTIES HeapProps;
-		HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-		HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		D3D12_HEAP_PROPERTIES HeapProps = {};
+		HeapProps.Type                 = D3D12_HEAP_TYPE_DEFAULT;
+		HeapProps.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 		HeapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-		HeapProps.CreationNodeMask = 1;
-		HeapProps.VisibleNodeMask = 1;
+		HeapProps.CreationNodeMask     = 1U;
+		HeapProps.VisibleNodeMask      = 1U;
 
 		ASSERT_HR
 		(
 			device::g_pDevice->CreateCommittedResource
 			(
 				&HeapProps, D3D12_HEAP_FLAG_NONE,
-				&ResourceDesc, m_currentState, nullptr, IID_PPV_ARGS(&m_pResource)
+				&ResourceDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_pResource)
 			)
 		);
 
@@ -107,15 +109,17 @@ namespace custom
 		m_elementSize  = elementSize;
 		m_bufferSize   = (size_t)numElements * (size_t)elementSize;
 
-		D3D12_RESOURCE_DESC ResourceDesc = resourceDescriptor();
+		m_numSubResource = 1u;
+		m_currentStates.resize(1ul, D3D12_RESOURCE_STATE_COMMON);
+		m_pendingStates.resize(1ul, D3D12_RESOURCE_STATES(-1));
 
-		m_currentState = D3D12_RESOURCE_STATE_COMMON;
+		D3D12_RESOURCE_DESC ResourceDesc = resourceDescriptor();
 
 		ASSERT_HR
 		(
 			device::g_pDevice->CreatePlacedResource
 			(
-				pBackingHeap, heapOffset, &ResourceDesc, m_currentState, nullptr, IID_PPV_ARGS(&m_pResource)
+				pBackingHeap, heapOffset, &ResourceDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_pResource)
 			)
 		);
 
@@ -141,7 +145,7 @@ namespace custom
 
 		size = HashInternal::AlignUp(size, 16);
 
-		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc;
+		D3D12_CONSTANT_BUFFER_VIEW_DESC CBVDesc = {};
 		CBVDesc.BufferLocation = m_GPUVirtualAddress + (size_t)offset;
 		CBVDesc.SizeInBytes = size;
 
@@ -227,6 +231,7 @@ namespace custom
 		{
 			m_UAV = device::g_descriptorHeapManager.Allocate(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
+
 		device::g_pDevice->CreateUnorderedAccessView(m_pResource, m_CounterBuffer.GetResource(), &UAVDesc, m_UAV);
 	}
 
@@ -319,14 +324,14 @@ namespace custom
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE& StructuredBuffer::GetCounterSRV(CommandContext& context, const uint8_t commandIndex)
 	{
-		context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_GENERIC_READ);
+		context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		context.SubmitResourceBarriers(0u);
 		return m_CounterBuffer.GetSRV();
 	}
 
 	const D3D12_CPU_DESCRIPTOR_HANDLE& StructuredBuffer::GetCounterUAV(CommandContext& context, const uint8_t commandIndex)
 	{
-		context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		context.TransitionResource(m_CounterBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		context.SubmitResourceBarriers(0u);
 		return m_CounterBuffer.GetUAV();
 	}

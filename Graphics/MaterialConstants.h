@@ -11,22 +11,6 @@ class IWindow;
 
 // Keep Sync in HLSL.
 
-/*
-D3D12Engine::EndFrame()
-ModelComponentWindow::RenderWindow()
-Node::Accept(Window);
-IEntity::Accept(Window);
-Technique::Accept(Window);
-Step::Accept(Window);
-RenderingResource::Accept(Window);
-TechniqueProbe::VisitBufer();
-TP::OnVisitBuffer();
-
-					 <-> TechniqueProbe
-ModelComponentWIndow <-> MP
-IWindow       <-> TP
-*/
-
 class IControllerConstant : public RenderingResource
 {
 public:
@@ -106,6 +90,7 @@ public:
 	{
 		Math::Vector4 SpecularColorAndWeight;
 		float SpecularGloss;
+		float Padding[3];
 	};
 	Data m_Data;
 };
@@ -144,6 +129,7 @@ public:
 		Math::Vector4 DiffuseColorAndUseGlossAlpha;
 		Math::Vector3 UseSpecularMapSpecularWeightGloss;
 		DirectX::XMFLOAT3 SpecularColor;
+		float Padding;
 	};
 
 	Data m_Data;

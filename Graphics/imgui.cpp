@@ -978,9 +978,6 @@ CODE
 
 */
 
-#if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS
-#endif
 #include "stdafx.h"
 #include "imgui.h"
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -9863,7 +9860,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         static void NodeTabBar(ImGuiTabBar* tab_bar)
         {
             // Standalone tab bars (not associated to docking/windows functionality) currently hold no discernible strings.
-            char buf[256];
+            char buf[256] = {};
             char* p = buf;
             const char* buf_end = buf + IM_ARRAYSIZE(buf);
             ImFormatString(p, buf_end - p, "TabBar (%d tabs)%s", tab_bar->Tabs.Size, (tab_bar->PrevFrameVisible < ImGui::GetFrameCount() - 2) ? " *Inactive*" : "");
@@ -9916,7 +9913,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
 #endif
 
 #if 0
-    if (ImGui::TreeNode("Tables", "Tables (%d)", g.Tables.Data.Size))
+    if (ImGui::TreeNode("Tables", "Tables (%d)", g.Tables.Data.m_PageableBytesSize))
     {
         ImGui::TreePop();
     }

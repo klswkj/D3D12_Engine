@@ -19,7 +19,9 @@ namespace custom
         const DXGI_FORMAT Format, const void* const InitialData
     )
     {
-        m_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
+        m_numSubResource = 1u;
+        m_currentStates.resize(1ul, D3D12_RESOURCE_STATE_COPY_DEST);
+        m_pendingStates.resize(1ul, D3D12_RESOURCE_STATES(-1));
 
         D3D12_RESOURCE_DESC texDesc = {};
         texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -33,7 +35,7 @@ namespace custom
         texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-        D3D12_HEAP_PROPERTIES HeapProperties;
+        D3D12_HEAP_PROPERTIES HeapProperties = {};
         HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
         HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
         HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -45,13 +47,13 @@ namespace custom
             device::g_pDevice->CreateCommittedResource
             (
                 &HeapProperties, D3D12_HEAP_FLAG_NONE, &texDesc,
-                m_currentState, nullptr, IID_PPV_ARGS(&m_pResource)
+                m_currentStates.front(), nullptr, IID_PPV_ARGS(&m_pResource)
             )
         );
 
         m_pResource->SetName(L"Texture");
 
-        D3D12_SUBRESOURCE_DATA texResource;
+        D3D12_SUBRESOURCE_DATA texResource = {};
         texResource.pData = InitialData;
         texResource.RowPitch = Pitch * custom::BytesPerPixel(Format);
         texResource.SlicePitch = texResource.RowPitch * Height;
@@ -158,23 +160,29 @@ namespace custom
         CreateCommittedTexturePrivate(header.Pitch, header.Width, header.Height, header.Format, (uint8_t*)pMemBuffer + sizeof(Header));
     }
 
-    bool Texture::CreateWICFromMemory(const std::wstring& fileName)
+    bool Texture::CreateWICFromMemory(const std::wstring& szFileName)
     {
-        m_currentState = D3D12_RESOURCE_STATE_COPY_DEST;
-
-        D3D12_SUBRESOURCE_DATA subresource;
-        std::unique_ptr<uint8_t[]> wicData; // using to subResource.pData
+        D3D12_SUBRESOURCE_DATA SubResource;
+        std::unique_ptr<uint8_t[]> DecodedWICData; // using to subResource.pData
 
         HRESULT hr = DirectX::LoadWICTextureFromFile
         (
-            device::g_pDevice, fileName.c_str(), &m_pResource,
-            wicData, subresource,
+            device::g_pDevice, szFileName.c_str(), &m_pResource,
+            DecodedWICData, SubResource,
             size_t(D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION)
         );
 
-        ASSERT_HR(hr, "Invalid Creating WIC Request from ", fileName, ".");
+        ASSERT_HR(hr, "Invalid Creating WIC Request from ", szFileName, ".");
+        // GetRequiredIntermediateSize
 
-        CopyContext::InitializeTexture(*this, 1, &subresource);
+        D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
+        UINT NumSubResource = (desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D) ? desc.DepthOrArraySize * desc.MipLevels : desc.MipLevels;
+        
+        m_numSubResource = NumSubResource;
+        m_currentStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATE_COPY_DEST);
+        m_pendingStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATES(-1));
+
+        CopyContext::InitializeTexture(*this, NumSubResource, &SubResource);
 
         if (m_hCpuDescriptorHandle.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
 		{
@@ -182,7 +190,7 @@ namespace custom
 		}
         device::g_pDevice->CreateShaderResourceView(m_pResource, nullptr, m_hCpuDescriptorHandle);
 #if(_DEBUG)
-        std::wstring normalizedwString = _NormalizeWString(fileName);
+        std::wstring normalizedwString = _NormalizeWString(szFileName);
         normalizedwString += L"_ManagedTexture"; // will be removed.
         m_pResource->SetName(normalizedwString.c_str());
 #endif

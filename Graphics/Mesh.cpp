@@ -2,8 +2,13 @@
 #include "Mesh.h"
 #include "FundamentalVertexIndex.h"
 
+#if defined(_DEBUG)
 Mesh::Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName)
 	: IEntity(CMaterial, Input, pStartVertexLocation, MeshName)
+#else
+Mesh::Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation)
+	: IEntity(CMaterial, Input, pStartVertexLocation)
+#endif
 {
 	ZeroMemory(&m_Transform, sizeof(m_Transform));
 }

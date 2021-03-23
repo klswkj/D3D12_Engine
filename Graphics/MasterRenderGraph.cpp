@@ -226,13 +226,28 @@ MasterRenderGraph::~MasterRenderGraph()
 {
 }
 
-void MasterRenderGraph::Execute() DEBUG_EXCEPT
+void MasterRenderGraph::ExecuteRenderGraph() DEBUG_EXCEPT
 {
 	ASSERT(m_pCurrentActiveCamera != nullptr);
 
 	RenderPassesWindow();
 
 	custom::CommandContext::BeginFrame();
+
+#if defined(_DEBUG)
+	for (auto& p : (m_bDebugPassesMode) ? m_pFullScreenDebugPasses : m_pPasses)
+	{
+		ID3D12RenderQueuePass* pRQP = (ID3D12RenderQueuePass*)dynamic_cast<ID3D12RenderQueuePass*>(p.get());
+
+		if (pRQP)
+		{
+			for (auto& e : pRQP->m_Jobs)
+			{
+				e.m_bDrawCompleted = false;
+			}
+		}
+	}
+#endif
 
 	for (auto& p : (m_bDebugPassesMode) ? m_pFullScreenDebugPasses : m_pPasses)
 	{
@@ -262,7 +277,7 @@ void MasterRenderGraph::ShowPassesWindows()
 	}
 }
 
-void MasterRenderGraph::Reset() noexcept
+void MasterRenderGraph::ResetRenderGraph() noexcept
 {
 	for (auto& p : m_pPasses)
 	{
@@ -275,7 +290,7 @@ void MasterRenderGraph::Reset() noexcept
 	}
 }
 
-void MasterRenderGraph::Profiling()
+void MasterRenderGraph::ProfilingRenderGraph()
 {
 #ifdef _DEBUG
 	for (auto& p : m_pPasses)
@@ -296,7 +311,7 @@ void MasterRenderGraph::Profiling()
 #endif
 }
 
-void MasterRenderGraph::Update()
+void MasterRenderGraph::UpdateRenderGraph()
 {
 	ASSERT(m_pCurrentActiveCamera != nullptr);
 	ASSERT(m_pMainLights != nullptr);

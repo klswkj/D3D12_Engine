@@ -35,7 +35,7 @@ namespace custom
         void CreateTGAFromMemory(const void* memBuffer, size_t fileSize, bool bStandardRGB);
         bool CreateDDSFromMemory(const void* memBuffer, size_t fileSize, bool bStandardRGB);
         void CreatePIXImageFromMemory(const void* memBuffer, size_t fileSize);
-        bool CreateWICFromMemory(const std::wstring& fileName);
+        bool CreateWICFromMemory(const std::wstring& szFileName);
 
         virtual void Destroy() override
         {

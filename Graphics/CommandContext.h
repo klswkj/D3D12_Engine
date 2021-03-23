@@ -199,32 +199,39 @@ namespace custom
         { ASSERT(m_pCommandAllocators.size() == m_pCommandLists.size() && m_pCommandLists.size() == m_NumCommandPair) return m_NumCommandPair; }
         inline ID3D12GraphicsCommandList* GetCommandList(uint8_t commandIndex) const { return m_pCommandLists[commandIndex]; }
 
+        inline void SetResourceTransitionBarrierIndex(const uint8_t index) { ASSERT(index < m_NumCommandPair); m_ResourceBarrierTargetCommandIndex = index; }
+
         void WaitLastExecuteGPUSide(CommandContext& BaseContext);
 
         inline LinearBuffer ReserveUploadMemory(size_t SizeInBytes) { return m_CPULinearAllocator.Allocate(SizeInBytes); }
 
         // 다른 CommandList, Queue에도 영향을 미침. -> 멀티스레드와 같이 멀티엔진으로 쓰면??? 동기화는?
-        void InsertUAVBarrier(GPUResource& targetResource);
+        void InsertUAVBarrier  (GPUResource& targetResource);
         void InsertAliasBarrier(GPUResource& beforeResource, GPUResource& afterResource);
-        void TransitionResource(GPUResource& targetResource, D3D12_RESOURCE_STATES stateAfter, D3D12_RESOURCE_STATES forcedOldState = (D3D12_RESOURCE_STATES)-1);
-        void SplitResourceTransition(GPUResource& Resource, D3D12_RESOURCE_STATES statePending);
+
+        void TransitionResource     (GPUResource& targetResource, const D3D12_RESOURCE_STATES stateAfter, const UINT subResourceIndex, D3D12_RESOURCE_STATES forcedOldState = (D3D12_RESOURCE_STATES)-1);
+        void SplitResourceTransition(GPUResource& targetResource, const D3D12_RESOURCE_STATES statePending, const UINT subResourceIndex);
+
+        void TransitionResources     (GPUResource& targetResource, const D3D12_RESOURCE_STATES stateAfter, UINT subResourceFlag);
+        void SplitResourceTransitions(GPUResource& targetResource, const D3D12_RESOURCE_STATES statePending, UINT subResourceFlag);
+        
         void SubmitExternalResourceBarriers(const D3D12_RESOURCE_BARRIER externalResourceBarriers[], const UINT numResourceBarriers, const uint8_t commandIndex);
         void SubmitResourceBarriers(uint8_t commandListIndex);
 
-        void InsertTimeStamp(ID3D12QueryHeap* const pQueryHeap, const UINT QueryIdx, const uint8_t commandIndex) const;
+        void InsertTimeStamp  (ID3D12QueryHeap* const pQueryHeap, const UINT QueryIdx, const uint8_t commandIndex) const;
         void ResolveTimeStamps(ID3D12Resource* const pReadbackHeap, ID3D12QueryHeap* const pQueryHeap, const UINT NumQueries, const uint8_t commandIndex) const;
-        void PIXBeginEvent(const wchar_t* const label, const uint8_t commandIndex) const;
-        void PIXEndEvent(const uint8_t commandIndex) const;
+        void PIXBeginEvent   (const wchar_t* const label, const uint8_t commandIndex) const;
+        void PIXEndEvent     (const uint8_t commandIndex) const;
         void PIXBeginEventAll(const wchar_t* const label) const;
-        void PIXEndEventAll() const;
-        void PIXSetMarker(const wchar_t* const label, const uint8_t commandIndex) const;
-        void PIXSetMarkerAll(const wchar_t* const label) const;
+        void PIXEndEventAll  () const;
+        void PIXSetMarker    (const wchar_t* const label, const uint8_t commandIndex) const;
+        void PIXSetMarkerAll (const wchar_t* const label) const;
 
-        void SetPipelineState(const PSO& customPSO, const uint8_t commandIndex);
-        void SetPipelineStateRange(const PSO& customPSO, const uint8_t startCommandIndex, const uint8_t endCommandIndex);
-        void SetPipelineStateByPtr(ID3D12PipelineState* const pPSO, const uint8_t commandIndex);
+        void SetPipelineState          (const PSO& customPSO, const uint8_t commandIndex);
+        void SetPipelineStateRange     (const PSO& customPSO, const uint8_t startCommandIndex, const uint8_t endCommandIndex);
+        void SetPipelineStateByPtr     (ID3D12PipelineState* const pPSO, const uint8_t commandIndex);
         void SetPipelineStateByPtrRange(ID3D12PipelineState* const pPSO, const uint8_t startCommandIndex, const uint8_t endCommandIndex);
-        void SetPredication(ID3D12Resource* const Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op, const uint8_t commandIndex);
+        void SetPredication            (ID3D12Resource* const Buffer, UINT64 BufferOffset, D3D12_PREDICATION_OP Op, const uint8_t commandIndex);
 
         void SetModelToProjection          (const Math::Matrix4& _ViewProjMatrix);
         void SetModelToProjectionByCamera  (const IBaseCamera& _IBaseCamera);
@@ -309,7 +316,7 @@ namespace custom
         LinearAllocator m_CPULinearAllocator;
         LinearAllocator m_GPULinearAllocator;
 
-        uint8_t m_StartCommandALIndex;
+        uint8_t m_ResourceBarrierTargetCommandIndex;
         uint8_t m_EndCommandALIndex;
         uint8_t m_NumCommandPair;
         uint8_t m_numStandByBarriers;
@@ -333,6 +340,14 @@ namespace custom
 		static GraphicsContext& Begin(uint8_t numCommandALs);
 		static GraphicsContext& Resume(uint64_t contextID);
 		static GraphicsContext& GetRecentContext();
+
+    public:
+        void CopySubresource
+        (
+            GPUResource& dest, UINT destSubIndex,
+            GPUResource& src, UINT srcSubIndex,
+            const uint8_t commandIndex
+        );
 
     public:
         void ClearUAV(const UAVBuffer& Target, const uint8_t commandIndex);

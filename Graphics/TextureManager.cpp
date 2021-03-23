@@ -27,7 +27,7 @@ namespace TextureManager
 
 		for (auto& e : s_TextureCache)
 		{
-			graphicsContext.TransitionResource(*e.second, newState);
+			graphicsContext.TransitionResource(*e.second, newState, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
 			if (16u <= graphicsContext.GetNumStandbyResourceBarrier())
 			{

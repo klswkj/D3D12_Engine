@@ -11,7 +11,12 @@ class Mesh : public IEntity
 	struct BoundingBox;
 	friend class ObjModelManager;
 public:
-	Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
+#if defined(_DEBUG)
+	explicit Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
+#else
+	explicit Mesh(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation);
+#endif
+
 
 	// DirectX::XMMATRIX GetTransformXM() const noexcept;
 	Math::Matrix4 GetTransform() const noexcept;

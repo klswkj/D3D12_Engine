@@ -24,7 +24,11 @@ public:
 	virtual ~IEntity() = default;
 	
 	// IEntity(const Material& CMaterial, const aiMesh& _AiMesh, float _Scale = 1.0f) noexcept;
+#if defined(_DEBUG)
 	IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName = {});
+#else
+	IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation);
+#endif
 	IEntity(const IEntity&) = delete;
 	void AddTechnique(Technique Tech) noexcept;
 	virtual Math::Matrix4 GetTransform() const noexcept = 0;
@@ -62,7 +66,7 @@ private:
 
 protected:
 #if defined(_DEBUG)
-	std::string m_name;
+	std::wstring m_name;
 #endif
 	std::vector<Technique> m_Techniques;
 

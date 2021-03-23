@@ -6,7 +6,8 @@ class PixelBuffer : public custom::GPUResource
 {
 public:
     PixelBuffer() 
-        : m_width(0), m_height(0), m_arraySize(0), m_format(DXGI_FORMAT_UNKNOWN)
+        : 
+        m_width(0u), m_height(0u), m_arraySize(0u), m_format(DXGI_FORMAT_UNKNOWN)
     {
     }
 
@@ -36,7 +37,12 @@ protected:
         const uint32_t numMips, const DXGI_FORMAT format, const UINT flags
     );
 
-    void CopyResource(ID3D12Device* const pDevice, const std::wstring& wName, ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES currentResourceState);
+    void CopyResource
+    (
+        ID3D12Device* const pDevice, const std::wstring& wName,
+        ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES* const pCurrentResourceStates, const D3D12_RESOURCE_STATES* const pPendingResourceStates = nullptr,
+        const uint8_t numSubResource = 1u
+    );
 
     void CreateTextureCommittedResource
     (

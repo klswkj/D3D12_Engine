@@ -9,6 +9,7 @@
 #include "BufferManager.h"
 #include "ObjectFilterFlag.h"
 #include "CommandContextManager.h"
+#include "CommandQueueManager.h"
 #include "WindowInput.h"
 #include "CpuTime.h"
 
@@ -46,8 +47,8 @@ D3D12Engine::D3D12Engine(const std::string& CommandLine)
 	m_MainViewport.MinDepth = 0.0f;
 	m_MainViewport.MaxDepth = 1.0f;
 
-	m_MainScissor.left   = 0l;
-	m_MainScissor.top    = 0l;
+	m_MainScissor.left   = 0L;
+	m_MainScissor.top    = 0L;
 	m_MainScissor.right  = (LONG)bufferManager::g_SceneColorBuffer.GetWidth();
 	m_MainScissor.bottom = (LONG)bufferManager::g_SceneColorBuffer.GetHeight();
 
@@ -69,33 +70,33 @@ void D3D12Engine::Render()
 	device::g_commandContextManager.SetViewportAndScissor(m_MainViewport, m_MainScissor);
 
 	BeginFrame();
-	m_MasterRenderGraph.Execute();
+	m_MasterRenderGraph.ExecuteRenderGraph();
 	EndFrame();
 	
-#ifdef _DEBUG
-	if (!(m_CurrentTick % 100ull))
-	{
-		system("cls");
-		printf("Current Index : %lld.\n\n", m_CurrentTick);
-		m_MasterRenderGraph.Profiling();
+// #ifdef _DEBUG
+// 	if (!(m_CurrentTick % 100ull))
+// 	{
+// 		system("cls");
+// 		printf("Current Index : %lld.\n\n", m_CurrentTick);
+// 		m_MasterRenderGraph.ProfilingRenderGraph();
+// 
+// 		VSConstants temp = device::g_commandContextManager.GetVSConstants();
+// 		auto tempX = DirectX::XMFLOAT4(temp.modelToProjection.GetX());
+// 		auto tempY = DirectX::XMFLOAT4(temp.modelToProjection.GetY());
+// 		auto tempZ = DirectX::XMFLOAT4(temp.modelToProjection.GetZ());
+// 		auto tempW = DirectX::XMFLOAT4(temp.modelToProjection.GetW());
+// 
+// 		printf("model to Projection : \n");
+// 		printf("%.5f %.5f %.5f %.5f \n",   tempX.x, tempX.y, tempX.z, tempX.w);
+// 		printf("%.5f %.5f %.5f %.5f \n",   tempY.x, tempY.y, tempY.z, tempY.w);
+// 		printf("%.5f %.5f %.5f %.5f \n",   tempZ.x, tempZ.y, tempZ.z, tempZ.w);
+// 		printf("%.5f %.5f %.5f %.5f \n\n", tempW.x, tempW.y, tempW.z, tempW.w);
+// 
+// 		printf("Position : %.5f, %.5f, %.5f \n", temp.viewerPos.x, temp.viewerPos.y, temp.viewerPos.z);
+// 	}
+// #endif
 
-		VSConstants temp = device::g_commandContextManager.GetVSConstants();
-		auto tempX = DirectX::XMFLOAT4(temp.modelToProjection.GetX());
-		auto tempY = DirectX::XMFLOAT4(temp.modelToProjection.GetY());
-		auto tempZ = DirectX::XMFLOAT4(temp.modelToProjection.GetZ());
-		auto tempW = DirectX::XMFLOAT4(temp.modelToProjection.GetW());
-
-		printf("model to Projection : \n");
-		printf("%.5f %.5f %.5f %.5f \n", tempX.x, tempX.y, tempX.z, tempX.w);
-		printf("%.5f %.5f %.5f %.5f \n", tempY.x, tempY.y, tempY.z, tempY.w);
-		printf("%.5f %.5f %.5f %.5f \n", tempZ.x, tempZ.y, tempZ.z, tempZ.w);
-		printf("%.5f %.5f %.5f %.5f \n\n", tempW.x, tempW.y, tempW.z, tempW.w);
-
-		printf("Position : %.5f, %.5f, %.5f \n", temp.viewerPos.x, temp.viewerPos.y, temp.viewerPos.z);
-	}
-#endif
-
-	m_MasterRenderGraph.Reset();
+	m_MasterRenderGraph.ResetRenderGraph();
 	++m_CurrentTick;
 }
 
@@ -103,11 +104,11 @@ bool D3D12Engine::Update(float DeltaTime)
 {
 	m_ObjModelManager.Submit(eObjectFilterFlag::kOpaque);
 
-	// Profiling::Update(); ASSERT(flase); // 아직 에러남.
+	// Profiling::Update(); ASSERT(false);
 	windowInput::Update(DeltaTime);
 	m_CameraManager.Update(DeltaTime);
 	m_MasterRenderGraph.BindMainCamera(m_CameraManager.GetActiveCamera().get());
-	m_MasterRenderGraph.Update();
+	m_MasterRenderGraph.UpdateRenderGraph();
 
 	m_MainViewport.Width  = (float)bufferManager::g_SceneColorBuffer.GetWidth();
 	m_MainViewport.Height = (float)bufferManager::g_SceneColorBuffer.GetHeight();
@@ -141,6 +142,8 @@ int D3D12Engine::Run()
 			graphics::Present();
 		}
 	);
+
+	device::g_commandQueueManager.WaitIdleCPUSide();
 
 	return 0;
 }
@@ -269,7 +272,7 @@ void D3D12Engine::EndFrame()
 		m_ObjModelManager.RenderComponentWindows();
 
 		graphicsContext.SetViewportAndScissor(bufferManager::g_SceneColorBuffer, 0);
-		graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
 		graphicsContext.SubmitResourceBarriers(0);
 		graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), 0);
 		// graphicsContext.SetViewportAndScissor(0, 0, bufferManager::g_SceneColorBuffer.GetWidth(), bufferManager::g_SceneColorBuffer.GetHeight());

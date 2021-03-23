@@ -24,8 +24,8 @@ constexpr uint32_t LightPrePass::sm_lightGridBitMaskSizeBytes = 0x7e900u;
 LightPrePass::LightPrePass(std::string pName)
     : D3D12Pass(pName)
 {
-    bufferManager::g_Lights.reserve(sm_MaxLight * 2 + 1);
-    bufferManager::g_LightShadowMatrixes.reserve(sm_MaxLight * 2 + 1);
+    bufferManager::g_Lights.reserve((size_t)(sm_MaxLight * 2u + 1u));
+    bufferManager::g_LightShadowMatrixes.reserve((size_t)(sm_MaxLight * 2u + 1u));
 
     CreateSphereLight();
     CreateConeLight();

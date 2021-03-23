@@ -19,17 +19,17 @@ namespace custom
 	class DynamicDescriptorHeap
 	{
 	public:
-		DynamicDescriptorHeap
+		explicit DynamicDescriptorHeap
 		(
 			custom::CommandContext& owningContext,
 			const D3D12_DESCRIPTOR_HEAP_TYPE heapType
 		)
-			: 
-			m_owningContext(owningContext), 
+			:
+			m_owningContext(owningContext),
 			m_descriptorType(heapType)
 		{
-			m_pCurrentHeap = nullptr;
-			m_currentOffset = 0;
+			m_pCurrentHeap   = nullptr;
+			m_currentOffset  = 0u;
 			m_descriptorSize = device::g_pDevice->GetDescriptorHandleIncrementSize(heapType);
 		}
 
@@ -114,7 +114,7 @@ namespace custom
 
 		DescriptorHandle allocateDescriptorHandle(const UINT count)
 		{
-			DescriptorHandle ret = m_firstDescriptor + m_currentOffset * m_descriptorSize;
+			DescriptorHandle ret = m_firstDescriptor + (m_currentOffset * m_descriptorSize);
 			m_currentOffset += count;
 			return ret;
 		}
@@ -133,12 +133,11 @@ namespace custom
 	private:
 		// Static members
 		static const uint32_t kNumDescriptorsPerHeap = 1024u;
-		// static std::mutex sm_mutex;
 		static custom::RAII_CS sm_CS;
 
-		static std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> sm_descriptorHeapPool[2];
-		static std::queue<std::pair<uint64_t, ID3D12DescriptorHeap*>> sm_retiredDescriptorHeaps[2];
-		static std::queue<ID3D12DescriptorHeap*> sm_availableDescriptorHeaps[2];
+		static std::vector<Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>> sm_descriptorHeapPool      [2];
+		static std::queue<std::pair<uint64_t, ID3D12DescriptorHeap*>>    sm_retiredDescriptorHeaps  [2];
+		static std::queue<ID3D12DescriptorHeap*>                         sm_availableDescriptorHeaps[2];
 
 		// Non-static members
 	private:
@@ -164,8 +163,8 @@ namespace custom
 			}
 
 			D3D12_CPU_DESCRIPTOR_HANDLE* pTableStart;
-			uint32_t assignedHandlesBitMap;
-			uint32_t tableSize;
+			uint32_t                     assignedHandlesBitMap;
+			uint32_t                     tableSize;
 		};
 
 		struct DescriptorHandleCache
@@ -205,12 +204,12 @@ namespace custom
 			uint32_t m_staleRootParamsBitMap;
 			uint32_t m_maxCachedDescriptors;
 
-			DescriptorTableCache m_rootDescriptorTable[kMaxNumDescriptorTables];
+			DescriptorTableCache m_rootDescriptorTableCache[kMaxNumDescriptorTables];
 
 			D3D12_CPU_DESCRIPTOR_HANDLE m_handleCache[kMaxNumDescriptors];
-		};
+		}; // struct DescriptorHandleCache
 
 		DescriptorHandleCache m_graphicsHandleCache;
 		DescriptorHandleCache m_computeHandleCache;
-	};
-}
+	}; // class DynamicDescriptorHeap
+} // end namespace custom

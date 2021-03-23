@@ -56,8 +56,8 @@ void DebugShadowMapPass::ExecutePass() DEBUG_EXCEPT
 	// RenderTarget  : ColorBuffer
 	// Drawing Stuff : ShadowBuffer
 	graphicsContext.PIXBeginEvent(L"DebugShadowMapPass", 0u);
-	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U);
+	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
 	graphicsContext.SubmitResourceBarriers(0u);
 	graphicsContext.SetRenderTarget(bufferManager::g_SceneColorBuffer.GetRTV(), 0u);
 	graphicsContext.SetRootSignature(m_RootSignature, 0u);

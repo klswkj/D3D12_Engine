@@ -78,7 +78,7 @@ void ID3D12RenderQueuePass::Execute(custom::CommandContext& BaseContext, uint8_t
 void ID3D12RenderQueuePass::ExecuteWithRange
 (
 	custom::CommandContext& BaseContext, uint8_t commandIndex, 
-	size_t StartJobIndex/* = 0ul*/, size_t EndJobIndex/* = SIZE_MAX*/
+	size_t StartJobIndex, size_t EndJobIndex
 ) DEBUG_EXCEPT
 {
 	size_t JobSize = GetJobCount();
@@ -141,9 +141,6 @@ STATIC void ID3D12RenderQueuePass::SetParamsWithVariadic(void* ptr)
 	Pass->SetParams(pGrahpicsContext, StartCommandIndex, TotalCommandCount);
 }
 
-// 예외상황에 취약함
-// Job의 수와 TotalCommandIndex가 나누어떨어지지 않을 때는 대비가 됐지만,
-// Job의 수보다 TotalCommandIndex의 수가 더 많을 떄 방어가 아직 안됨. ex) JobCount = 1, TotalCommandIndex = 2
 STATIC void ID3D12RenderQueuePass::ContextWorkerThread(LPVOID ptr)
 {
 	RenderQueueThreadParameterWrapper* Param = (RenderQueueThreadParameterWrapper*)reinterpret_cast<RenderQueueThreadParameterWrapper*>(ptr);
@@ -159,7 +156,8 @@ STATIC void ID3D12RenderQueuePass::ContextWorkerThread(LPVOID ptr)
 	pRenderQueuePass->::ID3D12RenderQueuePass::ExecuteWithRange
 	(
 		*pGraphicsContext, CommandIndex,
-		JobCount * (CommandIndex - StartCommandIndex), (JobCount * ((size_t)(CommandIndex - StartCommandIndex) + 1u)) - 1
+		JobCount * (size_t)(CommandIndex - StartCommandIndex), 
+		(JobCount * ((size_t)(CommandIndex - StartCommandIndex) + 1u)) - 1
 	);
 }
 

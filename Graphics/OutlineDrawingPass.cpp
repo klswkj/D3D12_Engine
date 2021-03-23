@@ -31,8 +31,12 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/OutlineWithBlurPS.h"
 #endif
 
+#ifndef OutlineMaskStepIndex
 #define OutlineMaskStepIndex 0u
+#endif
+#ifndef OutlineDrawStepIndex
 #define OutlineDrawStepIndex 1u
+#endif
 
 OutlineDrawingPass* OutlineDrawingPass::s_pOutlineDrawingPass = nullptr;
 
@@ -195,6 +199,7 @@ void OutlineDrawingPass::ExecutePass() DEBUG_EXCEPT
 	// CommandList, CommandAllocator 줄이고 늘릴 때 Begin()부터 디버깅 가능.
 	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin(5 - m_bUseComputeShaderVersion);
 	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 
 	custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4, this, &graphicsContext, 1, MaxCommandIndex);
 
@@ -203,18 +208,21 @@ void OutlineDrawingPass::ExecutePass() DEBUG_EXCEPT
 
 	graphicsContext.PIXBeginEvent(L"OutlineDrawingPass", 0);
 
+	graphicsContext.SetResourceTransitionBarrierIndex(1u);
 	ExecuteStencilMasking(graphicsContext, bufferManager::g_SceneDepthBuffer, 1); // Stage 1
+	graphicsContext.SetResourceTransitionBarrierIndex(2u);
 	ExecuteDrawColor     (graphicsContext, bufferManager::g_OutlineBuffer, 2);    // Stage 2
 	graphicsContext.ExecuteCommands(2u, true, true);
 
 	if (m_bUseComputeShaderVersion)
 	{
 		// Stage 3, 4
-		custom::ComputeContext ComputeContext = custom::ComputeContext::Begin(1);
-		ExecuteBlurOutlineBuffer(ComputeContext, bufferManager::g_OutlineBuffer, bufferManager::g_OutlineHelpBuffer, 0);
+		custom::ComputeContext computeContext = custom::ComputeContext::Begin(1);
+		computeContext.SetResourceTransitionBarrierIndex(0u);
+		ExecuteBlurOutlineBuffer(computeContext, bufferManager::g_OutlineBuffer, bufferManager::g_OutlineHelpBuffer, 0);
 
 		ASSERT(ComputeQueue.WaitCommandQueueCompletedGPUSide(GraphicsQueue));
-		ComputeContext.Finish(false);
+		computeContext.Finish(false);
 		
 		ASSERT(GraphicsQueue.WaitCommandQueueCompletedGPUSide(ComputeQueue)); // TODO 1 : 여기 Wait 지워도 볼것.
 		
@@ -225,9 +233,11 @@ void OutlineDrawingPass::ExecutePass() DEBUG_EXCEPT
 	else
 	{
 		// Stage 3, 4
+		graphicsContext.SetResourceTransitionBarrierIndex(3u);
 		ExecuteHorizontalBlur      (graphicsContext, bufferManager::g_OutlineBuffer,    bufferManager::g_OutlineHelpBuffer, 3);
+		graphicsContext.SetResourceTransitionBarrierIndex(4u);
 		ExecuteVerticalBlurAndPaper(graphicsContext, bufferManager::g_SceneColorBuffer, bufferManager::g_SceneDepthBuffer, bufferManager::g_OutlineHelpBuffer, 4);
-
+		graphicsContext.SetResourceTransitionBarrierIndex(0u);
 		graphicsContext.PIXEndEvent(MaxCommandIndex); // End OutlineDrawingPass
 		graphicsContext.Finish(false);
 	}
@@ -299,13 +309,13 @@ void OutlineDrawingPass::ExecuteStencilMasking(custom::GraphicsContext& graphics
 	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
 	graphicsContext.SetRootSignature(*m_pRootSignature, commandIndex);
 	graphicsContext.SetPipelineState(*m_pOutlineMaskPSO, commandIndex);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_BARRIER_STENCIL_SUBRESOURCE);
 	graphicsContext.SubmitResourceBarriers(commandIndex);
 	graphicsContext.ClearDepth(TargetBuffer, commandIndex);
 	graphicsContext.SetOnlyDepthStencil(TargetBuffer.GetDSV(), commandIndex);
 	graphicsContext.SetStencilRef(0xff, commandIndex);
 
-	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, OutlineMaskStepIndex, OutlineMaskStepIndex);
+	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, commandIndex, OutlineMaskStepIndex, OutlineMaskStepIndex);
 
 	graphicsContext.PIXEndEvent(commandIndex); // End Outline Masking
 }
@@ -319,11 +329,11 @@ void OutlineDrawingPass::ExecuteDrawColor(custom::GraphicsContext& graphicsConte
 	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
 	graphicsContext.SetRootSignature(*m_pRootSignature, commandIndex);
 	graphicsContext.SetPipelineState(*m_pOutlineDrawPSO, commandIndex);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
 	graphicsContext.SubmitResourceBarriers(commandIndex);
 	graphicsContext.ClearColor(TargetBuffer, commandIndex);
 	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), commandIndex);
-	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, OutlineDrawStepIndex, OutlineDrawStepIndex);
+	ID3D12RenderQueuePass::ExecuteWithRange(graphicsContext, commandIndex, OutlineDrawStepIndex, OutlineDrawStepIndex);
 
 	graphicsContext.PIXEndEvent(commandIndex); // End Outline Drawing
 }
@@ -352,8 +362,8 @@ void OutlineDrawingPass::ExecuteBlurOutlineBuffer
 	computeContext.PIXBeginEvent(L"GaussianBlur", commandIndex);
 	computeContext.SetRootSignature(m_BlurRootSignature, commandIndex);
 	computeContext.SetPipelineState(m_GaussBlurPSO, commandIndex);
-	computeContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	computeContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	computeContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0U);
+	computeContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0U);
 	computeContext.SubmitResourceBarriers(commandIndex);
 	computeContext.SetDynamicConstantBufferView(0, sizeof(m_BlurConstants), &m_BlurConstants, commandIndex);
 	
@@ -412,9 +422,9 @@ void OutlineDrawingPass::ExecutePaperOutline
 	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
 	graphicsContext.SetPipelineState(m_PaperOutlinePSO, commandIndex);
 	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.TransitionResource(SrcBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
+	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_BARRIER_STENCIL_SUBRESOURCE);
+	graphicsContext.TransitionResource(SrcBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U);
 	graphicsContext.SubmitResourceBarriers(commandIndex);
 	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly(), commandIndex);
 	graphicsContext.SetStencilRef(0xff, commandIndex);
@@ -437,8 +447,8 @@ void OutlineDrawingPass::ExecuteHorizontalBlur(custom::GraphicsContext& graphics
 	graphicsContext.PIXBeginEvent(L"Horizontal Blur", commandIndex);
 	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
 	graphicsContext.SetPipelineState(m_HorizontalOutlineBlurPSO, commandIndex);
-	graphicsContext.TransitionResource(OutlineBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.TransitionResource(OutlineBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U);
+	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
 	graphicsContext.SubmitResourceBarriers(commandIndex);
 	graphicsContext.ClearColor(HelpBuffer, commandIndex);
 	graphicsContext.SetRenderTarget(HelpBuffer.GetRTV(), commandIndex);
@@ -469,9 +479,9 @@ void OutlineDrawingPass::ExecuteVerticalBlurAndPaper(custom::GraphicsContext& gr
 	graphicsContext.SetViewportAndScissor(TargetBuffer, commandIndex);
 	graphicsContext.SetRootSignature(m_BlurRootSignature, commandIndex);
 	graphicsContext.SetPipelineState(m_VerticalOutlineBlurPSO, commandIndex);
-	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ);
-	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.TransitionResource(DepthStencilBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, 1U);
+	graphicsContext.TransitionResource(HelpBuffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U);
+	graphicsContext.TransitionResource(TargetBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
 	graphicsContext.SubmitResourceBarriers(commandIndex);
 	graphicsContext.SetRenderTarget(TargetBuffer.GetRTV(), DepthStencilBuffer.GetDSV_StencilReadOnly(), commandIndex);
 	{

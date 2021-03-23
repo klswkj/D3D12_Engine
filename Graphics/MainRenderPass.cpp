@@ -35,7 +35,7 @@
 #include "../x64/Release/Graphics(.lib)/CompiledShaders/ModelPS_TexNormal.h"
 #endif
 
-#define SSAOShadowRootIndex 5u
+#define SSAOShadowRootIndex 5U
 
 MainRenderPass* MainRenderPass::s_pMainRenderPass = nullptr;
 
@@ -141,47 +141,70 @@ void MainRenderPass::ExecutePass() DEBUG_EXCEPT
 	}
 
 	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::GetRecentContext();
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 
-	uint8_t StartJobIndex = 0u;
+	uint8_t StartJobIndex   = 0u;
 	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
 
-	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
-	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4u, this, &graphicsContext, StartJobIndex, MaxCommandIndex);
+	ASSERT((StartJobIndex <= MaxCommandIndex) && MaxCommandIndex < 127u);
 
+	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists()); // custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4u, this, &graphicsContext, StartJobIndex, MaxCommandIndex);
+	
 	graphicsContext.PIXBeginEvent(L"7_MainRenderPass", StartJobIndex);
-	graphicsContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // UAV -> PIXEL_SHADER_RESOURCE
-	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // 
+	graphicsContext.TransitionResource (bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U); // UAV -> PIXEL_SHADER_RESOURCE
+	graphicsContext.TransitionResource (bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, 0U); // 
 	// graphicsContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE); // Suboptimal Trasition
-	graphicsContext.TransitionResource(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // ShadowPrePass->Z_PrePass에서 함.
-	graphicsContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	graphicsContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-	graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ); // Suboptimal Trasition
-	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	graphicsContext.TransitionResources(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES); // ShadowPrePass->Z_PrePass에서 함.  // Subresource 0, 1, 2 MisMatch
+	// graphicsContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // -> D3D12 implicit state transitions
+	// graphicsContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE); // -> D3D12 implicit state transitions
+	graphicsContext.TransitionResource (bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET,         0U);
+	// graphicsContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_BARRIER_DEPTH_SUBRESOURCE); // Suboptimal transitions between read states
+	//
 	graphicsContext.SubmitResourceBarriers(StartJobIndex);
 
 	graphicsContext.SetMainCamera(*CommandContextManager::GetMainCamera());
 	graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	graphicsContext.SetViewportAndScissorRange(bufferManager::g_SceneColorBuffer, StartJobIndex, MaxCommandIndex);
 	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
-	graphicsContext.SetPipelineStateRange(*m_pPSO, StartJobIndex, MaxCommandIndex);
-	graphicsContext.SetRenderTargetsRange(1, &bufferManager::g_SceneColorBuffer.GetRTV(), bufferManager::g_SceneDepthBuffer.GetDSV_DepthReadOnly(), StartJobIndex, MaxCommandIndex);
+	// graphicsContext.SetPipelineStateRange(*m_pPSO,           StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetViewportAndScissorRange(bufferManager::g_SceneColorBuffer, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetRenderTargetsRange(1U, &bufferManager::g_SceneColorBuffer.GetRTV(), bufferManager::g_SceneDepthBuffer.GetDSV_DepthReadOnly(), StartJobIndex, MaxCommandIndex);
+	
 	graphicsContext.SetDynamicDescriptorsRange(SSAOShadowRootIndex, 0u, _countof(m_SSAOShadowSRVs), m_SSAOShadowSRVs, StartJobIndex, MaxCommandIndex);
 	graphicsContext.SetVSConstantsBufferRange(0u, StartJobIndex, MaxCommandIndex);
 	graphicsContext.SetPSConstantsBufferRange(2u, StartJobIndex, MaxCommandIndex);
+
+	// custom::ThreadPool::WaitAllFinished(); // Wait Set Params.
+
 #ifdef _DEBUG
-	custom::ThreadPool::WaitAllFinished(); // Wait Set Params.
+	static uint64_t s_WorkerThreadIndex = -1;
+	s_WorkerThreadIndex = 0ull;
+	wchar_t PIXBuffer[20];
+
+	for (uint8_t i = 0; i < graphicsContext.GetNumCommandLists(); ++i)
+	{
+		swprintf(PIXBuffer, _countof(PIXBuffer), L"MainRenderWork #%zu", ++s_WorkerThreadIndex);
+		graphicsContext.PIXBeginEvent(PIXBuffer, i);
+	}
 #endif
+
 	custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint8_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
 	ContextWorkerThread(&m_Params[0]);
+
+	graphicsContext.SetResourceTransitionBarrierIndex(MaxCommandIndex);
+
 	custom::ThreadPool::WaitAllFinished();
 
-	graphicsContext.TransitionResource(bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_COMMON);
-	graphicsContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_COMMON);
-	graphicsContext.TransitionResource(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_COMMON);
-	graphicsContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_COMMON);
-	graphicsContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_COMMON);
+#ifdef _DEBUG
+	graphicsContext.PIXEndEventAll(); // End WorkerThread
+#endif
+
+	graphicsContext.TransitionResource (bufferManager::g_SSAOFullScreen,   D3D12_RESOURCE_STATE_COMMON, 0U);
+	graphicsContext.TransitionResources(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	graphicsContext.TransitionResources(bufferManager::g_LightShadowArray, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	graphicsContext.TransitionResource (bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_COMMON, 0U);
+	graphicsContext.TransitionResources(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	graphicsContext.SubmitResourceBarriers(MaxCommandIndex);
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 	graphicsContext.PIXEndEvent(MaxCommandIndex); // End SSAOPass 
 	graphicsContext.Finish(false);
 	

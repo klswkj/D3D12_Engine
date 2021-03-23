@@ -180,7 +180,7 @@ namespace custom
 
         // Execute CommandLists
         m_pCommandQueue->ExecuteCommandLists((UINT)(endIndex - startIndex + 1), (ID3D12CommandList* const*)(Lists.data() + startIndex));
-
+        
         // Signal the next fence value (with the GPU)
         uint64_t ContextFenceValue = InterlockedIncrement64((volatile LONG64*)&m_CPUSideNextFenceValue) - 1;
         ASSERT_HR(HardwareResult = m_pCommandQueue->Signal(m_pFence, ContextFenceValue));

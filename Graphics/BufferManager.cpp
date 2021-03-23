@@ -99,7 +99,7 @@ void bufferManager::InitializeAllBuffers(const uint32_t width, const uint32_t he
     graphicsContext.ClearUAV(g_FXAAWorkCounters, 0);
     graphicsContext.Finish(false);
 
-    uint32_t startingPoint[14];
+    uint32_t startingPoint[14] = {};
 
     uint32_t* bufferWidth = startingPoint;
     uint32_t* bufferHeight = (uint32_t*)startingPoint + 7;
@@ -135,7 +135,7 @@ void bufferManager::InitializeAllBuffers(const uint32_t width, const uint32_t he
     g_OutlineBuffer.CreateCommitted(L"Outline Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultOutlineBufferFormat, true);
     g_OutlineHelpBuffer.CreateCommitted(L"OutlineHelp Buffer", bufferWidth[1], bufferHeight[1], 1, DefaultOutlineBufferFormat);
 
-    g_SSAOFullScreen.CreateCommitted(L"SSAO Full Resolution", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R8_UNORM, true);
+    g_SSAOFullScreen.CreateCommitted(L"SSAO Full Resolution", bufferWidth[0], bufferHeight[0], 1, DXGI_FORMAT_R8_UNORM);
 
     g_DepthDownsize1.CreateCommitted(L"Depth Down-Sized 1", bufferWidth[1], bufferHeight[1], 1, DXGI_FORMAT_R32_FLOAT);
     g_DepthDownsize2.CreateCommitted(L"Depth Down-Sized 2", bufferWidth[2], bufferHeight[2], 1, DXGI_FORMAT_R32_FLOAT);

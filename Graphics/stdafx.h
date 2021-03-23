@@ -50,6 +50,7 @@
 #include <d2d1_3.h>
 
 #include <dxgiformat.h>
+#include <dxgi1_3.h>
 #include <dxgi1_4.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>
@@ -63,6 +64,9 @@
 #include <dxgidebug.h>
 #include <d3dcompiler.h>
 #include <pix3.h>
+// #include <DXProgrammableCapture.h>
+// Microsoft::WRL::ComPtr<IDXGraphicsAnalysis> g_GraphicsAnalysis;
+// HRESULT hr = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&g_GraphicsAnalysis));
 #endif
 
 #pragma comment(lib,"d3d12.lib")
@@ -111,6 +115,13 @@
 
 #if USING_THREAD_POOL
 #include "ThreadPool.h"
+#endif
+
+#if (_MSC_VER == 1900)
+#define FUNCTION_CHECK_RETURN_START __pragma(warning(push)) __pragma(warning(disable: 28216)) __declspec("SAL_checkReturn")
+#define FUNCTION_CHECK_RETURN_END __pragma(warning(pop))
+#else
+#define FUNCTION_CHECK_RETURN_START __declspec("SAL_checkReturn")	/* Warn that callers should not ignore the return value. */
 #endif
 
 #ifndef _SILENCE_CXX17_C_HEADER_DEPRECATION_WARNING

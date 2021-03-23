@@ -120,18 +120,21 @@ void ShadowMappingPass::ExecutePass() DEBUG_EXCEPT
 	uint8_t StartJobIndex = 0u;
 	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1;
 
+	ASSERT((StartJobIndex <= MaxCommandIndex) && MaxCommandIndex < 127u);
+
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
 	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4u, this, &graphicsContext, StartJobIndex, MaxCommandIndex);
 
 	graphicsContext.PIXBeginEvent(L"6_ShadowMappingPass", StartJobIndex);
-	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	graphicsContext.TransitionResource(bufferManager::g_SceneColorBuffer, D3D12_RESOURCE_STATE_RENDER_TARGET, 0U);
+	graphicsContext.TransitionResource(bufferManager::g_ShadowBuffer,     D3D12_RESOURCE_STATE_DEPTH_WRITE,   0U); // From SSAOPass, to SSAOPass
 	graphicsContext.SubmitResourceBarriers(StartJobIndex);
 	graphicsContext.ClearColor(bufferManager::g_SceneColorBuffer, StartJobIndex);
-	graphicsContext.ClearDepth(bufferManager::g_ShadowBuffer, StartJobIndex);
+	graphicsContext.ClearDepthAndStencil(bufferManager::g_ShadowBuffer, StartJobIndex);
 
 	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
-	graphicsContext.SetPipelineStateRange(*m_pShadowPSO, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetPipelineStateRange(*m_pShadowPSO,     StartJobIndex, MaxCommandIndex);
 
 	Camera* pCamera = graphicsContext.GetpMainCamera();
 	ASSERT(MasterRenderGraph::s_pMasterRenderGraph->m_pMainLights->size() != 0);
@@ -144,15 +147,32 @@ void ShadowMappingPass::ExecutePass() DEBUG_EXCEPT
 	graphicsContext.SetOnlyDepthStencilRange(bufferManager::g_ShadowBuffer.GetDSV(), StartJobIndex, MaxCommandIndex);
 	graphicsContext.SetViewportAndScissorRange(bufferManager::g_ShadowBuffer, StartJobIndex, MaxCommandIndex);
 
+#ifdef _DEBUG
+	static uint64_t s_WorkerThreadIndex = -1;
+	s_WorkerThreadIndex = 0ull;
+	wchar_t PIXBuffer[24];
+
+	for (uint8_t i = 0; i < graphicsContext.GetNumCommandLists(); ++i)
+	{
+		swprintf(PIXBuffer, _countof(PIXBuffer), L"ShadowMappingPass #%zu", ++s_WorkerThreadIndex);
+		graphicsContext.PIXBeginEvent(PIXBuffer, i);
+	}
+#endif
+
 	custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint8_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
 	ContextWorkerThread(&m_Params[0]);
 
 	graphicsContext.SetMainCamera(*pCamera);
 	custom::ThreadPool::WaitAllFinished(); // 여기서부터 기다리는 시간이 너무 아깝다.
 
+#ifdef _DEBUG
+	graphicsContext.PIXEndEventAll(); // End WorkerThread
+#endif
+
 	graphicsContext.PIXEndEvent(MaxCommandIndex); // End 6_ShadpwMappingPass
 	graphicsContext.ExecuteCommands(MaxCommandIndex, false, true);
 
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 	graphicsContext.PauseRecording();
 #ifdef _DEBUG
 	float DeltaTime2 = graphics::GetDebugFrameTime();

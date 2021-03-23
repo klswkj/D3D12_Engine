@@ -36,53 +36,16 @@ struct LinearBuffer
     size_t offset;            // Offset from start of buffer resource
     size_t size;              // Reserved size of this allocation
 };
-/*
-class LinearAllocationPageManager
-{
-public:
-    LinearAllocationPageManager() = default;
-
-    LinearAllocationPage* RequestPage(void);
-    LinearAllocationPage* CreateNewPage(size_t PageSize = 0);
-
-    // Discarded pages will get recycled.  This is for fixed size pages.
-    void DiscardPages(uint64_t FenceID, const std::vector<LinearAllocationPage*>& Pages);
-
-    // Freed pages will be destroyed once their fence has passed.  This is for single-use,
-    // "large" pages.
-    void FreeLargePages(uint64_t FenceID, const std::vector<LinearAllocationPage*>& Pages);
-
-    void Destroy(void) 
-    { 
-        m_pLinearAllocationPagePool.clear(); 
-    }
-
-private:
-    static LinearAllocatorType sm_autoType;
-
-    std::vector<std::unique_ptr<LinearAllocationPage>> m_pLinearAllocationPagePool;
-
-    std::queue<LinearAllocationPage*> m_availablePages;
-    std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_retiredPages;
-    std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deferredDeletionQueue;
-
-    LinearAllocatorType m_allocationType;
-    std::mutex m_Mutex;
-};
-*/
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
 
 class LinearAllocator
 {
 public:
     class LinearAllocationPageManager
     {
+        friend LinearAllocator;
 	public:
 		explicit LinearAllocationPageManager();
         ~LinearAllocationPageManager();
-		LinearAllocationPage* RequestPage();
-		LinearAllocationPage* CreateNewPage(size_t PageSize = 0ul);
 
 		// Discarded pages will get recycled. This is for fixed size pages.
 		void DiscardPages(uint64_t FenceID, const std::vector<LinearAllocationPage*>& Pages);
@@ -96,6 +59,12 @@ public:
 			m_pLinearAllocationPagePool.clear();
 		}
 
+    public:
+        static LinearAllocationPage* CreateCommittedNewPage(const size_t PageSize, const LinearAllocatorType linearAllocatorType);
+
+    private:
+        LinearAllocationPage* requestPage();
+
 	private:
 		static LinearAllocatorType sm_autoType;
 
@@ -107,14 +76,31 @@ public:
 		std::queue<std::pair<uint64_t, LinearAllocationPage*>> m_deferredDeletionQueue;
 
 		LinearAllocatorType m_allocationType;
-        CRITICAL_SECTION m_CS;
-		// std::mutex m_Mutex;
+        CRITICAL_SECTION    m_CS;
     }; // class LinearAllocationPageManager
 
-    LinearAllocator(LinearAllocatorType Type)
-        : m_allocationType(Type), m_pageSize(0), m_currentOffset(~(size_t)0), m_currentPage(nullptr)
+    explicit LinearAllocator(LinearAllocatorType Type)
+        : 
+        m_allocationType(Type), 
+        m_pageSize(0), 
+        m_currentOffset(~(size_t)0), 
+        m_currentPage(nullptr),
+        m_CS({})
     {
         m_pageSize = ((Type == LinearAllocatorType::GPU_WRITEABLE) ? (kGpuAllocatorPageSize) : (kCpuAllocatorPageSize));
+
+        if (!m_CS.DebugInfo)
+        {
+            ::InitializeCriticalSection(&m_CS);
+        }
+    }
+
+    ~LinearAllocator()
+    {
+        if (m_CS.DebugInfo)
+        {
+            ::DeleteCriticalSection(&m_CS);
+        }
     }
 
     LinearBuffer Allocate(size_t SizeInBytes, size_t Alignment = kAlignedSize);
@@ -132,6 +118,8 @@ private:
 
 private:
     static LinearAllocationPageManager sm_pageManager[2];
+
+private:
     std::vector<LinearAllocationPage*> m_retiredPages;
     std::vector<LinearAllocationPage*> m_largePageList;
 
@@ -139,4 +127,6 @@ private:
     LinearAllocationPage* m_currentPage;
     size_t m_pageSize;
     size_t m_currentOffset;
+
+    CRITICAL_SECTION m_CS;
 };

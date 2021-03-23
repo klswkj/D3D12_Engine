@@ -455,7 +455,7 @@ void windowInput::Update(float frameDelta)
 #else
 
     IVectorView<Gamepad^>^ gamepads = Gamepad::Gamepads;
-    if (gamepads->Size != 0)
+    if (gamepads->m_PageableBytesSize != 0)
     {
         IGamepad^ gamepad = gamepads->GetAt(0);
         GamepadReading reading = gamepad->GetCurrentReading();

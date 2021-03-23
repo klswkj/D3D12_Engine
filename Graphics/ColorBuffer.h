@@ -14,9 +14,9 @@ public:
     ColorBuffer(custom::Color ClearColor = custom::Color(0.0f, 0.0f, 0.0f, 0.0f))
         : 
         m_clearColor(ClearColor), 
-        m_numMipMaps(0), 
-        m_fragmentCount(1), 
-        m_sampleCount(1)
+        m_numMipMaps(0u), 
+        m_fragmentCount(1u), 
+        m_sampleCount(1u)
     {
         m_SRVHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
         m_RTVHandle.ptr = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
@@ -91,8 +91,8 @@ protected:
     // as the dimension 511 (0x1FF).
     static inline uint32_t ComputeNumMips(const uint32_t width, const uint32_t height)
     {
-        uint32_t HighBit;
-        _BitScanReverse((unsigned long*)&HighBit, width | height);
+        uint32_t HighBit = 0u;
+        ::_BitScanReverse((unsigned long*)&HighBit, width | height);
         return HighBit + 1;
     }
     void createResourceViews

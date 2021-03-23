@@ -11,7 +11,7 @@ void DepthBuffer::Create
     const DXGI_FORMAT format
 )
 {
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1, 1, format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1u, 1u, format, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format            = format;
@@ -43,14 +43,14 @@ void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT forma
 {
     ID3D12Resource* Resource = m_pResource;
 
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
     dsvDesc.Format = GetDSVFormat(format);
     m_Format = dsvDesc.Format;
 
-    if (Resource->GetDesc().SampleDesc.Count == 1)
+    if (Resource->GetDesc().SampleDesc.Count == 1U)
     {
-        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-        dsvDesc.Texture2D.MipSlice = 0;
+        dsvDesc.ViewDimension      = D3D12_DSV_DIMENSION_TEXTURE2D;
+        dsvDesc.Texture2D.MipSlice = 0U;
     }
     else
     {
@@ -103,7 +103,7 @@ void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT forma
     if (dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
     {
         SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        SRVDesc.Texture2D.MipLevels = 1;
+        SRVDesc.Texture2D.MipLevels = 1U;
     }
     else
     {

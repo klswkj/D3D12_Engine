@@ -51,7 +51,6 @@ namespace custom
 			_In_opt_ size_t ElementSize = 0ull
 		);
 
-		// 버그 : WorkThread한테 모두 일을 줘야지 나올수가 있음...
 		static void   WaitAllFinished(_In_opt_ HANDLE hFinishEvent = nullptr);
 		static size_t GetLogicalProcessors() { return ThreadPool::sm_LogicalProcessors; }
 
@@ -76,7 +75,7 @@ namespace custom
 			}
 
 #ifdef _DEBUG
-			printf("Thread Pool's First Wait Failed : #%d\n", WaitFailed);
+			// printf("Thread Pool's First Wait Failed : #%d\n", WaitFailed);
 #endif
 
 			uint32_t NumRemaindWorkingThread = InterlockedGetValue(&m_NumWorkingThreads);
@@ -98,18 +97,17 @@ namespace custom
 			}
 
 #ifdef _DEBUG
-			printf("Thread Pool's Last Wait Failed : #%d\n", WaitFailed);
-			printf("m_NumWorkingThreads : %d\n", InterlockedGetValue(&m_NumWorkingThreads));
+			// printf("Thread Pool's Last Wait Failed : #%d\n", WaitFailed);
+			// printf("m_NumWorkingThreads : %d\n", InterlockedGetValue(&m_NumWorkingThreads));
 #endif
 			if (InterlockedGetValue(&m_NumWorkingThreads))
 			{
 				WaitFinishedAllThreads();
 			}
 		}
-
-	private:
+			private:
 		static ThreadPool* sm_pThreadPool;
-		static size_t      sm_LogicalProcessors;
+		static uint32_t    sm_LogicalProcessors;
 
 		std::vector<HANDLE> m_Threads;
 		std::vector<HANDLE> m_ThreadWorkFinishEvents;

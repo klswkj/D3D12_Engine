@@ -284,8 +284,9 @@ size_t PixelBuffer::BytesPerPixel(DXGI_FORMAT Format)
 
 void PixelBuffer::CopyResource
 (
-    ID3D12Device* pDevice, const std::wstring& wName, 
-    ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES currentResourceState
+    ID3D12Device* const pDevice, const std::wstring& wName,
+    ID3D12Resource* const pResource, const D3D12_RESOURCE_STATES* const pCurrentResourceStates, const D3D12_RESOURCE_STATES* const pPendingResourceStates,
+    const uint8_t numSubResource
 )
 {
     ASSERT(pResource != nullptr);
@@ -293,13 +294,23 @@ void PixelBuffer::CopyResource
 
     SafeRelease(m_pResource);
 
-    m_pResource = pResource;
-    m_currentState = currentResourceState;
-    
-    m_width = (uint32_t)ResourceDescriptor.Width;
-    m_height = ResourceDescriptor.Height;
-    m_arraySize = ResourceDescriptor.DepthOrArraySize;
-    m_format = ResourceDescriptor.Format;
+    m_pResource    = pResource;
+    m_numSubResource = numSubResource;
+    m_currentStates.resize((size_t)numSubResource);
+    m_pendingStates.resize((size_t)numSubResource);
+    // m_currentStates.shrink_to_fit();
+    // m_pendingStates.shrink_to_fit();
+
+    for (size_t i = 0; i < numSubResource; ++i)
+    {
+        m_currentStates[i] = *(pCurrentResourceStates + i);
+        m_pendingStates[i] = pPendingResourceStates ? *(pPendingResourceStates + i) : D3D12_RESOURCE_STATES(-1);
+    }
+
+    m_width     = (uint32_t)ResourceDescriptor.Width;
+    m_height    = ResourceDescriptor.Height;
+    m_arraySize = (uint32_t)ResourceDescriptor.DepthOrArraySize;
+    m_format    = ResourceDescriptor.Format;
     
     m_pResource->SetName(wName.c_str());
 }
@@ -310,26 +321,26 @@ D3D12_RESOURCE_DESC PixelBuffer::Texture2DResourceDescriptor
     const uint32_t numMips, const DXGI_FORMAT format, const UINT flags
 )
 {
-    m_width = width;
-    m_height = height;
+    m_width     = width;
+    m_height    = height;
     m_arraySize = depthOrArraySize;
-    m_format = format;
+    m_format    = format;
 
     D3D12_RESOURCE_DESC descriptor;
 
     ZeroMemory(&descriptor, sizeof(D3D12_RESOURCE_DESC));
 
-    descriptor.Alignment = 0;
-    descriptor.DepthOrArraySize = (UINT16)depthOrArraySize;
-    descriptor.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    descriptor.Flags = (D3D12_RESOURCE_FLAGS)flags;
-    descriptor.Format = GetBaseFormat(format);
-    descriptor.Height = (UINT)height;
-    descriptor.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    descriptor.MipLevels = (UINT16)numMips;
-    descriptor.SampleDesc.Count = 1;
-    descriptor.SampleDesc.Quality = 0;
-    descriptor.Width = (UINT64)width;
+    descriptor.Alignment          = 0ULL;
+    descriptor.DepthOrArraySize   = (UINT16)depthOrArraySize;
+    descriptor.Dimension          = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    descriptor.Flags              = (D3D12_RESOURCE_FLAGS)flags;
+    descriptor.Format             = GetBaseFormat(format);
+    descriptor.Height             = (UINT)height;
+    descriptor.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    descriptor.MipLevels          = (UINT16)numMips;
+    descriptor.SampleDesc.Count   = 1U;
+    descriptor.SampleDesc.Quality = 0U;
+    descriptor.Width              = (UINT64)width;
     return descriptor;
 }
 
@@ -362,7 +373,19 @@ void PixelBuffer::CreateTextureCommittedResource
         );
     }
 
-    m_currentState = D3D12_RESOURCE_STATE_COMMON;
+    // TODO 0 : See "Subresources (Direct3D 12 Graphics)" :: Plane Slice
+    uint32_t NumSubResource = ResourceDesc.DepthOrArraySize;
+
+    if (pClearValue)
+    {
+        NumSubResource += (pClearValue->Format == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 1u : 0u;
+    }
+
+    m_numSubResource = NumSubResource;
+
+    m_currentStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATE_COMMON);
+    m_pendingStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATES(-1));
+
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 
 #if defined(_DEBUG)

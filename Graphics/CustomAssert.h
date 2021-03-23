@@ -97,7 +97,7 @@ namespace AssertInternal
             AssertInternal::PrintSubMessage("\'" #bFalse "\' is false"); \
             AssertInternal::PrintSubMessage(__VA_ARGS__);                \
             AssertInternal::Print("\n");                                 \
-            ::__debugbreak();                                            \
+            ::__nop(), ::__debugbreak();                                            \
         }                                                               
 
 #define ASSERT_HR( hr, ... ) \
@@ -107,7 +107,7 @@ namespace AssertInternal
             AssertInternal::PrintSubMessage("hr = 0x%08X", hr); \
             AssertInternal::PrintSubMessage(__VA_ARGS__); \
             AssertInternal::Print("\n"); \
-            __debugbreak(); \
+            ::__nop(), ::__debugbreak(); \
         }
 #elif
 #define ASSERT(x) ;

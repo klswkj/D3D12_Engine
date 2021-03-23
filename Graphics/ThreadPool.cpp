@@ -1,10 +1,13 @@
 #include "stdafx.h"
 #include "ThreadPool.h"
 
+#pragma warning(push)
+#pragma warning (disable : 28251)
+
 namespace custom
 {
 	ThreadPool* ThreadPool::sm_pThreadPool = nullptr;
-	size_t      ThreadPool::sm_LogicalProcessors = 0;
+	uint32_t    ThreadPool::sm_LogicalProcessors = 0u;
 
 	ThreadPool::ThreadPool()
 		:
@@ -18,8 +21,8 @@ namespace custom
 		ASSERT(sm_pThreadPool == nullptr);
 		sm_pThreadPool = this;
 
-		sm_LogicalProcessors = GetNumLogicalProcessors() - 1;
-
+		sm_LogicalProcessors = GetNumLogicalProcessors() - 1u;
+		
 		m_hWakeUpEvent     = CreateEvent(nullptr, true, true, nullptr); // ManualInit, InitState is true.
 		m_hWorkFinishEvent = CreateEvent(nullptr, true, true, nullptr);
 
@@ -88,25 +91,36 @@ namespace custom
 		WaitFinishedAllThreads();
 
 		m_bThreadShutdown = true;
-		::SetEvent(m_hWakeUpEvent);
-
+		if (!::SetEvent(m_hWakeUpEvent))
+		{
+			HRESULT hardwareResult = HRESULT_FROM_WIN32(GetLastError());
+			ASSERT_HR(hardwareResult);
+		}
+		::WaitForSingleObject(m_hWorkFinishEvent, INFINITE);
+		::Sleep(100);
 		WaitFinishedAllThreads();
 
 		for (auto& e : m_ThreadWorkFinishEvents)
 		{
 			::CloseHandle(e);
+			e = INVALID_HANDLE_VALUE;
 		}
 		for (auto& e : m_Threads)
 		{
 			::CloseHandle(e);
+			e = INVALID_HANDLE_VALUE;
 		}
 
 		m_ThreadWorkFinishEvents.clear();
 		m_Threads.clear();
 		::CloseHandle(m_hWakeUpEvent);
+		m_hWakeUpEvent = INVALID_HANDLE_VALUE;
 		::CloseHandle(m_hWorkFinishEvent);
+		m_hWorkFinishEvent = INVALID_HANDLE_VALUE;
 		::DeleteCriticalSection(&m_OrderCS);
+		m_OrderCS.DebugInfo = 0;
 		::DeleteCriticalSection(&m_QueueCS);
+		m_QueueCS.DebugInfo = 0;
 	}
 
 	STATIC void ThreadPool::Enqueue
@@ -152,12 +166,12 @@ namespace custom
 		va_list VaList;
 		va_start(VaList, NumParam);
 
-		EnterCriticalSection(&pThreadPool->m_QueueCS);
+		::EnterCriticalSection(&pThreadPool->m_QueueCS);
 
-		pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, VaList }));
-		SetEvent(pThreadPool->m_hWakeUpEvent);
+		pThreadPool->m_WorkQueue.emplace_back(::std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, VaList }));
+		::SetEvent(pThreadPool->m_hWakeUpEvent);
 
-		LeaveCriticalSection(&pThreadPool->m_QueueCS);
+		::LeaveCriticalSection(&pThreadPool->m_QueueCS);
 	}
 
 	STATIC void ThreadPool::MultipleEnqueue
@@ -178,14 +192,14 @@ namespace custom
 			{
 				for (size_t i = 0; i < numElements; ++i)
 				{
-					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), reinterpret_cast<void*>(reinterpret_cast<size_t>(pParameters) + i * ElementSize) }));
+					pThreadPool->m_WorkQueue.emplace_back(::std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), reinterpret_cast<void*>(reinterpret_cast<size_t>(pParameters) + i * ElementSize) }));
 				}
 			}
 			else
 			{
 				for (size_t i = 0; i < numElements; ++i)
 				{
-					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), *(pParameters + i) }));
+					pThreadPool->m_WorkQueue.emplace_back(::std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), *(pParameters + i) }));
 				}
 			}
 		}
@@ -193,7 +207,7 @@ namespace custom
 		{
 			for (size_t i = 0; i < numElements; ++i)
 			{
-				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), nullptr }));
+				pThreadPool->m_WorkQueue.emplace_back(::std::forward<std::pair<std::function<void(void*)>, void*>>({ *(pWorks + i), nullptr }));
 			}
 		}
 		::SetEvent(pThreadPool->m_hWakeUpEvent);
@@ -206,7 +220,7 @@ namespace custom
 		_In_ std::function<void(void*)> pWork,
 		_In_ size_t numElements,
 		_In_opt_ void* pParameters[],
-		size_t ElementSize
+		_In_opt_ size_t ElementSize
 	)
 	{
 		custom::ThreadPool* pThreadPool = sm_pThreadPool;
@@ -216,14 +230,14 @@ namespace custom
 		{
 			if (ElementSize)
 			{
-				for (size_t i = 0; i < numElements; ++i)
+				for (size_t i = 0ul; i < numElements; ++i)
 				{
 					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, reinterpret_cast<void*>(reinterpret_cast<size_t>(pParameters) + i * ElementSize) }));
 				}
 			}
 			else
 			{
-				for (size_t i = 0; i < numElements; ++i)
+				for (size_t i = 0ul; i < numElements; ++i)
 				{
 					pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, *(pParameters + i) }));
 				}
@@ -231,7 +245,7 @@ namespace custom
 		}
 		else
 		{
-			for (size_t i = 0; i < numElements; ++i)
+			for (size_t i = 0ul; i < numElements; ++i)
 			{
 				pThreadPool->m_WorkQueue.emplace_back(std::forward<std::pair<std::function<void(void*)>, void*>>({ pWork, nullptr }));
 			}
@@ -251,7 +265,7 @@ namespace custom
 			static unsigned int WINAPI ReturnEvent(LPVOID lpParameter)
 			{
 				std::vector<HANDLE>* pEvents = reinterpret_cast<std::vector<HANDLE>*>(lpParameter);
-				HANDLE               FinishHandle = pEvents + 1;
+				HANDLE               FinishHandle = pEvents + 1ul;
 
 				while (1)
 				{
@@ -274,14 +288,14 @@ namespace custom
 			};
 		};
 
-		static FunctionWrapper::Handles Param;
+		static FunctionWrapper::Handles Param = {};
 
 		if (hFinishEvent)
 		{
 			Param.pHandles = &FinishEvents;
 			Param.pHandle = hFinishEvent;
 
-			::_beginthreadex(nullptr, 0, FunctionWrapper::ReturnEvent, reinterpret_cast<LPVOID>(&Param), 0, nullptr);
+			::_beginthreadex(nullptr, 0, FunctionWrapper::ReturnEvent, reinterpret_cast<LPVOID>(&Param), 0ul, nullptr);
 			return;
 		}
 		else
@@ -318,7 +332,7 @@ namespace custom
 			{
 				::EnterCriticalSection(&pThreadPool->m_QueueCS);
 				::ResetEvent(pThreadPool->m_hWorkFinishEvent);
-				InterlockedIncrement(&pThreadPool->m_NumWorkingThreads);
+				::InterlockedIncrement(&pThreadPool->m_NumWorkingThreads);
 				{
 					std::pair<std::function<void(void*)>, void*>& front = pThreadPool->m_WorkQueue.front();
 					Function  = front.first;
@@ -331,7 +345,7 @@ namespace custom
 
 				Function(Parameter);
 
-				InterlockedDecrement(&pThreadPool->m_NumWorkingThreads);
+				::InterlockedDecrement(&pThreadPool->m_NumWorkingThreads);
 				::SetEvent(PrivateWorkFinishEvent);
 			}
 			else
@@ -353,3 +367,5 @@ namespace custom
 		}
 	}
 }
+
+#pragma warning(pop)

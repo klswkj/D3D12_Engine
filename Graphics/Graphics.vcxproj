@@ -186,6 +186,8 @@
     <ClCompile Include="CPULinearAllocator.cpp" />
     <ClCompile Include="CustomFence.cpp" />
     <ClCompile Include="CustomResourceBarrier.cpp" />
+    <ClCompile Include="D3D12Util.cpp" />
+    <ClCompile Include="d3dx12Residency.cpp" />
     <ClCompile Include="GPUWorkManager.cpp" />
     <ClCompile Include="CustomCommandQALPool.cpp" />
     <ClCompile Include="CustomImgui.cpp" />
@@ -197,6 +199,7 @@
     <ClCompile Include="imgui_demo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="MainRenderPass.cpp" />
     <ClCompile Include="MaterialConstants.cpp" />
     <ClCompile Include="ModelComponentWindow.cpp" />
     <ClCompile Include="ComputeContext.cpp" />
@@ -225,9 +228,6 @@
     <ClCompile Include="GraphRenderer.cpp" />
     <ClCompile Include="IBaseCamera.cpp" />
     <ClCompile Include="Job.cpp" />
-    <ClCompile Include="MainRenderPass.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="LightPrePass.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -338,6 +338,8 @@
     <ClInclude Include="CPULinearAllocator.h" />
     <ClInclude Include="CustomCriticalSection.h" />
     <ClInclude Include="CustomResourceBarrier.h" />
+    <ClInclude Include="D3D12Util.h" />
+    <ClInclude Include="d3dx12Residency.h" />
     <ClInclude Include="GPUWorkManager.h" />
     <ClInclude Include="CustomCommandQALPool.h" />
     <ClInclude Include="CustomFence.h" />
@@ -829,6 +831,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <AllResourcesBound Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</AllResourcesBound>
     </FxCompile>
     <FxCompile Include="..\Shader\OutlineWithBlur\GaussianBlurCS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
@@ -1283,6 +1286,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <AllResourcesBound Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</AllResourcesBound>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\Pixel Shader\ModelPS_Basic.hlsl">
       <VariableName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">g_p%(Filename)</VariableName>
@@ -1368,6 +1372,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <AllResourcesBound Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</AllResourcesBound>
     </FxCompile>
     <FxCompile Include="..\Shader\Viewer\WireFrame\WireFrame_VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
@@ -1375,6 +1380,7 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <AllResourcesBound Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</AllResourcesBound>
     </FxCompile>
     <FxCompile Include="VHS_PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
@@ -1389,6 +1395,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Before Transition Combination.txt" />
     <Text Include="Memo.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

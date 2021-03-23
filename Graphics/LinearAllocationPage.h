@@ -6,12 +6,14 @@ class LinearAllocationPage : public custom::GPUResource
 {
 public:
     LinearAllocationPage(ID3D12Resource* pResource, D3D12_RESOURCE_STATES Usage) 
-        : custom::GPUResource()
+        : 
+        custom::GPUResource()
     {
         SafeRelease(m_pResource);
         m_pResource = pResource;
-        //m_pResource.Attach(pResource);
-        m_currentState = Usage;
+        // m_pResource.Attach(pResource);
+        // m_currentState = Usage; 
+        m_currentStates.push_back(Usage);
         m_GpuVirtualAddress = m_pResource->GetGPUVirtualAddress();
         m_pResource->Map(0, nullptr, &m_CpuVirtualAddress);
     }

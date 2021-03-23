@@ -55,7 +55,7 @@ namespace custom
 
 		D3D12_VERTEX_BUFFER_VIEW VertexBufferView(const size_t offset, const uint32_t size, const uint32_t stride) const
 		{
-			D3D12_VERTEX_BUFFER_VIEW VBView;
+			D3D12_VERTEX_BUFFER_VIEW VBView = {};
 			VBView.BufferLocation = m_GPUVirtualAddress + offset;
 			VBView.SizeInBytes = size;
 			VBView.StrideInBytes = stride;
@@ -69,7 +69,7 @@ namespace custom
 
 		D3D12_INDEX_BUFFER_VIEW IndexBufferView(const size_t offset, const uint32_t size, const bool b32Bit = false) const
 		{
-			D3D12_INDEX_BUFFER_VIEW IBView;
+			D3D12_INDEX_BUFFER_VIEW IBView = {};
 			IBView.BufferLocation = m_GPUVirtualAddress + offset;
 			IBView.Format = b32Bit ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 			IBView.SizeInBytes = size;

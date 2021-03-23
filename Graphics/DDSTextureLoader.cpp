@@ -1125,7 +1125,8 @@ static HRESULT CreateTextureFromDDS
 
         if (SUCCEEDED(hr))
         {
-            custom::GPUResource DestTexture(d3dDevice, *texture, D3D12_RESOURCE_STATE_COPY_DEST);
+            D3D12_RESOURCE_STATES InitStates = D3D12_RESOURCE_STATE_COPY_DEST;
+            custom::GPUResource DestTexture(d3dDevice, *texture, 1, &InitStates);
             custom::CopyContext::InitializeTexture(DestTexture, subresourceCount, initData.get());
         }
     }

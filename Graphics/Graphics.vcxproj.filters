@@ -4,9 +4,6 @@
     <Filter Include="Header Files Only">
       <UniqueIdentifier>{ec739b3a-d966-4131-95c4-e54419ea1d37}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files Only\Defines">
-      <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="PreCompiled Header">
       <UniqueIdentifier>{5b346aed-72df-4185-b355-f297b3287d1a}</UniqueIdentifier>
     </Filter>
@@ -240,6 +237,12 @@
     <Filter Include="Graphics\Global Range\2D Draw">
       <UniqueIdentifier>{63b6ffd1-9007-4ccb-924d-46090ab06bcf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PreCompiled Header\Defines">
+      <UniqueIdentifier>{e1a26eab-f6d0-4f40-90a8-4bef19d87e4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PreCompiled Header\D3D12Util">
+      <UniqueIdentifier>{9bd43e77-7c42-4cb0-b5e9-f8fd0441084e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui.cpp">
@@ -452,9 +455,6 @@
     <ClCompile Include="ShadowMappingPass.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph\6</Filter>
     </ClCompile>
-    <ClCompile Include="MainRenderPass.cpp">
-      <Filter>SceneGraph\Renderer\RenderGraph\7</Filter>
-    </ClCompile>
     <ClCompile Include="DebugWireFramePass.cpp">
       <Filter>SceneGraph\Renderer\RenderGraph\DebugPasses</Filter>
     </ClCompile>
@@ -545,6 +545,15 @@
     <ClCompile Include="TextManager.cpp">
       <Filter>Graphics\Global Range\2D Draw</Filter>
     </ClCompile>
+    <ClCompile Include="MainRenderPass.cpp">
+      <Filter>SceneGraph\Renderer\RenderGraph\7</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Util.cpp">
+      <Filter>PreCompiled Header\D3D12Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3dx12Residency.cpp">
+      <Filter>External Dependencies</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h">
@@ -587,10 +596,10 @@
       <Filter>PreCompiled Header</Filter>
     </ClInclude>
     <ClInclude Include="TypeDefine.h">
-      <Filter>Header Files Only\Defines</Filter>
+      <Filter>PreCompiled Header\Defines</Filter>
     </ClInclude>
     <ClInclude Include="CustomAssert.h">
-      <Filter>Header Files Only\Defines</Filter>
+      <Filter>PreCompiled Header\Defines</Filter>
     </ClInclude>
     <ClInclude Include="Hash.h">
       <Filter>Header Files Only</Filter>
@@ -949,6 +958,12 @@
     <ClInclude Include="TextManager.h">
       <Filter>Graphics\Global Range\2D Draw</Filter>
     </ClInclude>
+    <ClInclude Include="D3D12Util.h">
+      <Filter>PreCompiled Header\D3D12Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx12Residency.h">
+      <Filter>External Dependencies</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="IconResource.rc">
@@ -1283,6 +1298,9 @@
   <ItemGroup>
     <Text Include="Memo.txt">
       <Filter>SceneGraph\Renderer\Pass\Base</Filter>
+    </Text>
+    <Text Include="Before Transition Combination.txt">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
     </Text>
   </ItemGroup>
 </Project>

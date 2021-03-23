@@ -111,41 +111,53 @@ void ShadowPrePass::ExecutePass() DEBUG_EXCEPT
 	size_t CommandCount = GetJobCount();
 	CommandCount = min(CommandCount, (size_t)m_NumTaskFibers); // m_NumTaskFibers = 3u
 	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin((uint8_t)CommandCount + (uint8_t)m_NumTransitionResourceState);
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 
 	uint8_t StartJobIndex   = 0u;
-	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1; // 3u
+	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1u; // 3u
 
-	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
-	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4, this, &graphicsContext, 1, MaxCommandIndex);
+	ASSERT((StartJobIndex <= MaxCommandIndex) && MaxCommandIndex < 127u);
 
-	graphicsContext.PIXBeginEvent(L"2_ShadowPrePass", 0);
+	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists()); // custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4, this, &graphicsContext, 1, MaxCommandIndex); -> // custom::ThreadPool::WaitAllFinished(); // Wait SetParams.
+	
+	graphicsContext.PIXBeginEvent(L"2_ShadowPrePass", 0u);
 	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
-	graphicsContext.SetPipelineStateRange(*m_pShadowPSO, StartJobIndex, MaxCommandIndex);
+	graphicsContext.SetPipelineStateRange(*m_pShadowPSO,     StartJobIndex, MaxCommandIndex);
 
 	size_t LightShadowMatrixSize = g_LightShadowMatrixes.size();
 
-	// 여기서 밖에 g_LightShadowArray Resouce_Transition 안바꿈
-	custom::CopyContext& copyContext = custom::CopyContext::Begin(1);
-	copyContext.TransitionResource(g_LightShadowArray, D3D12_RESOURCE_STATE_COPY_DEST, (D3D12_RESOURCE_STATES)-1);
-	// copyContext.SubmitResourceBarriers(0u);
-	copyContext.PIXBeginEvent(L"2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray", 0u);
+#define USE_COPY_CONTEXT
 
-	// custom::ThreadPool::WaitAllFinished(); // Wait SetParams.
+#if defined(USE_COPY_CONTEXT)
+	custom::CopyContext& copyContext = custom::CopyContext::Begin(1u);
+	copyContext.SetResourceTransitionBarrierIndex(0u);
+
+	// 아래 케이스 같은 경우 CPU측 성능향상????
+	copyContext.TransitionResources(g_LightShadowArray, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	copyContext.PIXBeginEvent(L"2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray", 0u);
 
 #ifdef _DEBUG
 	static uint64_t s_LoopIndex = -1;
 	s_LoopIndex = 0ull;
 	wchar_t PIXBuffer[8];
+
+	static uint64_t s_WorkerThreadIndex = -1;
+	wchar_t PIXWorkerThreadBuffer[32];
+
 #endif
 
 	// 여기 한개의 CommandContext를 더 붙이면 더 빡세게 최적화 가능할듯.
-	for (UINT i = 0; i < LightShadowMatrixSize; ++i)
+	// 3D Queue <-> CopyQueue 전환 최적화해야함. -> 아마 최선의 경우는 CopyQueue쓰지말고 모두 3DQueue로 하는게?
+
+	for (UINT i = 0U; i < LightShadowMatrixSize; ++i)
 	{
 #ifdef _DEBUG
 		swprintf(PIXBuffer, _countof(PIXBuffer), L"Loop #%zu", ++s_LoopIndex);
 		graphicsContext.PIXBeginEvent(PIXBuffer, 0u);
+
+		s_WorkerThreadIndex = 0ull;
 #endif
-		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, 0U);
 		graphicsContext.SubmitResourceBarriers(0u);
 		graphicsContext.SetModelToProjection(g_LightShadowMatrixes[i]);
 
@@ -154,89 +166,74 @@ void ShadowPrePass::ExecutePass() DEBUG_EXCEPT
 		graphicsContext.SetVSConstantsBufferRange(0u, StartJobIndex, MaxCommandIndex);
 		graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
-		custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint16_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
+#if defined(_DEBUG)
+		s_WorkerThreadIndex = 0ull;
+
+		for (uint8_t i = 0ul; i < graphicsContext.GetNumCommandLists(); ++i)
+		{
+			swprintf(PIXWorkerThreadBuffer, _countof(PIXWorkerThreadBuffer), L"ShadowPrePass WorkerThread #%zu", ++s_WorkerThreadIndex);
+			graphicsContext.PIXBeginEvent(PIXWorkerThreadBuffer, i);
+		}
+#endif
+
+		custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (size_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
 		ContextWorkerThread(&m_Params[0]);
 
 		custom::ThreadPool::WaitAllFinished(); // Wait ContextWorkerThread
 
-		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_COMMON); // D3D12_RESOURCE_STATE_COPY_SOURCE D3D12_RESOURCE_STATE_COMMON
+#ifdef _DEBUG
+		graphicsContext.PIXEndEventAll(); // End WorkerThread
+#endif
+
+		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_COMMON, 0U); // D3D12_RESOURCE_STATE_COPY_SOURCE D3D12_RESOURCE_STATE_COMMON
 		graphicsContext.SubmitResourceBarriers(MaxCommandIndex);
 		graphicsContext.PIXEndEvent(MaxCommandIndex);
 		graphicsContext.WaitLastExecuteGPUSide(copyContext);
-		graphicsContext.ExecuteCommands(MaxCommandIndex, false, false);
+		graphicsContext.ExecuteCommands(MaxCommandIndex, false, (i == (LightShadowMatrixSize - 1)));
 		
-		copyContext.CopySubresource(g_LightShadowArray, i, g_CumulativeShadowBuffer, 0U);
+		copyContext.CopySubresource(g_LightShadowArray, i, g_CumulativeShadowBuffer, 0U, 0u);
 		copyContext.WaitLastExecuteGPUSide(graphicsContext);
 
 		if (i == LightShadowMatrixSize - 1)
 		{
+			copyContext.SubmitResourceBarriers(0u);
 			copyContext.PIXEndEvent(0u); // end 2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray
 			copyContext.Finish(false);
 		}
 		else
 		{
+			copyContext.SubmitResourceBarriers(0u);
 			copyContext.ExecuteCommands(0u, true, true);
 		}
 	}
-
-	// 여기 아래 5줄을 마지막 Execute전에 같이 실행시키고 싶다. -> 다음 Pass로 옮기기.
 	graphicsContext.SetModelToProjection(graphicsContext.GetpMainCamera()->GetViewProjMatrix());
 	graphicsContext.PIXEndEvent(0u);
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 	graphicsContext.PauseRecording();
 
+#else
+	graphicsContext.TransitionResources(g_LightShadowArray, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+
 #ifdef _DEBUG
-	m_DeltaTime = graphics::GetDebugFrameTime() - DeltaTime1;
-#endif
-}
-
-/*
-void ShadowPrePass::ExecutePass() DEBUG_EXCEPT
-{
-#ifdef _DEBUG
-	graphics::InitDebugStartTick();
-	float DeltaTime1 = graphics::GetDebugFrameTime();
-#endif
-
-	using namespace bufferManager;
-
-	size_t CommandCount = GetJobCount();
-	CommandCount = min(CommandCount, (size_t)m_NumTaskFibers); // m_NumTaskFibers = 3u
-	custom::GraphicsContext& graphicsContext = custom::GraphicsContext::Begin((uint8_t)CommandCount + (uint8_t)m_NumTransitionResourceState);
-
-	uint8_t StartJobIndex = 0u;
-	uint8_t MaxCommandIndex = graphicsContext.GetNumCommandLists() - 1; // 3u
-
-	SetParams(&graphicsContext, StartJobIndex, graphicsContext.GetNumCommandLists());
-	// custom::ThreadPool::EnqueueVariadic(SetParamsWithVariadic, 4, this, &graphicsContext, 1, MaxCommandIndex);
-
-	graphicsContext.PIXBeginEvent(L"2_ShadowPrePass", 0);
-	graphicsContext.SetRootSignatureRange(*m_pRootSignature, StartJobIndex, MaxCommandIndex);
-	graphicsContext.SetPipelineStateRange(*m_pShadowPSO, StartJobIndex, MaxCommandIndex);
-
-	size_t LightShadowMatrixSize = g_LightShadowMatrixes.size();
-
-	// 여기서 밖에 g_LightShadowArray Resouce_Transition 안바꿈
-	custom::CopyContext& copyContext = custom::CopyContext::Begin(1);
-	copyContext.TransitionResource(g_LightShadowArray, D3D12_RESOURCE_STATE_COPY_DEST, (D3D12_RESOURCE_STATES)-1);
-	copyContext.SubmitResourceBarriers(0u);
-	copyContext.PIXBeginEvent(L"2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray", 0u);
-
-	uint64_t GraphicsCompletedFenceValue = 0;
-	uint64_t CopyCompletedFenceValue = 0;
-
-	// custom::ThreadPool::WaitAllFinished(); // Wait SetParams.
-
-	static uint64_t s_LoopIndex = 0ull;
+	static uint64_t s_LoopIndex = -1;
 	s_LoopIndex = 0ull;
 	wchar_t PIXBuffer[8];
 
-	// 여기 한개의 CommandContext를 더 붙이면 더 빡세게 최적화 가능할듯.
-	for (UINT i = 0; i < LightShadowMatrixSize; ++i)
+	static uint64_t s_WorkerThreadIndex = -1;
+	wchar_t PIXWorkerThreadBuffer[32];
+
+#endif
+	for (UINT i = 0U; i < LightShadowMatrixSize; ++i)
 	{
+#ifdef _DEBUG
 		swprintf(PIXBuffer, _countof(PIXBuffer), L"Loop #%zu", ++s_LoopIndex);
 		graphicsContext.PIXBeginEvent(PIXBuffer, 0u);
-		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		graphicsContext.SubmitResourceBarriers(0);
+
+		s_WorkerThreadIndex = 0ull;
+#endif
+
+		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_DEPTH_WRITE, 0U);
+		graphicsContext.SubmitResourceBarriers(0u);
 		graphicsContext.SetModelToProjection(g_LightShadowMatrixes[i]);
 
 		graphicsContext.SetOnlyDepthStencilRange(g_CumulativeShadowBuffer.GetDSV(), StartJobIndex, MaxCommandIndex);
@@ -244,39 +241,45 @@ void ShadowPrePass::ExecutePass() DEBUG_EXCEPT
 		graphicsContext.SetVSConstantsBufferRange(0u, StartJobIndex, MaxCommandIndex);
 		graphicsContext.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (uint16_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
+#if defined(_DEBUG)
+		s_WorkerThreadIndex = 0ull;
+
+		for (uint8_t i = 0ul; i < graphicsContext.GetNumCommandLists(); ++i)
+		{
+			swprintf(PIXWorkerThreadBuffer, _countof(PIXWorkerThreadBuffer), L"ShadowPrePass WorkerThread #%zu", ++s_WorkerThreadIndex);
+			graphicsContext.PIXBeginEvent(PIXWorkerThreadBuffer, i);
+		}
+#endif
+
+		custom::ThreadPool::MultipleEnqueue(ContextWorkerThread, (size_t)(MaxCommandIndex - StartJobIndex), (void**)&m_Params[1], sizeof(RenderQueueThreadParameterWrapper));
 		ContextWorkerThread(&m_Params[0]);
 
 		custom::ThreadPool::WaitAllFinished(); // Wait ContextWorkerThread
 
-		graphicsContext.TransitionResource(g_CumulativeShadowBuffer, D3D12_RESOURCE_STATE_COMMON);
-		graphicsContext.SubmitResourceBarriers(MaxCommandIndex);
-		graphicsContext.WaitLastExecuteGPUSide(copyContext);
+#ifdef _DEBUG
+		graphicsContext.PIXEndEventAll(); // End WorkerThread
+#endif
+
 		graphicsContext.PIXEndEvent(MaxCommandIndex);
-		graphicsContext.ExecuteCommands(MaxCommandIndex, false);
+		graphicsContext.PIXBeginEvent(L"Copy LightShadowArray to CumulativeShadowBuffer", MaxCommandIndex);
+		graphicsContext.CopySubresource(g_LightShadowArray, i, g_CumulativeShadowBuffer, 0U, MaxCommandIndex);
 
-		copyContext.WaitLastExecuteGPUSide(graphicsContext);
-		copyContext.CopySubresource(g_LightShadowArray, i, g_CumulativeShadowBuffer, 0u);
-
-		if (i == LightShadowMatrixSize - 1)
+		graphicsContext.SubmitResourceBarriers(0u);
+		graphicsContext.PIXEndEvent(MaxCommandIndex); // end Copy
+		if ((i == LightShadowMatrixSize - 1))
 		{
-			copyContext.PIXEndEvent(0u); // end 2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray
-			copyContext.Finish(false);
+			graphicsContext.PIXEndEvent(MaxCommandIndex); // end 2_ShadowPrePass_CumulativeShadow_To_g_LightShadowArray
 		}
-		else
-		{
-			copyContext.ExecuteCommands(0u, true);
-		}
+		graphicsContext.ExecuteCommands(MaxCommandIndex, false, (i == LightShadowMatrixSize - 1));
 	}
 
-	// 여기 아래 5줄을 마지막 Execute전에 같이 실행시키고 싶다. -> 다음 Pass로 옮기기.
 	graphicsContext.SetModelToProjection(graphicsContext.GetpMainCamera()->GetViewProjMatrix());
 	graphicsContext.PIXEndEvent(0u);
+	graphicsContext.SetResourceTransitionBarrierIndex(0u);
 	graphicsContext.PauseRecording();
 
+#endif
 #ifdef _DEBUG
 	m_DeltaTime = graphics::GetDebugFrameTime() - DeltaTime1;
 #endif
 }
-
-*/

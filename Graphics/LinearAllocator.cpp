@@ -2,6 +2,7 @@
 #include "Device.h"
 #include "CommandQueueManager.h"
 #include "LinearAllocator.h"
+#include "CustomCriticalSection.h"
 
 // Container
 
@@ -17,12 +18,10 @@
 //  ¦§ std::vector<LinearAllocationPage*> m_retiredPages;          ¦§ std::vector<LinearAllocationPage*> m_retiredPages;
 //  ¦¦ std::vector<LinearAllocationPage*> m_largePageList;         ¦¦ std::vector<LinearAllocationPage*> m_largePageList;
 
-static size_t LinearAllocateCount = 0ul;
 
 #pragma region LINEAR_ALLOCATION_PAGE_MANAGER
 
-LinearAllocatorType LinearAllocator::LinearAllocationPageManager::sm_autoType = LinearAllocatorType::GPU_WRITEABLE;
-
+LinearAllocatorType                          LinearAllocator::LinearAllocationPageManager::sm_autoType = LinearAllocatorType::GPU_WRITEABLE;
 LinearAllocator::LinearAllocationPageManager LinearAllocator::sm_pageManager[2];
 
 LinearAllocator::LinearAllocationPageManager::LinearAllocationPageManager()
@@ -33,19 +32,25 @@ LinearAllocator::LinearAllocationPageManager::LinearAllocationPageManager()
     sm_autoType = (LinearAllocatorType)((uint32_t)sm_autoType + 1);
     ASSERT(sm_autoType <= LinearAllocatorType::COUNT);
 
-    InitializeCriticalSection(&m_CS);
+    if (!m_CS.DebugInfo)
+    {
+        ::InitializeCriticalSection(&m_CS);
+    }
 }
 
 LinearAllocator::LinearAllocationPageManager::~LinearAllocationPageManager()
 {
-    DeleteCriticalSection(&m_CS);
+    if (m_CS.DebugInfo)
+    {
+        ::DeleteCriticalSection(&m_CS);
+    }
 }
 
-LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::RequestPage()
+LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::requestPage()
 {
     LinearAllocationPage* PagePtr = nullptr;
 
-    EnterCriticalSection(&m_CS);
+    // ::EnterCriticalSection(&m_CS);
 
     while (!m_retiredPages.empty() && device::g_commandQueueManager.IsFenceComplete(m_retiredPages.front().first))
     {
@@ -60,24 +65,24 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::RequestPage(
     }
     else
     {
-        PagePtr = CreateNewPage(0);
+        PagePtr = CreateCommittedNewPage(0ul, m_allocationType);
         m_pLinearAllocationPagePool.emplace_back(PagePtr);
     }
 
-    LeaveCriticalSection(&m_CS);
+    // ::LeaveCriticalSection(&m_CS);
     return PagePtr;
 }
 
 void LinearAllocator::LinearAllocationPageManager::DiscardPages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& UsedPages)
 {
-    EnterCriticalSection(&m_CS);
+    ::EnterCriticalSection(&m_CS);
 
     for (auto iter = UsedPages.begin(); iter != UsedPages.end(); ++iter)
     {
         m_retiredPages.push({ FenceValue, *iter });
     }
 
-    LeaveCriticalSection(&m_CS);
+    ::LeaveCriticalSection(&m_CS);
 }
 
 // -> CommandContext::Finish(bool WaitForCompletion)
@@ -85,7 +90,7 @@ void LinearAllocator::LinearAllocationPageManager::DiscardPages(uint64_t FenceVa
 // -> LinearAllocator::LinearAllocationPageManager::FreeLargePages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& LargePages)
 void LinearAllocator::LinearAllocationPageManager::FreeLargePages(uint64_t FenceValue, const std::vector<LinearAllocationPage*>& LargePages)
 {
-    EnterCriticalSection(&m_CS);
+    ::EnterCriticalSection(&m_CS);
 
     for (auto pLinearAllocationPage = LargePages.begin(); pLinearAllocationPage != LargePages.end(); ++pLinearAllocationPage)
     {
@@ -99,46 +104,51 @@ void LinearAllocator::LinearAllocationPageManager::FreeLargePages(uint64_t Fence
         m_deferredDeletionQueue.pop();
     }
 
-    LeaveCriticalSection(&m_CS);
+    ::LeaveCriticalSection(&m_CS);
 }
 
-LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPage(size_t PageSize /* = 0*/)
+STATIC LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateCommittedNewPage(const size_t PageSize, const LinearAllocatorType m_allocationType)
 {
-    D3D12_HEAP_PROPERTIES HeapProps;
-    HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    D3D12_HEAP_PROPERTIES HeapProps = {};
+    HeapProps.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     HeapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    HeapProps.CreationNodeMask = 1;
-    HeapProps.VisibleNodeMask = 1;
+    HeapProps.CreationNodeMask     = 1U;
+    HeapProps.VisibleNodeMask      = 1U;
 
-    D3D12_RESOURCE_DESC ResourceDesc;
-    ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    ResourceDesc.Alignment = 0;
-    ResourceDesc.Height = 1;
-    ResourceDesc.DepthOrArraySize = 1;
-    ResourceDesc.MipLevels = 1;
-    ResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-    ResourceDesc.SampleDesc.Count = 1;
-    ResourceDesc.SampleDesc.Quality = 0;
-    ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    D3D12_RESOURCE_DESC ResourceDesc = {};
+    ResourceDesc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
+    ResourceDesc.Alignment          = 0ULL;
+    ResourceDesc.Height             = 1U;
+    ResourceDesc.DepthOrArraySize   = 1U;
+    ResourceDesc.MipLevels          = 1U;
+    ResourceDesc.Format             = DXGI_FORMAT_UNKNOWN;
+    ResourceDesc.SampleDesc.Count   = 1U;
+    ResourceDesc.SampleDesc.Quality = 0U;
+    ResourceDesc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
-    D3D12_RESOURCE_STATES DefaultUsage;
+    D3D12_RESOURCE_STATES DefaultUsage = D3D12_RESOURCE_STATES(-1);
 
     if (m_allocationType == LinearAllocatorType::GPU_WRITEABLE)
     {
         HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
-        ResourceDesc.Width = PageSize == 0 ? kGpuAllocatorPageSize : PageSize;
+
+        ResourceDesc.Width = PageSize == 0ul ? kGpuAllocatorPageSize : PageSize;
         ResourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
         DefaultUsage = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
     }
     else
     {
         HeapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-        ResourceDesc.Width = PageSize == 0 ? kCpuAllocatorPageSize : PageSize;
+
+        ResourceDesc.Width = PageSize == 0ul ? kCpuAllocatorPageSize : PageSize;
         ResourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
         DefaultUsage = D3D12_RESOURCE_STATE_GENERIC_READ;
     }
 
-    ID3D12Resource* pBuffer;
+    ID3D12Resource* pBuffer = nullptr;
+
     ASSERT_HR
     (
         device::g_pDevice->CreateCommittedResource
@@ -149,6 +159,7 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
     );
 
 #if defined(_DEBUG)
+    static size_t LinearAllocateCount = 0ul;
     wchar_t ResourceName[32];
     swprintf(ResourceName, _countof(ResourceName), L"LinearAllocateResource %zu", ++LinearAllocateCount);
     pBuffer->SetName(ResourceName);
@@ -161,6 +172,10 @@ LinearAllocationPage* LinearAllocator::LinearAllocationPageManager::CreateNewPag
 
 #pragma region LINEAR_ALLOCATOR
 
+
+// CommandContext::Finish()
+// CommandContext::Finish() -> m_CPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
+//                          -> m_GPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
 void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
 {
     if (m_currentPage == nullptr)
@@ -170,7 +185,7 @@ void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
 
     m_retiredPages.push_back(m_currentPage);
     m_currentPage   = nullptr;
-    m_currentOffset = 0;
+    m_currentOffset = 0ul;
 
     sm_pageManager[(size_t)m_allocationType].DiscardPages(FenceID, m_retiredPages);
     m_retiredPages.clear();
@@ -179,18 +194,26 @@ void LinearAllocator::CleanupUsedPages(uint64_t FenceID)
     m_largePageList.clear();
 }
 
+// LinearAllocator::Allocate
 LinearBuffer LinearAllocator::allocateLargePage(size_t SizeInBytes)
 {
-    LinearAllocationPage* OneOff = sm_pageManager[(size_t)m_allocationType].CreateNewPage(SizeInBytes);
+    LinearAllocationPage* OneOff = LinearAllocationPageManager::CreateCommittedNewPage(SizeInBytes, m_allocationType);
+
+    ::EnterCriticalSection(&m_CS);
+
     m_largePageList.push_back(OneOff);
 
+    ::LeaveCriticalSection(&m_CS);
+
     LinearBuffer ret(*OneOff, 0, SizeInBytes);
-    ret.pData = OneOff->m_CpuVirtualAddress;
+    ret.pData      = OneOff->m_CpuVirtualAddress;
     ret.GPUAddress = OneOff->m_GpuVirtualAddress;
 
     return ret;
 }
 
+// CommandContext::m_CPULinearAllocator(BufferSize);
+//               ::m_GPULinearAllocator(BufferSize);
 LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment /*= 256ul*/)
 {
     const size_t AlignmentMask = Alignment - 1;
@@ -201,33 +224,47 @@ LinearBuffer LinearAllocator::Allocate(size_t SizeInBytes, size_t Alignment /*= 
     // Align the allocation
     const size_t AlignedSize = HashInternal::AlignUpWithMask(SizeInBytes, AlignmentMask);
 
-    if (m_pageSize < AlignedSize)
-    {
-        return allocateLargePage(AlignedSize);
-    }
+	{
+		custom::Scoped_CS scopedCS(m_CS);
 
-    m_currentOffset = HashInternal::AlignUp(m_currentOffset, Alignment);
+		if (m_pageSize < AlignedSize)
+		{
+            LinearAllocationPage* OneOff = LinearAllocationPageManager::CreateCommittedNewPage(SizeInBytes, m_allocationType);
 
-    if (m_pageSize < m_currentOffset + AlignedSize)
-    {
-        ASSERT(m_currentPage != nullptr);
-        m_retiredPages.push_back(m_currentPage);
-        m_currentPage = nullptr;
-    }
+            m_largePageList.push_back(OneOff);
 
-    if (m_currentPage == nullptr)
-    {
-        m_currentPage = sm_pageManager[(size_t)m_allocationType].RequestPage();
-        m_currentOffset = 0;
-    }
+            LinearBuffer ret(*OneOff, 0, SizeInBytes);
+            ret.pData      = OneOff->m_CpuVirtualAddress;
+            ret.GPUAddress = OneOff->m_GpuVirtualAddress;
 
-    LinearBuffer ret(*m_currentPage, m_currentOffset, AlignedSize);
-    ret.pData = (uint8_t*)m_currentPage->m_CpuVirtualAddress + m_currentOffset;
-    ret.GPUAddress = m_currentPage->m_GpuVirtualAddress + m_currentOffset;
+            return ret;
 
-    m_currentOffset += AlignedSize;
+			// return allocateLargePage(AlignedSize);
+		}
 
-    return ret;
+		m_currentOffset = HashInternal::AlignUp(m_currentOffset, Alignment);
+
+		if (m_pageSize < m_currentOffset + AlignedSize)
+		{
+			ASSERT(m_currentPage != nullptr);
+			m_retiredPages.push_back(m_currentPage);
+			m_currentPage = nullptr;
+		}
+
+		if (m_currentPage == nullptr)
+		{
+			m_currentPage = sm_pageManager[(size_t)m_allocationType].requestPage();
+			m_currentOffset = 0ul;
+		}
+
+		LinearBuffer ret(*m_currentPage, m_currentOffset, AlignedSize);
+		ret.pData      = (uint8_t*)m_currentPage->m_CpuVirtualAddress + m_currentOffset;
+		ret.GPUAddress = m_currentPage->m_GpuVirtualAddress           + m_currentOffset;
+
+		m_currentOffset += AlignedSize;
+
+		return ret;
+	}
 }
 
 #pragma endregion LINEAR_ALLOCATOR

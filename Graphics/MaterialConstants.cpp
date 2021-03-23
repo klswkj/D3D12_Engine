@@ -113,41 +113,7 @@ ControllerConstants7::ControllerConstants7(const Math::Vector3& SpecularColor, c
 	m_bSpecular = true;
 	m_Normal    = true;
 }
-/*
-ControllerConstants0::ControllerConstants0(ControllerConstants0&& Other)
-{
 
-}
-
-ControllerConstants1::ControllerConstants1(ControllerConstants1&& Other)
-{
-
-}
-ControllerConstants2::ControllerConstants2(ControllerConstants2&& Other)
-{
-
-}
-ControllerConstants3::ControllerConstants3(ControllerConstants3&& Other)
-{
-
-}
-ControllerConstants4::ControllerConstants4(ControllerConstants4&& Other)
-{
-
-}
-ControllerConstants5::ControllerConstants5(ControllerConstants5&& Other)
-{
-
-}
-ControllerConstants6::ControllerConstants6(ControllerConstants6&& Other)
-{
-
-}
-ControllerConstants7::ControllerConstants7(ControllerConstants7&& Other)
-{
-
-}
-*/
 void ControllerConstants0::SetDiffuseColor(const Math::Vector3& DiffuseColor)
 {
 	m_Data.DiffuseColorAndSpecularGloss = DiffuseColor;

@@ -130,7 +130,6 @@
 	AI_MATKEY_TEXTURE(aiTextureType_REFLECTION,N)
 */
 
-#define FlatColorRootIndex 1u
 #define TransformRootIndex 1u
 #define Color3RootIndex    3u
 #define MaterialRootIndex  4u

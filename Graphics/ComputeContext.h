@@ -10,7 +10,7 @@ namespace custom
     class ComputeContext final : public CommandContext
     {
     public:
-        static ComputeContext& Begin(uint8_t numCommandALs = 1);
+        static ComputeContext& Begin(uint8_t numCommandALs);
         static ComputeContext& Resume(uint64_t contextID);
         static ComputeContext& GetRecentContext();
 

@@ -12,26 +12,6 @@ void ColorBuffer::createResourceViews(ID3D12Device* const pDevice, const DXGI_FO
 
     m_numMipMaps = numMips - 1;
 
-    // ASSERT(false);
-    // TODO 0 : Make CBV
-    // Lightbuffer : LightPrePass
-    // FXAA Work Counters
-    // DoF Work Queue
-    // DoF Work Queue_StructuredBuffer::Counter
-    // DoF Fast Queue
-    // DoF Fast Queue_StructuredBuffer::Counter
-    // DoF Fixup Queue
-    // DoF Fixup Queue_structuredBUffer::Counter
-    // Histogram
-    // Camera_Entity_VB
-    // Camera_Entity_VB_StructuredBuffer::Counter
-    // Camera_Frustum_VB2
-    // Camera_Frustum_VB2_StructuredBuffer::Counter
-    // Camera_Frustum_IB
-    // Sponza's_VB_StructuredBuffer::Counter
-    // g_LightBuffer_StructuredBuffer::Counter
-    // D3D12_CONSTANT_BUFFER_VIEW_DESC  CBVDesc = {};
-
     D3D12_RENDER_TARGET_VIEW_DESC    RTVDesc = {};
     D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
     D3D12_SHADER_RESOURCE_VIEW_DESC  SRVDesc = {};
@@ -120,7 +100,9 @@ void ColorBuffer::createResourceViews(ID3D12Device* const pDevice, const DXGI_FO
 
 void ColorBuffer::CreateFromSwapChain(const std::wstring& Name, ID3D12Resource* BaseResource)
 {
-    CopyResource(device::g_pDevice, Name, BaseResource, D3D12_RESOURCE_STATE_PRESENT);
+    D3D12_RESOURCE_STATES SwapChainState = D3D12_RESOURCE_STATE_PRESENT;
+
+    CopyResource(device::g_pDevice, Name, BaseResource, &SwapChainState, nullptr, 1);
 
     //m_UAVHandle[0] = Graphics::AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     //Graphics::g_Device->CreateUnorderedAccessView(m_pResource.Get(), nullptr, nullptr, m_UAVHandle[0]);
@@ -135,9 +117,9 @@ void ColorBuffer::CreateCommitted
     uint32_t numMips, const DXGI_FORMAT format, bool bRenderTarget
 )
 {
-    numMips                          = (numMips == 0 ? ComputeNumMips(width, height) : numMips);
-    D3D12_RESOURCE_FLAGS Flags       = CombineResourceFlags(bRenderTarget);
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, 1, numMips, format, Flags);
+    numMips                           = (numMips == 0 ? ComputeNumMips(width, height) : numMips);
+    D3D12_RESOURCE_FLAGS Flags        = CombineResourceFlags(bRenderTarget);
+    D3D12_RESOURCE_DESC  ResourceDesc = Texture2DResourceDescriptor(width, height, 1, numMips, format, Flags);
 
     ResourceDesc.SampleDesc.Count   = m_fragmentCount;
     ResourceDesc.SampleDesc.Quality = 0;
@@ -149,10 +131,6 @@ void ColorBuffer::CreateCommitted
     ClearValue.Color[2] = m_clearColor.B();
     ClearValue.Color[3] = m_clearColor.A();
     
-    /*
-D3D12 ERROR: ID3D12Device::CreateCommittedResource: pOptimizedClearValue must be NULL when D3D12_RESOURCE_DESC::Dimension is not D3D12_RESOURCE_DIMENSION_BUFFER and neither D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET nor D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL are set in D3D12_RESOURCE_DESC::Flags. [ STATE_CREATION ERROR #815: CREATERESOURCE_INVALIDCLEARVALUE]
-D3D12: **BREAK** enabled for the previous message, which was: [ ERROR STATE_CREATION #815: CREATERESOURCE_INVALIDCLEARVALUE ]
-    */
     CreateTextureCommittedResource(device::g_pDevice, wName, ResourceDesc, bRenderTarget? &ClearValue : nullptr); // 
     createResourceViews(device::g_pDevice, format, 1, numMips, bRenderTarget);
 }
@@ -163,8 +141,8 @@ void ColorBuffer::CreateCommittedArray
     const uint32_t arrayCount, const DXGI_FORMAT format, const bool bRenderTarget
 )
 {
-    D3D12_RESOURCE_FLAGS Flags = CombineResourceFlags(bRenderTarget);
-    D3D12_RESOURCE_DESC ResourceDesc = Texture2DResourceDescriptor(width, height, arrayCount, 1, format, Flags);
+    D3D12_RESOURCE_FLAGS Flags        = CombineResourceFlags(bRenderTarget);
+    D3D12_RESOURCE_DESC  ResourceDesc = Texture2DResourceDescriptor(width, height, arrayCount, 1, format, Flags);
 
     D3D12_CLEAR_VALUE ClearValue = {};
     ClearValue.Format = format;
@@ -186,15 +164,15 @@ void ColorBuffer::GenerateMipMaps(custom::ComputeContext& computeContext, const 
 
     computeContext.SetRootSignature(graphics::g_GenerateMipsRootSignature, commandIndex);
 
-    computeContext.TransitionResource(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    computeContext.TransitionResources(*this, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
     computeContext.SubmitResourceBarriers(0);
     computeContext.SetDynamicDescriptor(1, 0, m_SRVHandle, commandIndex);
 
     for (uint32_t TopMip = 0; TopMip < m_numMipMaps;)
     {
-        uint32_t SrcWidth = m_width >> TopMip;
+        uint32_t SrcWidth  = m_width >> TopMip;
         uint32_t SrcHeight = m_height >> TopMip;
-        uint32_t DstWidth = SrcWidth >> 1;
+        uint32_t DstWidth  = SrcWidth >> 1;
         uint32_t DstHeight = SrcHeight >> 1;
 
         // Determine if the first downsample is more than 2:1.  This happens whenever
@@ -215,10 +193,10 @@ void ColorBuffer::GenerateMipMaps(custom::ComputeContext& computeContext, const 
         // expensive.  Maybe we can update the code later to compute sample weights for
         // each successive downsample.  We use _BitScanForward to count number of zeros
         // in the low bits.  Zeros indicate we can divide by two without truncating.
-        uint32_t AdditionalMips;
+        uint32_t AdditionalMips = 0u;
         unsigned long BitTarget = (DstWidth == 1 ? DstHeight : DstWidth) | (DstHeight == 1 ? DstWidth : DstHeight);
 
-        _BitScanForward
+        ::_BitScanForward
         (
             (unsigned long*)&AdditionalMips,
             BitTarget
@@ -243,8 +221,8 @@ void ColorBuffer::GenerateMipMaps(custom::ComputeContext& computeContext, const 
         float temp1 = 1.0f / DstWidth;
         float temp2 = 1.0f / DstHeight;
 
-        computeContext.SetConstants(0, TopMip, NumMips, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2), commandIndex);
-        computeContext.SetDynamicDescriptors(2, 0, NumMips, m_UAVHandle + TopMip + 1, commandIndex);
+        computeContext.SetConstants(0U, TopMip, NumMips, *reinterpret_cast<UINT*>(&temp1), *reinterpret_cast<UINT*>(&temp2), commandIndex);
+        computeContext.SetDynamicDescriptors(2U, 0U, NumMips, m_UAVHandle + TopMip + 1, commandIndex);
         computeContext.Dispatch2D(DstWidth, DstHeight, commandIndex);
 
         computeContext.InsertUAVBarrier(*this);
@@ -253,10 +231,11 @@ void ColorBuffer::GenerateMipMaps(custom::ComputeContext& computeContext, const 
         TopMip += NumMips;
     }
 
-    computeContext.TransitionResource
+    computeContext.TransitionResources
     (
         *this, 
-        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+        D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
     );
 
     computeContext.SubmitResourceBarriers(0);

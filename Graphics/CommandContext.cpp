@@ -21,6 +21,10 @@
 #include "ShadowCamera.h"
 #include "MainLight.h"
 
+#if defined(_DEBUG)
+#include "TransformConstants.h"
+#endif
+
 #ifndef VALID_COMPUTE_QUEUE_RESOURCE_STATES
 #define VALID_COMPUTE_QUEUE_RESOURCE_STATES          \
     ( D3D12_RESOURCE_STATE_UNORDERED_ACCESS         |\
@@ -47,7 +51,7 @@ namespace custom
 		m_type(Type),
 		m_LastExecuteFenceValue((uint64_t)Type << 56),
 		m_bRecordingFlag(0ull),
-		m_StartCommandALIndex(0u),
+		m_ResourceBarrierTargetCommandIndex(0u),
 		m_EndCommandALIndex(0u),
 		m_NumCommandPair(numCommandsPair),
 		m_MainWorkerThreadID(::GetCurrentThreadId()),
@@ -124,17 +128,17 @@ namespace custom
 	{
 		ASSERT(m_pCommandAllocators.size() &&
 			CHECK_VALID_TYPE(m_type) &&
-			(m_StartCommandALIndex <= lastCommandALIndex) &&
+			(0ul <= lastCommandALIndex) &&
 			(lastCommandALIndex < m_NumCommandPair) &&
 			(!m_numStandByBarriers));
 
 		CHECK_SMALL_COMMAND_LISTS_EXECUTED(3);
 
 		m_LastExecuteFenceValue = device::g_commandQueueManager.GetQueue(m_type)
-			.executeCommandLists(m_pCommandLists, m_StartCommandALIndex, lastCommandALIndex);
+			.executeCommandLists(m_pCommandLists, 0ul, lastCommandALIndex);
 
 		// Reset the command list and restore previous state
-		for (uint8_t i = m_StartCommandALIndex; i <= lastCommandALIndex; ++i)
+		for (uint8_t i = 0u; i <= lastCommandALIndex; ++i)
 		{
 			ASSERT_HR(m_pCommandLists[i]->Reset(m_pCommandAllocators[i], nullptr));
 
@@ -143,15 +147,27 @@ namespace custom
 				m_pCommandLists[i]->SetGraphicsRootSignature(m_GPUTaskFiberContexts[i].pCurrentGraphicsRS);
 				INCRE_DEBUG_SET_RS_COUNT_I;
 			}
+			else
+			{
+				m_GPUTaskFiberContexts[i].pCurrentGraphicsRS = nullptr;
+			}
 			if (m_GPUTaskFiberContexts[i].pCurrentComputeRS && !bRootSigFlush)
 			{
 				m_pCommandLists[i]->SetComputeRootSignature(m_GPUTaskFiberContexts[i].pCurrentComputeRS);
 				INCRE_DEBUG_SET_RS_COUNT_I;
 			}
+			else
+			{
+				m_GPUTaskFiberContexts[i].pCurrentComputeRS = nullptr;
+			}
 			if (m_GPUTaskFiberContexts[i].pCurrentPSO && !bPSOFlush)
 			{
 				m_pCommandLists[i]->SetPipelineState(m_GPUTaskFiberContexts[i].pCurrentPSO);
 				INCRE_DEBUG_SET_PSO_COUNT_I;
+			}
+			else
+			{
+				m_GPUTaskFiberContexts[i].pCurrentPSO = nullptr;
 			}
 
 			setCurrentDescriptorHeaps(i);
@@ -169,20 +185,26 @@ namespace custom
 
 	uint64_t CommandContext::Finish(const bool CPUSideWaitForCompletion)
 	{
-		ASSERT((m_pCommandAllocators.size()) && (!m_numStandByBarriers) && CHECK_VALID_TYPE(m_type));
+		ASSERT((m_pCommandAllocators.size()) && 
+			(!m_numStandByBarriers) && 
+			CHECK_VALID_TYPE(m_type) && 
+			(m_MainWorkerThreadID == ::GetCurrentThreadId()));
 
 		CHECK_SMALL_COMMAND_LISTS_EXECUTED(3);
 
 		CommandQueue& Queue = device::g_commandQueueManager.GetQueue(m_type);
-		m_LastExecuteFenceValue = Queue.executeCommandLists(m_pCommandLists, m_StartCommandALIndex, m_NumCommandPair - 1);
+		m_LastExecuteFenceValue = Queue.executeCommandLists(m_pCommandLists, 0ul, (size_t)(m_NumCommandPair - 1));
 
 		m_PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
 		m_CPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
 		m_GPULinearAllocator.CleanupUsedPages(m_LastExecuteFenceValue);
 
-		for (size_t i = m_StartCommandALIndex; i < m_NumCommandPair; ++i)
+		for (size_t i = 0ul; i < m_NumCommandPair; ++i)
 		{
+			m_GPUTaskFiberContexts[i].pCurrentGraphicsRS = nullptr;
+			m_GPUTaskFiberContexts[i].pCurrentComputeRS  = nullptr;
+			m_GPUTaskFiberContexts[i].pCurrentPSO        = nullptr;
 			m_GPUTaskFiberContexts[i].DynamicViewDescriptorHeaps.CleanupUsedHeaps(m_LastExecuteFenceValue);
 			m_GPUTaskFiberContexts[i].DynamicSamplerDescriptorHeaps.CleanupUsedHeaps(m_LastExecuteFenceValue);
 		}
@@ -219,7 +241,7 @@ namespace custom
 		}
 		else if (numCommandALs < CurrentAllocatorSize) // 1 < 4 /// 3 < 6 // 7 < 15
 		{
-			size_t NumDiscards = CurrentAllocatorSize - numCommandALs;
+			size_t NumDiscards = (size_t)(CurrentAllocatorSize - numCommandALs);
 
 			Queue.discardAllocators(m_pCommandAllocators, m_LastExecuteFenceValue, NumDiscards);
 
@@ -278,70 +300,434 @@ namespace custom
 		}
 	}
 
-	void CommandContext::SplitResourceTransition(GPUResource& targetResource, D3D12_RESOURCE_STATES statePending)
+#pragma warning(push)
+#pragma warning(disable : 6385)
+	void CommandContext::SplitResourceTransition(GPUResource& targetResource, D3D12_RESOURCE_STATES statePending, UINT subResource)
 	{
-		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+		ASSERT(targetResource.GetResource() && targetResource.m_numSubResource);
 
-		// If it's already transitioning, finish that transition
-		if (targetResource.m_pendingState != (D3D12_RESOURCE_STATES)-1)
+		if (16u <= m_numStandByBarriers)
 		{
-			TransitionResource(targetResource, targetResource.m_pendingState);
+			SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
 		}
 
-		D3D12_RESOURCE_STATES OldState = targetResource.m_currentState;
+		// If it's already transitioning, finish that transition
+		if (targetResource.m_pendingStates[subResource] != (D3D12_RESOURCE_STATES)-1)
+		{
+			TransitionResource(targetResource, targetResource.m_pendingStates[subResource], subResource);
+		}
+
+		D3D12_RESOURCE_STATES OldState = targetResource.m_currentStates[subResource];
 
 		if (OldState != statePending)
 		{
 			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
-			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
 			BarrierDesc.Transition.pResource   = targetResource.GetResource();
-			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			BarrierDesc.Transition.Subresource = subResource;
 			BarrierDesc.Transition.StateBefore = OldState;
 			BarrierDesc.Transition.StateAfter  = statePending;
 
-			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
-
-			targetResource.m_pendingState = statePending;
+			targetResource.m_pendingStates[subResource] = statePending;
 		}
 	}
 
-	// TODO : To change to find unused ResourceBarrier, then changed it. 
-	void CommandContext::TransitionResource(GPUResource& targetResource, D3D12_RESOURCE_STATES stateAfter, D3D12_RESOURCE_STATES forcedOldState)
+	// TODO 0 : Consider Resource State Combination. ex) D3D12_RESOURCE_STATE_PIXEL_SHADER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER
+	void CommandContext::TransitionResource(GPUResource& targetResource, D3D12_RESOURCE_STATES stateAfter, UINT subResource, D3D12_RESOURCE_STATES forcedOldState)
 	{
-		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+		ASSERT(targetResource.GetResource() && targetResource.m_numSubResource);
 
-		D3D12_RESOURCE_STATES OldState = (forcedOldState == (D3D12_RESOURCE_STATES)-1) ? targetResource.m_currentState : forcedOldState;
+		if (16u <= m_numStandByBarriers)
+		{
+			SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+		}
+
+		UINT DelegateIndex = subResource;
+
+		if (subResource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+		{
+			DelegateIndex = 0U;
+		}
+
+		D3D12_RESOURCE_STATES OldState = (forcedOldState == (D3D12_RESOURCE_STATES)-1) ? targetResource.m_currentStates[DelegateIndex]: forcedOldState;
 
 		if (OldState != stateAfter)
 		{
 			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
 
-			BarrierDesc.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			BarrierDesc.Transition.pResource   = targetResource.GetResource();
-			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			BarrierDesc.Transition.StateBefore = OldState;
-			BarrierDesc.Transition.StateAfter  = stateAfter;
+			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 
 			// Check to see if we already started the transition
-			if (targetResource.m_pendingState != D3D12_RESOURCE_STATES(-1)) // <- Before : if(NewState == Resource.m_pendingState)
+			if (targetResource.m_pendingStates[DelegateIndex] != D3D12_RESOURCE_STATES(-1)) // <- Before : if(NewState == Resource.m_pendingState)
 			{
-				ASSERT(stateAfter == targetResource.m_pendingState);
+				ASSERT(stateAfter == targetResource.m_pendingStates[DelegateIndex]);
+
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
-				targetResource.m_pendingState = (D3D12_RESOURCE_STATES)-1;
+
+				targetResource.m_pendingStates[DelegateIndex] = (D3D12_RESOURCE_STATES)-1;
 			}
 			else
 			{
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			}
 
-			targetResource.m_currentState = stateAfter;
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
+			BarrierDesc.Transition.Subresource = subResource;
+			BarrierDesc.Transition.StateBefore = OldState;
+			BarrierDesc.Transition.StateAfter  = stateAfter;
+
+			if (subResource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+			{
+				for (auto& e : targetResource.m_currentStates)
+				{
+					e = stateAfter;
+				}
+			}
+			else
+			{
+				targetResource.m_currentStates[subResource] = stateAfter;
+			}
 		}
 		else if (stateAfter == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 		{
 			InsertUAVBarrier(targetResource);
 		}
 	}
+
+	// Warning : This function maybe incompleteness. 
+	void CommandContext::SplitResourceTransitions(GPUResource& targetResource, const D3D12_RESOURCE_STATES statePending, UINT subResourceBitFlag)
+	{
+		ASSERT(targetResource.GetResource() && targetResource.m_numSubResource);
+
+		if (subResourceBitFlag == ((1u << targetResource.m_numSubResource) - 1u))
+		{
+			subResourceBitFlag = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		}
+
+		if (targetResource.m_numSubResource == 1)
+		{
+			SplitResourceTransition(targetResource, statePending, 0U);
+			return;
+		}
+
+		uint32_t bPendingBitFlag     = 0u;
+		uint32_t bOverlappingBitFlag = 0u;
+		bool     bBeforeResourceStatesIdentical = true;
+
+		// Find Pending All SubResource Index, then Finish their pending transition(Split Barriers).
+		{
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag;
+			uint32_t SubResourceIndex = -1;
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					// If SubResourceIndex is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+
+				if (targetResource.m_pendingStates[SubResourceIndex] != (D3D12_RESOURCE_STATES)-1)
+				{
+					bPendingBitFlag |= uint32_t(1u << SubResourceIndex);
+				}
+			}
+
+			// End Pending Transition.
+			if (bPendingBitFlag)
+			{
+				uint32_t SubResourceIndex = 0u;
+
+				while (::_BitScanForward((unsigned long*)&SubResourceIndex, bPendingBitFlag))
+				{
+					bPendingBitFlag ^= (1u << SubResourceIndex);
+
+					TransitionResource(targetResource, targetResource.m_pendingStates[SubResourceIndex], SubResourceIndex);
+				}
+			}
+		}
+
+		// Check whether Target SubResources' Before Resource_States are all of the same.
+		{
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag;
+			uint32_t SubResourceIndex       = -1;
+
+			D3D12_RESOURCE_STATES Pivot = D3D12_RESOURCE_STATES(-1);
+
+			::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag);
+
+			TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+			Pivot = targetResource.m_currentStates[SubResourceIndex];
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					// If SubResourceIndex is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+
+				if (Pivot != targetResource.m_currentStates[SubResourceIndex])
+				{
+					bBeforeResourceStatesIdentical = false;
+					break;
+				}
+			}
+		}
+
+		if (!bPendingBitFlag && !bOverlappingBitFlag && bBeforeResourceStatesIdentical && subResourceBitFlag == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+		{
+			// Processing at the same time.
+			if (16u <= m_numStandByBarriers)
+			{
+				SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+			}
+
+			if (targetResource.m_currentStates[0] != statePending)
+			{
+				D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+				BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+				BarrierDesc.Transition.pResource   = targetResource.GetResource();
+				BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[0];
+				BarrierDesc.Transition.StateAfter  = statePending;
+			}
+
+			for (auto& e : targetResource.m_pendingStates)
+			{
+				e = statePending;
+			}
+		}
+		else
+		{
+			// bOverlappingBitFlag에 해당되는 SubResource는 빼야됨.
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag ^ bOverlappingBitFlag;
+			uint32_t SubResourceIndex = 0u;
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (16u <= m_numStandByBarriers)
+				{
+					SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+				}
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1 << SubResourceIndex);
+
+				D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+				BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+				BarrierDesc.Transition.pResource   = targetResource.GetResource();
+				BarrierDesc.Transition.Subresource = subResourceBitFlag;
+				BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[SubResourceIndex];
+				BarrierDesc.Transition.StateAfter  = statePending;
+
+				targetResource.m_pendingStates[SubResourceIndex] = statePending;
+			}
+		}
+	}
+
+	void CommandContext::TransitionResources(GPUResource& targetResource, const D3D12_RESOURCE_STATES stateAfter, UINT subResourceBitFlag)
+	{
+		ASSERT(targetResource.GetResource() && targetResource.m_numSubResource);
+
+		if (subResourceBitFlag == ((1u << targetResource.m_numSubResource) - 1u))
+		{
+			subResourceBitFlag = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		}
+
+		if (targetResource.m_numSubResource == 1)
+		{
+			TransitionResource(targetResource, stateAfter, 0U);
+			return;
+		}
+
+		uint32_t bPendingBitFlag     = 0u;
+		uint32_t bOverlappingBitFlag = 0u;
+		bool     bBeforeResourceStatesIdentical = true;
+
+		// Check whether there is Subresource in pending state(Split Barriers).
+		{
+			{
+				uint32_t TempSubResourceBitFlag = subResourceBitFlag;
+				uint32_t SubResourceIndex       = -1;
+
+				while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+				{
+					if (targetResource.m_numSubResource <= SubResourceIndex)
+					{
+						// If SubResourceIndex is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+						break;
+					}
+
+					TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+
+					if (targetResource.m_pendingStates[SubResourceIndex] != (D3D12_RESOURCE_STATES)-1)
+					{
+						bPendingBitFlag |= uint32_t(1u << SubResourceIndex);
+					}
+				}
+			}
+
+			if (bPendingBitFlag)
+			{
+				uint32_t SubResourceIndex    = 0u;
+				uint32_t bTempPendingBitFlag = bPendingBitFlag;
+
+				while (::_BitScanForward((unsigned long*)&SubResourceIndex, bTempPendingBitFlag))
+				{
+					if (targetResource.m_numSubResource <= SubResourceIndex)
+					{
+						break;
+					}
+
+					bTempPendingBitFlag ^= (1u << SubResourceIndex);
+
+					if (16u <= m_numStandByBarriers)
+					{
+						SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+					}
+
+					D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+					BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
+
+					BarrierDesc.Transition.pResource   = targetResource.GetResource();
+					BarrierDesc.Transition.Subresource = SubResourceIndex;
+					BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[SubResourceIndex];
+					BarrierDesc.Transition.StateAfter  = targetResource.m_pendingStates[SubResourceIndex];
+
+					targetResource.m_currentStates[SubResourceIndex] = targetResource.m_pendingStates[SubResourceIndex];
+					targetResource.m_pendingStates[SubResourceIndex] = D3D12_RESOURCE_STATES(-1);
+				}
+
+				// 여기에 Pending(Split Barriers)들을 무조건 CommandList에 집어넣어야하는지...
+				// 지금 안 집어넣으면 아래 TransitionResource랑 같이 한 Command로 집어넣게 되는데 그래도 되나?
+			}
+		}
+
+		// Check is the same before resource states and after resoturce staes.
+		{
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag;
+			uint32_t SubResourceIndex       = 0u;
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+
+				if (targetResource.m_currentStates[SubResourceIndex] == stateAfter)
+				{
+					bOverlappingBitFlag |= uint32_t(1u << SubResourceIndex);
+				}
+			}
+		}
+
+		// 
+		{
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag;
+			uint32_t SubResourceIndex       = 0u;
+
+			D3D12_RESOURCE_STATES Pivot = D3D12_RESOURCE_STATES (-1);
+
+			::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag);
+
+			TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+			Pivot = targetResource.m_currentStates[SubResourceIndex];
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1u << SubResourceIndex);
+
+				if (Pivot != targetResource.m_currentStates[SubResourceIndex])
+				{
+					bBeforeResourceStatesIdentical = false;
+					break;
+				}
+			}
+		}
+
+		if (!bPendingBitFlag && !bOverlappingBitFlag && bBeforeResourceStatesIdentical && subResourceBitFlag == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+		{
+			if (16u <= m_numStandByBarriers)
+			{
+				SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+			}
+
+			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+			BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
+			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[0];
+			BarrierDesc.Transition.StateAfter  = stateAfter;
+
+			for (auto& e : targetResource.m_currentStates)
+			{
+				e = stateAfter;
+			}
+		}
+		else
+		{
+			// bOverlappingBitFlag에 해당되는 SubResource는 빼야됨.
+			uint32_t TempSubResourceBitFlag = subResourceBitFlag ^ bOverlappingBitFlag;
+			uint32_t SubResourceIndex = 0u;
+
+			while (::_BitScanForward((unsigned long*)&SubResourceIndex, TempSubResourceBitFlag))
+			{
+				if (16u <= m_numStandByBarriers)
+				{
+					SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+				}
+				if (targetResource.m_numSubResource <= SubResourceIndex)
+				{
+					break;
+				}
+
+				TempSubResourceBitFlag ^= (1 << SubResourceIndex);
+
+				D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+				BarrierDesc.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+				BarrierDesc.Transition.pResource   = targetResource.GetResource();
+				BarrierDesc.Transition.Subresource = SubResourceIndex;
+				BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[SubResourceIndex];
+				BarrierDesc.Transition.StateAfter  = stateAfter;
+
+				targetResource.m_currentStates[SubResourceIndex] = stateAfter;
+			}
+		}
+	}
+
 	void CommandContext::InsertUAVBarrier(GPUResource& targetResource)
 	{
 		ASSERT(m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16, "Exceeded arbitrary limit on buffered barriers");
@@ -361,6 +747,8 @@ namespace custom
 		BarrierDesc.Aliasing.pResourceBefore = beforeResource.GetResource();
 		BarrierDesc.Aliasing.pResourceAfter  = afterResource.GetResource();
 	}
+
+#pragma warning(pop)
 
 	void CommandContext::SetPipelineState(const PSO& customPSO, const uint8_t commandIndex)
 	{
@@ -387,7 +775,7 @@ namespace custom
 			{
 				continue;
 			}
-
+			
 			m_pCommandLists[i]->SetPipelineState(PipelineState);
 			m_GPUTaskFiberContexts[i].pCurrentPSO = PipelineState;
 			INCRE_DEBUG_SET_PSO_COUNT_I;
@@ -524,7 +912,7 @@ namespace custom
 		ASSERT(CHECK_VALID_COMMAND_INDEX);
 
 		UINT NonNullHeaps = 0;
-		ID3D12DescriptorHeap* HeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
+		ID3D12DescriptorHeap* HeapsToBind[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = { nullptr, nullptr, nullptr, nullptr };
 
 		for (size_t i = 0; i < D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES; ++i)
 		{
@@ -678,7 +1066,36 @@ namespace custom
 		return *reinterpret_cast<custom::GraphicsContext*>(ret);
 	}
 
-	// TODO : Eliminate Overloading.
+	void GraphicsContext::CopySubresource
+	(
+		GPUResource& dest, UINT destSubIndex,
+		GPUResource& src, UINT srcSubIndex,
+		const uint8_t commandIndex
+	)
+	{
+		ASSERT(CHECK_VALID_COMMAND_INDEX);
+		TransitionResource(dest, D3D12_RESOURCE_STATE_COPY_DEST, destSubIndex);
+		TransitionResource(src, D3D12_RESOURCE_STATE_COPY_SOURCE, srcSubIndex);
+		SubmitResourceBarriers(commandIndex);
+
+		D3D12_TEXTURE_COPY_LOCATION DestLocation =
+		{
+			dest.GetResource(),
+			D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+			destSubIndex
+		};
+
+		D3D12_TEXTURE_COPY_LOCATION SrcLocation =
+		{
+			src.GetResource(),
+			D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+			srcSubIndex
+		};
+
+		m_pCommandLists[commandIndex]->CopyTextureRegion(&DestLocation, 0, 0, 0, &SrcLocation, nullptr);
+		INCRE_DEBUG_ASYNC_THING_COUNT;
+	}
+
 	void GraphicsContext::SetRootSignature(const RootSignature& customRS, const uint8_t commandIndex)
 	{
 		ASSERT(CHECK_VALID_COMMAND_INDEX);
@@ -847,7 +1264,7 @@ namespace custom
 	{
 		ASSERT(CHECK_VALID_COMMAND_INDEX);
 
-		D3D12_VIEWPORT vp;
+		D3D12_VIEWPORT vp = {};
 		vp.Width    = w;
 		vp.Height   = h;
 		vp.MinDepth = minDepth;
@@ -880,8 +1297,8 @@ namespace custom
 	{
 		ASSERT(CHECK_VALID_COMMAND_INDEX);
 
-		D3D12_VIEWPORT vp;
-		D3D12_RECT RECT;
+		D3D12_VIEWPORT vp   = {};
+		D3D12_RECT     RECT = {};
 		vp.Width    = (float)TargetBuffer.GetWidth();
 		vp.Height   = (float)TargetBuffer.GetHeight();
 		vp.TopLeftX = 0.0f;
@@ -900,8 +1317,8 @@ namespace custom
 	{
 		ASSERT(CHECK_VALID_RANGE);
 
-		D3D12_VIEWPORT vp;
-		D3D12_RECT RECT;
+		D3D12_VIEWPORT vp   = {};
+		D3D12_RECT     RECT = {};
 		vp.Width = (float)TargetBuffer.GetWidth();
 		vp.Height = (float)TargetBuffer.GetHeight();
 		vp.TopLeftX = 0.0f;
@@ -950,9 +1367,30 @@ namespace custom
 	void GraphicsContext::SetDynamicConstantBufferView(const UINT RootIndex, const size_t BufferSize, const void* const BufferData, const uint8_t commandIndex)
 	{
 		ASSERT(BufferData != nullptr && HashInternal::IsAligned(BufferData, 16) && CHECK_VALID_COMMAND_INDEX);
+		// ASSERT(false);
 		LinearBuffer ConstantBuffer = m_CPULinearAllocator.Allocate(BufferSize);
-		//SIMDMemCopy(ConstantBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
-		memcpy(ConstantBuffer.pData, BufferData, BufferSize);
+		
+		SIMDMemCopy(ConstantBuffer.pData, BufferData, HashInternal::AlignUp(BufferSize, 16) >> 4);
+		// memcpy(ConstantBuffer.pData, BufferData, BufferSize);
+
+// #if defined(_DEBUG)
+// 		if (bDebug)
+// 		{
+// 			float* pData = (float*)ConstantBuffer.pData;
+// 			for (size_t i = 0ul; i < 16; ++i)
+// 			{
+// 				if (i % 5)
+// 				{
+// 					ASSERT(pData[i] == 0.0f);
+// 				}
+// 				else
+// 				{
+// 					ASSERT(pData[i] == 1.0f);
+// 				}
+// 			}
+// 		}
+// #endif
+
 		m_pCommandLists[commandIndex]->SetGraphicsRootConstantBufferView(RootIndex, ConstantBuffer.GPUAddress);
 		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
@@ -979,10 +1417,10 @@ namespace custom
 
 		SIMDMemCopy(VertexBuffer.pData, VertexData, BufferSize >> 4);
 
-		D3D12_VERTEX_BUFFER_VIEW VBView;
+		D3D12_VERTEX_BUFFER_VIEW VBView = {};
 		VBView.BufferLocation = VertexBuffer.GPUAddress;
-		VBView.SizeInBytes = (UINT)BufferSize;
-		VBView.StrideInBytes = (UINT)VertexStride;
+		VBView.SizeInBytes    = (UINT)BufferSize;
+		VBView.StrideInBytes  = (UINT)VertexStride;
 
 		m_pCommandLists[commandIndex]->IASetVertexBuffers(Slot, 1, &VBView);
 	}
@@ -996,7 +1434,7 @@ namespace custom
 
 		SIMDMemCopy(IndexBuffer.pData, IndexData, BufferSize >> 4);
 
-		D3D12_INDEX_BUFFER_VIEW IBView;
+		D3D12_INDEX_BUFFER_VIEW IBView = {};
 		IBView.BufferLocation = IndexBuffer.GPUAddress;
 		IBView.SizeInBytes = (UINT)(IndexCount * sizeof(uint16_t));
 		IBView.Format = DXGI_FORMAT_R16_UINT;
@@ -1027,14 +1465,14 @@ namespace custom
 
 	void GraphicsContext::SetBufferSRV(const UINT RootIndex, const UAVBuffer& SRV, const UINT64 Offset, const uint8_t commandIndex)
 	{
-		ASSERT(((SRV.m_currentState & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) != 0) && CHECK_VALID_COMMAND_INDEX);
+		ASSERT(((SRV.m_currentStates[Offset] & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) != 0) && CHECK_VALID_COMMAND_INDEX);
 		m_pCommandLists[commandIndex]->SetGraphicsRootShaderResourceView(RootIndex, SRV.GetGpuVirtualAddress() + Offset);
 		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
 	void GraphicsContext::SetBufferUAV(const UINT RootIndex, const UAVBuffer& UAV, const UINT64 Offset, const uint8_t commandIndex)
 	{
-		ASSERT(((UAV.m_currentState & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0) && CHECK_VALID_COMMAND_INDEX);
+		ASSERT(((UAV.m_currentStates[Offset] & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0) && CHECK_VALID_COMMAND_INDEX);
 		m_pCommandLists[commandIndex]->SetGraphicsRootUnorderedAccessView(RootIndex, UAV.GetGpuVirtualAddress() + Offset);
 		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
@@ -1191,3 +1629,156 @@ namespace custom
 	}
 #pragma endregion GRAPHICS_CONTEXT
 }
+
+/*
+if (subResourceFlag == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES)
+		{
+			{
+				uint64_t bPendingFlag = 0ull;
+
+				for (uint32_t i = 0u; i < targetResource.m_numSubResource; ++i)
+				{
+					if (targetResource.m_pendingStates[i] != (D3D12_RESOURCE_STATES)-1)
+					{
+						bPendingFlag |= uint64_t(1 << i);
+					}
+				}
+
+				if (bPendingFlag)
+				{
+					uint32_t RootIndex = 0u;
+
+					while (_BitScanForward64((unsigned long*)&RootIndex, bPendingFlag))
+					{
+						bPendingFlag ^= (1 << RootIndex);
+
+						TransitionResource(targetResource, targetResource.m_pendingStates[RootIndex], RootIndex);
+					}
+				}
+			}
+			{
+				bool bIdentical = true;
+
+				for (uint32_t i = 1u; i < targetResource.m_numSubResource; ++i)
+				{
+					if (targetResource.m_currentStates[0] != targetResource.m_currentStates[i])
+					{
+						bIdentical = false;
+						break;
+					}
+				}
+
+				if (bIdentical)
+				{
+					if (16u <= m_numStandByBarriers)
+					{
+						SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+					}
+
+					D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+					BarrierDesc.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					BarrierDesc.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+					BarrierDesc.Transition.pResource   = targetResource.GetResource();
+					BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[0];
+					BarrierDesc.Transition.StateAfter  = statePending;
+
+				}
+				else
+				{
+					for (uint32_t i = 0u; i < targetResource.m_numSubResource; ++i)
+					{
+						if(16u <= m_numStandByBarriers)
+						{
+							SubmitResourceBarriers(m_ResourceBarrierTargetCommandIndex);
+						}
+
+						D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+						BarrierDesc.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+						BarrierDesc.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+						BarrierDesc.Transition.pResource   = targetResource.GetResource();
+						BarrierDesc.Transition.Subresource = subResourceFlag;
+						BarrierDesc.Transition.StateBefore = targetResource.m_currentStates[i];
+						BarrierDesc.Transition.StateAfter  = statePending;
+					}
+				}
+			}
+
+			for (auto& e : targetResource.m_pendingStates)
+			{
+				e = statePending;
+			}
+		}
+*/
+
+/*
+void CommandContext::SplitResourceTransition(GPUResource& targetResource, D3D12_RESOURCE_STATES statePending, UINT subResource)
+	{
+		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+
+		// If it's already transitioning, finish that transition
+		if (targetResource.m_pendingState != (D3D12_RESOURCE_STATES)-1)
+		{
+			TransitionResource(targetResource, targetResource.m_pendingState, subResource);
+		}
+
+		D3D12_RESOURCE_STATES OldState = targetResource.m_currentState;
+
+		if (OldState != statePending)
+		{
+			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
+			BarrierDesc.Transition.Subresource = subResource;
+			BarrierDesc.Transition.StateBefore = OldState;
+			BarrierDesc.Transition.StateAfter  = statePending;
+
+			BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+
+			targetResource.m_pendingState = statePending;
+		}
+	}
+
+	// TODO 0 : To change to find unused ResourceBarrier, then changed it.
+	// TODO 0 : Consider SubResource.
+	void CommandContext::TransitionResource(GPUResource& targetResource, D3D12_RESOURCE_STATES stateAfter, UINT subResource, D3D12_RESOURCE_STATES forcedOldState)
+	{
+		ASSERT(targetResource.GetResource() && (m_numStandByBarriers < NUM_LIMIT_RESOURCE_BARRIER_16));
+
+		D3D12_RESOURCE_STATES OldState = (forcedOldState == (D3D12_RESOURCE_STATES)-1) ? targetResource.m_currentState : forcedOldState;
+
+		if (OldState != stateAfter)
+		{
+			D3D12_RESOURCE_BARRIER& BarrierDesc = m_resourceBarriers[m_numStandByBarriers++];
+
+			BarrierDesc.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			BarrierDesc.Transition.pResource   = targetResource.GetResource();
+			BarrierDesc.Transition.Subresource = subResource;
+			BarrierDesc.Transition.StateBefore = OldState;
+			BarrierDesc.Transition.StateAfter  = stateAfter;
+
+			// Check to see if we already started the transition
+			if (targetResource.m_pendingState != D3D12_RESOURCE_STATES(-1)) // <- Before : if(NewState == Resource.m_pendingState)
+			{
+				ASSERT(stateAfter == targetResource.m_pendingState);
+				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
+				targetResource.m_pendingState = (D3D12_RESOURCE_STATES)-1;
+			}
+			else
+			{
+				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			}
+
+			targetResource.m_currentState = stateAfter;
+		}
+		else if (stateAfter == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+		{
+			InsertUAVBarrier(targetResource);
+		}
+	}
+*/

@@ -5,10 +5,13 @@
 #include "CommandContext.h"
 #include "FundamentalVertexIndex.h"
 
+#if defined(_DEBUG)
 IEntity::IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation, std::string MeshName)
 	:
-#if defined(_DEBUG)
-	m_name(MeshName),
+	m_name(StringToWString(MeshName)),
+#else
+IEntity::IEntity(const Material& CMaterial, FundamentalVertexIndex& Input, const float* pStartVertexLocation)
+	:
 #endif
 	m_Topology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 {
@@ -50,7 +53,6 @@ void IEntity::Bind(custom::CommandContext& BaseContext, uint8_t commandIndex) co
 	custom::GraphicsContext& graphicsContext = BaseContext.GetGraphicsContext();
 	graphicsContext.SetVertexBuffer(0, m_VertexBufferView, commandIndex);
 	graphicsContext.SetIndexBuffer(m_IndexBufferView, commandIndex);
-	// graphicsContext.SetPrimitiveTopology(m_Topology);
 }
 
 void IEntity::Accept(IWindow& window)

@@ -14,18 +14,29 @@ void Job::RecordCommandList(custom::CommandContext& BaseContext, uint8_t command
 	{
 	case JobFactorization::ByNone:
 	{
-		ASSERT((m_pEntities.size() == 1) && (m_pSteps.size() && 1))
+		ASSERT((m_pEntities.size() == 1ul) && (m_pSteps.size() && 1ul))
 		IEntity* pEntity = m_pEntities.front();
 
+#if defined(_DEBUG)
+		// GC.PIXBeginEvent(pEntity->m_name.c_str(), commandIndex);
+#endif
 		pEntity->Bind(BaseContext, commandIndex);
 		m_pSteps.front()->Bind(BaseContext, commandIndex);
 		GC.DrawIndexed(pEntity->m_IndexCount, pEntity->m_StartIndexLocation, pEntity->m_BaseVertexLocation, commandIndex);
+		
+#if defined(_DEBUG)
+		// GC.PIXEndEvent(commandIndex);
+#endif
 		break;
 	}
 	case JobFactorization::ByEntity:
 	{
-		ASSERT(m_pEntities.size() == 1);
+		ASSERT(m_pEntities.size() == 1ul);
 		IEntity* pEntity = m_pEntities.front();
+#if defined(_DEBUG)
+		// GC.PIXBeginEvent(pEntity->m_name.c_str(), commandIndex);
+#endif
+
 		pEntity->Bind(BaseContext, commandIndex);
 
 		for (const auto& IterStep : m_pSteps)
@@ -34,6 +45,9 @@ void Job::RecordCommandList(custom::CommandContext& BaseContext, uint8_t command
 			GC.DrawIndexed(pEntity->m_IndexCount, pEntity->m_StartIndexLocation, pEntity->m_BaseVertexLocation, commandIndex);
 		}
 
+#if defined(_DEBUG)
+		// GC.PIXEndEvent(commandIndex);
+#endif
 		break;
 	}
 	case JobFactorization::ByStep:
@@ -41,11 +55,17 @@ void Job::RecordCommandList(custom::CommandContext& BaseContext, uint8_t command
 		size_t JobSize = m_pEntities.size();
 		ASSERT(JobSize == m_pSteps.size());
 
-		for (size_t i = 0; i < JobSize; ++i)
+		for (size_t i = 0ul; i < JobSize; ++i)
 		{
+#if defined(_DEBUG)
+			// GC.PIXBeginEvent(m_pEntities[i]->m_name.c_str(), commandIndex);
+#endif
 			m_pEntities[i]->Bind(BaseContext, commandIndex);
 			m_pSteps[i]->Bind(BaseContext, commandIndex);
 			GC.DrawIndexed(m_pEntities[i]->m_IndexCount, m_pEntities[i]->m_StartIndexLocation, m_pEntities[i]->m_BaseVertexLocation, commandIndex);
+#if defined(_DEBUG)
+			// GC.PIXEndEvent(commandIndex);
+#endif
 		}
 
 		break;
@@ -53,6 +73,10 @@ void Job::RecordCommandList(custom::CommandContext& BaseContext, uint8_t command
 	default:
 		ASSERT(false, "Wrong Factorization.");
 	}
+
+#if defined(_DEBUG)
+	m_bDrawCompleted = true;
+#endif
 }
 
 /*

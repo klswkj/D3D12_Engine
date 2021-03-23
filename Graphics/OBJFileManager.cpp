@@ -47,16 +47,16 @@ namespace OBJFileManager
 		if (g_PathName == nullptr)
 		{
 			std::filesystem::recursive_directory_iterator itr(std::filesystem::current_path().parent_path());
+			std::string* PathName = nullptr;
 
 			while (itr != std::filesystem::end(itr))
 			{
 				const std::filesystem::directory_entry& entry = *itr;
+				const std::string& PathName = entry.path().string();
 				
-				std::string* PathName = &entry.path().string();
-				
-				if (PathName->substr(PathName->size() - 3, PathName->size()) == g_AssetFormat)
+				if (PathName.substr(PathName.size() - 3, PathName.size()) == g_AssetFormat)
 				{
-					g_FileNames.push_back(*PathName);
+					g_FileNames.push_back(PathName);
 				}
 				++itr;
 			}

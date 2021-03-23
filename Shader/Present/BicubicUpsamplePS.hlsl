@@ -77,6 +77,6 @@ float3 main(float4 position : SV_Position, float2 uv : TexCoord0) : SV_Target0
 #ifdef GAMMA_SPACE
     return Color;
 #else
-    return (ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT), 0);
+    return (float3) (ApplyDisplayProfile(Color, DISPLAY_PLANE_FORMAT), 0);
 #endif
 }

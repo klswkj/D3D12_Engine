@@ -31,11 +31,12 @@ class DebugShadowMapPass;
 enum class eObjectFilterFlag;
 #pragma endregion FORWARD_DECLARATION
 
-// 시작할 때,
-// TaskFiber* taskFiber = GPUWorkManager::RequestWorkSubmission(numPairALs, type, CompletedFenceValue);
-// -> 그럴려면 일단 CommandContext에 QAL이 비어있어야하고,
-// -> 내가 QAL을 끼우고 싶을 때 끼워야함.
-// CommandContext::begin("", false)하면 QAL비게.
+// MasterRenderGraph.Execute()하기 전에
+// 한 Pass에서 어떤 Resource 사용할지 해당 Resource의포인터나 약속된 스트링 받아서,
+// 그 Pass가 Execute중(CPU[그냥 CPU에서 접근 끝났을 때] or GPU[해당 Pass에서 입력한 GPUCommand들이 실행을 모두 종료했을 때])일 때는 
+// Resource에 접근 못하게 해야지, Pass 사이에 (비)동기성이 확립됨.
+// 이어서
+// -> 동시에 Execute될 Pass 사이에서 중요도를 지정해서, GPU에 먼저 Execute되게 해야하는게 좋을듯.
 
 class MasterRenderGraph
 {
@@ -43,11 +44,10 @@ class MasterRenderGraph
 public:
 	MasterRenderGraph();
 	~MasterRenderGraph();
-	void Execute() DEBUG_EXCEPT;
-	void ExecuteWithMultiThread();
-	void Profiling();
-	void Update();
-	void Reset() noexcept;
+	void ExecuteRenderGraph() DEBUG_EXCEPT;
+	void ProfilingRenderGraph();
+	void UpdateRenderGraph();
+	void ResetRenderGraph() noexcept;
 
 	ID3D12RenderQueuePass* FindRenderQueuePass(const std::string& RenderQueuePassName) const;
 	D3D12Pass& FindPass(const std::string& PassName);

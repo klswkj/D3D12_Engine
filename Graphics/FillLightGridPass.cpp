@@ -95,16 +95,17 @@ void FillLightGridPass::ExecutePass()
     }
 
     custom::ComputeContext& computeContext = custom::ComputeContext::Begin(1);
+    computeContext.SetResourceTransitionBarrierIndex(0u);
 
     computeContext.PIXBeginEvent(L"5_FillLightPass", 0u);
     computeContext.SetRootSignature(m_FillLightRootSignature, 0u);
 
     switch (m_WorkGroupSize)
     {
-    case  8: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8, 0u);  break;
-    case 16: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_16, 0u); break;
-    case 24: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_24, 0u); break;
-    case 32: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_32, 0u); break;
+    case  8u: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_8,  0u); break;
+    case 16u: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_16, 0u); break;
+    case 24u: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_24, 0u); break;
+    case 32u: computeContext.SetPipelineState(m_FillLightGridPSO_WORK_GROUP_32, 0u); break;
     default: ASSERT(false);
         break;
     }
@@ -112,12 +113,19 @@ void FillLightGridPass::ExecutePass()
     // g_LinearDepth is Written by SSAOPass.
     ColorBuffer& LinearDepth = bufferManager::g_LinearDepth[graphics::GetFrameCount() % device::g_DisplayBufferCount];
 
-    computeContext.TransitionResource(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(LinearDepth,                       D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    computeContext.TransitionResource(bufferManager::g_LightGrid,        D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-    computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    computeContext.TransitionResources(bufferManager::g_LightBuffer,      D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES); // 
+    computeContext.TransitionResource(LinearDepth,                        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, 0U);
+    computeContext.TransitionResources(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ, D3D12_RESOURCE_BARRIER_DEPTH_STENCIL_SUBRESOURCE_BITFLAG);
+    computeContext.TransitionResource(bufferManager::g_LightGrid,         D3D12_RESOURCE_STATE_COMMON, 0U); //
+    computeContext.TransitionResource(bufferManager::g_LightGridBitMask,  D3D12_RESOURCE_STATE_COMMON, 0U); //
     computeContext.SubmitResourceBarriers(0u);
+
+    // computeContext.TransitionResource(bufferManager::g_LightBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE); // 
+    // computeContext.TransitionResource(LinearDepth, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    // computeContext.TransitionResource(bufferManager::g_SceneDepthBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    // computeContext.TransitionResource(bufferManager::g_LightGrid, D3D12_RESOURCE_STATE_UNORDERED_ACCESS); // 
+    // computeContext.TransitionResource(bufferManager::g_LightGridBitMask, D3D12_RESOURCE_STATE_UNORDERED_ACCESS); //
+    // computeContext.SubmitResourceBarriers(0u);
 
     computeContext.SetDynamicDescriptor(1, 0, bufferManager::g_LightBuffer.GetSRV(), 0u);
     computeContext.SetDynamicDescriptor(1, 1, LinearDepth.GetSRV(), 0u);
@@ -125,7 +133,7 @@ void FillLightGridPass::ExecutePass()
     computeContext.SetDynamicDescriptor(2, 1, bufferManager::g_LightGridBitMask.GetUAV(), 0u);
 
     // todo: assumes 1920x1080 resolution
-    uint32_t tileCountX = Math::DivideByMultiple(bufferManager::g_SceneColorBuffer.GetWidth(), m_WorkGroupSize);
+    uint32_t tileCountX = Math::DivideByMultiple(bufferManager::g_SceneColorBuffer.GetWidth(),  m_WorkGroupSize);
     uint32_t tileCountY = Math::DivideByMultiple(bufferManager::g_SceneColorBuffer.GetHeight(), m_WorkGroupSize);
 
     Camera* pMainCamera = computeContext.GetpMainCamera();
@@ -139,15 +147,15 @@ void FillLightGridPass::ExecutePass()
 
     CSConstants csConstants;
     // todo: assumes 1920x1080 resolution
-    csConstants.ViewportWidth = bufferManager::g_SceneColorBuffer.GetWidth();
+    csConstants.ViewportWidth  = bufferManager::g_SceneColorBuffer.GetWidth();
     csConstants.ViewportHeight = bufferManager::g_SceneColorBuffer.GetHeight();
-    csConstants.InvTileDim = 1.0f / m_WorkGroupSize;
-    csConstants.RcpZMagic = RcpZMagic;
-    csConstants.TileCount = tileCountX;
+    csConstants.InvTileDim     = 1.0f / m_WorkGroupSize;
+    csConstants.RcpZMagic      = RcpZMagic;
+    csConstants.TileCount      = tileCountX;
     csConstants.ViewProjMatrix = pMainCamera->GetViewProjMatrix();
 
-    computeContext.SetDynamicConstantBufferView(0, sizeof(CSConstants), &csConstants, 0u);
-    computeContext.Dispatch(tileCountX, tileCountY, 1, 0u);
+    computeContext.SetDynamicConstantBufferView(0U, sizeof(CSConstants), &csConstants, 0u);
+    computeContext.Dispatch((size_t)tileCountX, (size_t)tileCountY, 1ul, 0u);
     computeContext.PIXEndEvent(0u); // End FillLightGridPass
     computeContext.Finish(false);
 

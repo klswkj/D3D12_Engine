@@ -12,6 +12,7 @@ class Step;
 
 class ID3D12RenderQueuePass : public ID3D12MTPass
 {
+	friend class MasterRenderGraph;
 public:
 	explicit ID3D12RenderQueuePass(std::string Name, JobFactorization status)
 		: 
@@ -23,7 +24,7 @@ public:
 
 	void PushBackJob(IEntity& pEntity, std::vector<Step>& pSteps);//  noexcept;
 	void Execute(custom::CommandContext& BaseContext, uint8_t commandIndex) DEBUG_EXCEPT;
-	void ExecuteWithRange(custom::CommandContext& BaseContext, uint8_t commandIndex, size_t StartJobIndex = 0ul, size_t EndJobIndex = SIZE_MAX);
+	void ExecuteWithRange(custom::CommandContext& BaseContext, uint8_t commandIndex, size_t StartJobIndex, size_t EndJobIndex);
 
 	void SetParams(custom::GraphicsContext* pGraphicsContext, uint8_t startCommandIndex, uint8_t totalCommandCount);
 	void Reset() DEBUG_EXCEPT override;

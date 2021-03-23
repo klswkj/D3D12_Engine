@@ -16,6 +16,7 @@ namespace custom
 
 	void ResourceBarrier::Bind(custom::CommandContext& baseContext, uint8_t commandIndex) DEBUG_EXCEPT
 	{
+		ASSERT(false);
 		baseContext.SubmitExternalResourceBarriers(m_ResourceBarrier, m_NumBarrier, commandIndex);
 	}
 
@@ -46,9 +47,9 @@ namespace custom
 	)
 	{
 		ASSERT(false);
-		ASSERT(resource.GetResource() && (resource.m_currentState != newState));
+		ASSERT(resource.GetResource() && (resource.m_currentStates[subResources] != newState));
 		
-		D3D12_RESOURCE_STATES OldState = resource.m_currentState;
+		D3D12_RESOURCE_STATES OldState = resource.m_currentStates[subResources];
 
 		if (OldState != newState)
 		{
@@ -57,20 +58,20 @@ namespace custom
 			BarrierDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			BarrierDesc.Transition.pResource = resource.GetResource();
 			BarrierDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			BarrierDesc.Transition.StateBefore = resource.m_currentState;
+			BarrierDesc.Transition.StateBefore = resource.m_currentStates[subResources];
 			BarrierDesc.Transition.StateAfter = newState;
 
-			if (newState == resource.m_pendingState)
+			if (newState == resource.m_pendingStates[subResources])
 			{
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
-				resource.m_pendingState = (D3D12_RESOURCE_STATES)-1;
+				resource.m_pendingStates[subResources] = (D3D12_RESOURCE_STATES)-1;
 			}
 			else
 			{
 				BarrierDesc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 			}
 
-			resource.m_currentState = newState;
+			resource.m_currentStates[subResources] = newState;
 		}
 		else if (newState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
 		{
