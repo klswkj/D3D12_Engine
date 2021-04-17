@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "PixelBuffer.h"
 #include "GPUResource.h"
-
-DXGI_FORMAT PixelBuffer::GetBaseFormat(DXGI_FORMAT defaultFormat)
+/*
+STATIC DXGI_FORMAT PixelBuffer::GetBaseFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
     {
@@ -48,7 +48,7 @@ DXGI_FORMAT PixelBuffer::GetBaseFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-DXGI_FORMAT PixelBuffer::GetUAVFormat(DXGI_FORMAT defaultFormat)
+STATIC DXGI_FORMAT PixelBuffer::GetUAVFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
     {
@@ -90,7 +90,7 @@ DXGI_FORMAT PixelBuffer::GetUAVFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-DXGI_FORMAT PixelBuffer::GetDSVFormat(DXGI_FORMAT defaultFormat)
+STATIC DXGI_FORMAT PixelBuffer::GetDSVFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
     {
@@ -124,7 +124,7 @@ DXGI_FORMAT PixelBuffer::GetDSVFormat(DXGI_FORMAT defaultFormat)
         return defaultFormat;
     }
 }
-DXGI_FORMAT PixelBuffer::GetDepthFormat(DXGI_FORMAT defaultFormat)
+STATIC DXGI_FORMAT PixelBuffer::GetDepthFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
     {
@@ -158,7 +158,7 @@ DXGI_FORMAT PixelBuffer::GetDepthFormat(DXGI_FORMAT defaultFormat)
         return DXGI_FORMAT_UNKNOWN;
     }
 }
-DXGI_FORMAT PixelBuffer::GetStencilFormat(DXGI_FORMAT defaultFormat)
+STATIC DXGI_FORMAT PixelBuffer::GetStencilFormat(DXGI_FORMAT defaultFormat)
 {
     switch (defaultFormat)
     {
@@ -181,7 +181,7 @@ DXGI_FORMAT PixelBuffer::GetStencilFormat(DXGI_FORMAT defaultFormat)
     }
 }
 
-size_t PixelBuffer::BytesPerPixel(DXGI_FORMAT Format)
+STATIC size_t PixelBuffer::BytesPerPixel(DXGI_FORMAT Format)
 {
     switch (Format)
     {
@@ -281,7 +281,7 @@ size_t PixelBuffer::BytesPerPixel(DXGI_FORMAT Format)
         return 0;
     }
 }
-
+*/
 void PixelBuffer::CopyResource
 (
     ID3D12Device* const pDevice, const std::wstring& wName,
@@ -294,7 +294,7 @@ void PixelBuffer::CopyResource
 
     SafeRelease(m_pResource);
 
-    m_pResource    = pResource;
+    m_pResource      = pResource;
     m_numSubResource = numSubResource;
     m_currentStates.resize((size_t)numSubResource);
     m_pendingStates.resize((size_t)numSubResource);
@@ -334,7 +334,7 @@ D3D12_RESOURCE_DESC PixelBuffer::Texture2DResourceDescriptor
     descriptor.DepthOrArraySize   = (UINT16)depthOrArraySize;
     descriptor.Dimension          = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     descriptor.Flags              = (D3D12_RESOURCE_FLAGS)flags;
-    descriptor.Format             = GetBaseFormat(format);
+    descriptor.Format             = D3D12Util::GetBaseFormat(format);
     descriptor.Height             = (UINT)height;
     descriptor.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     descriptor.MipLevels          = (UINT16)numMips;
@@ -360,7 +360,7 @@ void PixelBuffer::CreateTextureCommittedResource
         hardwareResult = pDevice->CreateCommittedResource
         (
             &HeapProps, D3D12_HEAP_FLAG_NONE,
-            &ResourceDesc, D3D12_RESOURCE_STATE_COMMON, 
+            &ResourceDesc, D3D12_RESOURCE_STATE_COMMON,
             pClearValue, IID_PPV_ARGS(&m_pResource)
         )
     );
@@ -372,19 +372,21 @@ void PixelBuffer::CreateTextureCommittedResource
             hardwareResult = pDevice->GetDeviceRemovedReason()
         );
     }
+	{
+		// TODO 0 : See "Subresources (Direct3D 12 Graphics)" :: Plane Slice
+		// TODO 0 : Replace
+		uint32_t NumSubResource = ResourceDesc.DepthOrArraySize;
 
-    // TODO 0 : See "Subresources (Direct3D 12 Graphics)" :: Plane Slice
-    uint32_t NumSubResource = ResourceDesc.DepthOrArraySize;
+		if (pClearValue)
+		{
+			NumSubResource += (pClearValue->Format == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 1u : 0u;
+		}
 
-    if (pClearValue)
-    {
-        NumSubResource += (pClearValue->Format == DXGI_FORMAT_D24_UNORM_S8_UINT) ? 1u : 0u;
-    }
+		m_numSubResource = NumSubResource;
 
-    m_numSubResource = NumSubResource;
-
-    m_currentStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATE_COMMON);
-    m_pendingStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATES(-1));
+		m_currentStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATE_COMMON);
+		m_pendingStates.resize((size_t)NumSubResource, D3D12_RESOURCE_STATES(-1));
+	}
 
     m_GPUVirtualAddress = D3D12_GPU_VIRTUAL_ADDRESS_NULL;
 

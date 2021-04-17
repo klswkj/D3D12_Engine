@@ -11,6 +11,8 @@
 #include "PSO.h"
 #include "RootSignature.h"
 #include "ImGuiManager.h" // For Resize
+#include "d3dx12Residency.h"
+
 
 #if USING_THREAD_POOL
 #include "ThreadPool.h"
@@ -35,8 +37,9 @@ namespace device
 		    default: return "12.1+";
 		}
 	}
-
 	Microsoft::WRL::ComPtr<IDXGIFactory2> s_pDXGIFactory = nullptr;
+	Microsoft::WRL::ComPtr<IDXGIAdapter3> g_pDXGIAdapter = nullptr;
+	UINT                                  g_AdapterIndex = -1;
 
 	// Global variable declarations here.
 	ID3D12Device*         g_pDevice                  = nullptr;
@@ -44,22 +47,25 @@ namespace device
 	ID3D12DescriptorHeap* g_ImguiFontHeap;
 	IDXGISwapChain3*      g_pDXGISwapChain = nullptr;
 	ColorBuffer           g_DisplayColorBuffer[3];
+
 #if USING_THREAD_POOL
-	custom::ThreadPool    g_ThreadPoolManager;
+	custom::ThreadPool                g_ThreadPoolManager;
 #endif
-	CommandQueueManager   g_commandQueueManager;
-	CommandContextManager g_commandContextManager;
-	DescriptorHeapManager g_descriptorHeapManager;
-
-	D3D_FEATURE_LEVEL g_D3DFeatureLevel;
-	D3D12_FEATURE_DATA_D3D12_OPTIONS g_Options;
+	CommandQueueManager               g_commandQueueManager;
+	CommandContextManager             g_commandContextManager;
+	DescriptorHeapManager             g_descriptorHeapManager;
+	D3DX12Residency::ResidencyManager g_D3D12ResidencyManager;
+	constexpr uint32_t s_ResidencyManagerSoftwareQueueLatency = 24u; // NumberOfBufferedFrames * NumberOfCommandListSubmissionsPerFrame
+	 
+	D3D_FEATURE_LEVEL                              g_D3DFeatureLevel;
+	D3D12_FEATURE_DATA_D3D12_OPTIONS               g_Options;
 	D3D12_FEATURE_DATA_GPU_VIRTUAL_ADDRESS_SUPPORT g_GpuVaSupport;
-	DXGI_QUERY_VIDEO_MEMORY_INFO g_LocalVideoMemoryInfo;
-	DXGI_QUERY_VIDEO_MEMORY_INFO g_NonLocalVideoMemoryInfo;
+	DXGI_QUERY_VIDEO_MEMORY_INFO                   g_LocalVideoMemoryInfo;
+	DXGI_QUERY_VIDEO_MEMORY_INFO                   g_NonLocalVideoMemoryInfo;
 
-	DXGI_FORMAT SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
-	bool g_bTypedUAVLoadSupport_R11G11B10_FLOAT    = false;
-	bool g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = false;
+	DXGI_FORMAT g_SwapChainFormat = DXGI_FORMAT_R10G10B10A2_UNORM;
+	bool        g_bTypedUAVLoadSupport_R11G11B10_FLOAT    = false;
+	bool        g_bTypedUAVLoadSupport_R16G16B16A16_FLOAT = false;
 
 	uint32_t g_DescriptorSize[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
@@ -67,7 +73,7 @@ namespace device
 	const            UINT g_DisplayBufferCount    = SWAP_CHAIN_BUFFER_COUNT;
 
 	// Dependent on Resize(float, float) function.
-	uint32_t g_DisplayWidth = 1920; 
+	uint32_t g_DisplayWidth  = 1920; 
 	uint32_t g_DisplayHeight = 1080;
 
 	HRESULT Initialize()
@@ -100,6 +106,7 @@ namespace device
 #if USING_THREAD_POOL
 		g_ThreadPoolManager.Create();
 #endif
+		ASSERT_HR(g_D3D12ResidencyManager.Initialize((IDXGIAdapter*)(g_pDXGIAdapter.GetAddressOf()), g_pDevice, g_AdapterIndex, s_ResidencyManagerSoftwareQueueLatency));
 
 		bufferManager::InitializeAllBuffers(window::g_TargetWindowWidth, window::g_TargetWindowHeight);
 		// TODO 0 : TextRender Init
@@ -162,7 +169,7 @@ namespace device
 			dxgiFactory->Release();
 
 			ASSERT_HR(g_pDXGISwapChain->SetMaximumFrameLatency(3)); // Default Value.
-			ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, SwapChainFormat, SwapChainDesc.Flags));
+			ASSERT_HR(g_pDXGISwapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, width, height, g_SwapChainFormat, SwapChainDesc.Flags));
 
 			ASSERT(g_hSwapChainWaitableObject = g_pDXGISwapChain->GetFrameLatencyWaitableObject());
 			g_commandQueueManager.SetSwapChainWaitableObject(&g_hSwapChainWaitableObject);
@@ -230,25 +237,25 @@ namespace device
 	{
 		ASSERT(device::g_pDXGISwapChain == nullptr, "Graphics has already been initialized");
 
-		Microsoft::WRL::ComPtr<IDXGIAdapter3> s_pDXGIAdapter;
+		// Microsoft::WRL::ComPtr<IDXGIAdapter3> g_pDXGIAdapter;
 		{
 			// Have the user select the desired graphics adapter.
-			uint32_t AdapterOrdinal = 0;
-			size_t MaxDedicatedVideoMemory = 0;
+			uint32_t AdapterOrdinal         = 0;
+			size_t MaxDedicatedVideoMemory  = 0;
 			size_t MaxDedicatedSystemMemory = 0;
-			size_t MaxSharedSystemMemory = 0;
-			size_t MaxTotalMemory = 0;
+			size_t MaxSharedSystemMemory    = 0;
+			size_t MaxTotalMemory           = 0;
 			UINT   RecommendedVideoAdapterIndex = -1;
-			DXGI_ADAPTER_DESC RecommendedAdapterDescriptor;
-			size_t TempTotal;
+			DXGI_ADAPTER_DESC RecommendedAdapterDescriptor = {};
+			size_t TempTotal = 0ul;
 
 			// printf("Available Adapters:\n");
-			while (s_pDXGIFactory->EnumAdapters(AdapterOrdinal, ((IDXGIAdapter**)s_pDXGIAdapter.GetAddressOf())) != DXGI_ERROR_NOT_FOUND)
+			while (s_pDXGIFactory->EnumAdapters(AdapterOrdinal, ((IDXGIAdapter**)g_pDXGIAdapter.GetAddressOf())) != DXGI_ERROR_NOT_FOUND)
 			{
-				TempTotal = 0;
+				TempTotal = 0ul;
 
 				DXGI_ADAPTER_DESC Desc;
-				s_pDXGIAdapter->GetDesc(&Desc);
+				g_pDXGIAdapter->GetDesc(&Desc);
 
 				// printf("  [%d] %ls\n", AdapterOrdinal, Desc.Description);
 
@@ -265,7 +272,7 @@ namespace device
 					RecommendedAdapterDescriptor = Desc;
 				}
 
-				s_pDXGIAdapter->Release();
+				g_pDXGIAdapter->Release();
 				++AdapterOrdinal;
 			}
 
@@ -275,8 +282,8 @@ namespace device
 			{
 				UINT AdapterNumber = -1;
 
-				AdapterNumber = RecommendedVideoAdapterIndex;
-
+				AdapterNumber  = RecommendedVideoAdapterIndex;
+				g_AdapterIndex = AdapterNumber;
 				/*
 				printf("\nSelect Adapter: ");
 
@@ -291,19 +298,28 @@ namespace device
 					continue;
 				}
 				*/
-				ASSERT_HR(s_pDXGIFactory->EnumAdapters(AdapterNumber, ((IDXGIAdapter**)s_pDXGIAdapter.GetAddressOf())));
-				ASSERT_HR(s_pDXGIAdapter->QueryInterface(s_pDXGIAdapter.GetAddressOf()));
-				s_pDXGIAdapter->Release();
+
+				// AdapterNumber = 0;
+				AdapterNumber = 1;
+				// AdapterNumber = 2;
+				ASSERT_HR(s_pDXGIFactory->EnumAdapters(AdapterNumber, ((IDXGIAdapter**)g_pDXGIAdapter.GetAddressOf())));
+				// ASSERT_HR(g_pDXGIAdapter->QueryInterface(g_pDXGIAdapter.GetAddressOf()));
+				// g_pDXGIAdapter->Release();
 				break;
 			}
 		}
 
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &device::g_LocalVideoMemoryInfo));
-		ASSERT_HR(s_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &device::g_NonLocalVideoMemoryInfo));
+		ASSERT_HR(g_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL,     &device::g_LocalVideoMemoryInfo));
+		ASSERT_HR(g_pDXGIAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &device::g_NonLocalVideoMemoryInfo));
 
-		ASSERT_HR(D3D12CreateDevice((IUnknown*)s_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device::g_pDevice)));
+		ASSERT_HR(D3D12CreateDevice((IUnknown*)g_pDXGIAdapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device::g_pDevice)));
 		g_pDevice->SetName(L"device::g_pDevice");
 		g_commandQueueManager.CreateCommandQueueManager(g_pDevice);
+
+		DXGI_ADAPTER_DESC Adapterdesc;
+
+		g_pDXGIAdapter->GetDesc(&Adapterdesc);
+		UINT TEMP = g_pDevice->GetNodeCount();
 		/*
 #ifndef RELEASE
 		{
@@ -408,7 +424,7 @@ namespace device
 		SwapChainDesc.Flags       = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH | DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 		SwapChainDesc.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 		SwapChainDesc.BufferCount = device::SWAP_CHAIN_BUFFER_COUNT;
-		SwapChainDesc.Format      = SwapChainFormat;
+		SwapChainDesc.Format      = g_SwapChainFormat;
 		SwapChainDesc.Scaling     = DXGI_SCALING_NONE;
 		SwapChainDesc.SampleDesc.Count = 1;
 

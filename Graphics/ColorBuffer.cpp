@@ -17,7 +17,7 @@ void ColorBuffer::createResourceViews(ID3D12Device* const pDevice, const DXGI_FO
     D3D12_SHADER_RESOURCE_VIEW_DESC  SRVDesc = {};
 
     RTVDesc.Format = format;
-    UAVDesc.Format = GetUAVFormat(format);
+    UAVDesc.Format = D3D12Util::GetUAVFormat(format);
     SRVDesc.Format = format;
     SRVDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 

@@ -201,7 +201,7 @@ void graphics::initializePresent()
     s_BlendUIPSO.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
     s_BlendUIPSO.SetVertexShader         (g_pScreenQuadVS, sizeof(g_pScreenQuadVS));
     s_BlendUIPSO.SetPixelShader          (g_pBufferCopyPS, sizeof(g_pBufferCopyPS));
-    s_BlendUIPSO.SetRenderTargetFormat   (device::SwapChainFormat, DXGI_FORMAT_UNKNOWN);
+    s_BlendUIPSO.SetRenderTargetFormat   (device::g_SwapChainFormat, DXGI_FORMAT_UNKNOWN);
     s_BlendUIPSO.Finalize(L"BlendUIPSO");
 
 #define CreatePSO( ObjName, ShaderByteCode )                         \
@@ -241,7 +241,7 @@ void graphics::initializePresent()
     s_PresentHDR_PSO.SetRootSignature(s_PresentHDR_RS);
     s_PresentHDR_PSO.SetPixelShader(g_pPresentHDRPS, sizeof(g_pPresentHDRPS));
 
-    DXGI_FORMAT SwapChainFormats[3] = { device::SwapChainFormat, device::SwapChainFormat, device::SwapChainFormat };
+    DXGI_FORMAT SwapChainFormats[3] = { device::g_SwapChainFormat, device::g_SwapChainFormat, device::g_SwapChainFormat };
 
     s_PresentHDR_PSO.SetRenderTargetFormats(_countof(SwapChainFormats), SwapChainFormats, DXGI_FORMAT_UNKNOWN);
     s_PresentHDR_PSO.Finalize(L"Present HDR PSO");

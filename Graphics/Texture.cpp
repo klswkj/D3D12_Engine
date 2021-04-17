@@ -15,7 +15,8 @@ namespace custom
 
     void Texture::CreateCommittedTexturePrivate
     (
-        const size_t Pitch, const size_t Width, const size_t Height, 
+        const size_t Pitch, 
+        const size_t Width, const size_t Height, 
         const DXGI_FORMAT Format, const void* const InitialData
     )
     {
@@ -24,23 +25,23 @@ namespace custom
         m_pendingStates.resize(1ul, D3D12_RESOURCE_STATES(-1));
 
         D3D12_RESOURCE_DESC texDesc = {};
-        texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-        texDesc.Width = Width;
-        texDesc.Height = (UINT)Height;
-        texDesc.DepthOrArraySize = 1;
-        texDesc.MipLevels = 1;
-        texDesc.Format = Format;
-        texDesc.SampleDesc.Count = 1;
-        texDesc.SampleDesc.Quality = 0;
-        texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-        texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        texDesc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        texDesc.Width               = Width;
+        texDesc.Height              = (UINT)Height;
+        texDesc.DepthOrArraySize    = 1;
+        texDesc.MipLevels           = 1;
+        texDesc.Format              = Format;
+        texDesc.SampleDesc.Count    = 1;
+        texDesc.SampleDesc.Quality  = 0;
+        texDesc.Layout              = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        texDesc.Flags               = D3D12_RESOURCE_FLAG_NONE;
 
         D3D12_HEAP_PROPERTIES HeapProperties = {};
-        HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-        HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        HeapProperties.CreationNodeMask = 1;
-        HeapProperties.VisibleNodeMask = 1;
+        HeapProperties.Type                  = D3D12_HEAP_TYPE_DEFAULT;
+        HeapProperties.CPUPageProperty       = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        HeapProperties.MemoryPoolPreference  = D3D12_MEMORY_POOL_UNKNOWN;
+        HeapProperties.CreationNodeMask      = 0x1;
+        HeapProperties.VisibleNodeMask       = 0x1;
 
         ASSERT_HR
         (
@@ -54,8 +55,8 @@ namespace custom
         m_pResource->SetName(L"Texture");
 
         D3D12_SUBRESOURCE_DATA texResource = {};
-        texResource.pData = InitialData;
-        texResource.RowPitch = Pitch * custom::BytesPerPixel(Format);
+        texResource.pData      = InitialData;
+        texResource.RowPitch   = Pitch * custom::BytesPerPixel(Format);
         texResource.SlicePitch = texResource.RowPitch * Height;
 
         CopyContext::InitializeTexture(*this, 1, &texResource);
@@ -151,6 +152,7 @@ namespace custom
         };
         const Header& header = *(Header*)pMemBuffer;
 
+        // TODO 0 : fix ASSERT condition.
         ASSERT
         (
              (size_t)header.Pitch * (size_t)custom::BytesPerPixel(header.Format) * (size_t)header.Height + sizeof(Header) <= fileSize,

@@ -22,6 +22,10 @@
 #include <Windows.h>
 #include <wincodec.h>
 #include <wrl.h>
+#include <DbgHelp.h>
+#include <Tlhelp32.h>
+#include <Psapi.h>
+#include <cstddef>
 #include <cstdint>
 #include <cstdarg>
 #include <tchar.h>
@@ -33,6 +37,7 @@
 #include <vector>
 #include <string>
 #include <queue>
+#include <set>
 #include <map>
 #include <unordered_map>
 
@@ -87,10 +92,29 @@
 // #include "WinDefine.h"
 #include "TypeDefine.h"
 #include "CustomAssert.h"
+#include "D3D12Util.h"
 
 #include "MathCommon.h"
 #include "MathBasic.h"
 #include "Frustum.h"
+
+//template 
+//<typename ToCheckType, size_t LimitedSize, size_t RealSize = sizeof(ToCheckType)>
+//void IS_SIZE_OVER()
+//{
+//    static_assert(RealSize <= LimitedSize, "The Size is off!");
+//}
+
+//template <typename ToCheckType>
+//void IS_SIZE_OVER2(size_t LimitedSize)
+//{
+//    static_assert(sizeof(ToCheckType) <= LimitedSize, "The Size is off!");
+//}
+
+template<size_t S>
+class Sizer
+{
+};
 
 #pragma endregion HEADER
 

@@ -4,20 +4,27 @@
 #include "DynamicDescriptorHeap.h"
 #include "Color.h"
 #include "ShaderConstantsTypeDefinitions.h"
+#include "d3dx12Residency.h"
 
 #pragma region FORWARD_DECLARATION
 
 namespace custom
 {
     class RootSignature;
-    class GpuResource;
+    class GPUResource;
     class GraphicsContext;
     class ComputeContext;
     class CopyContext;
     class PSO;
     class CommandSignature;
     class UAVBuffer;
+    class DynamicDescriptorHeap;
 }
+
+// namespace D3DX12Residency
+// {
+//     class ResidencySet;
+// }
 
 class CommandContextManager;
 class CommandQueueManager;
@@ -160,10 +167,75 @@ namespace custom
     class CommandContext
     {
         friend CommandContextManager;
-        friend class DynamicDescriptorHeap;
+        friend DynamicDescriptorHeap;
     private:
         explicit CommandContext(const D3D12_COMMAND_LIST_TYPE type, const uint8_t numCommandsPair);
         void Reset(const D3D12_COMMAND_LIST_TYPE type, const uint8_t numCommandALs);
+
+        // TODO 0 : 굳이 commandList갯수랑 똑같이 늘릴 필요가 없음.
+        // 갯수를 최소화하면 할 수록, cacheFlush될 필요가 없음.
+
+        // 잡카운트, RS, PSO, 리소스배리어 set한 수
+        struct GPUTaskFiberContext
+        {
+            GPUTaskFiberContext(custom::CommandContext& BaseContext)
+                :
+                pCurrentPSO(nullptr),
+                pCurrentGraphicsRS(nullptr),
+                pCurrentComputeRS(nullptr),
+                DynamicViewDescriptorHeaps(BaseContext, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+                DynamicSamplerDescriptorHeaps(BaseContext, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
+#ifdef _DEBUG
+                , NumDrawJobs(0u),
+                NumSetRSs(0u),
+                NumSetPSOs(0u),
+                NumSetResourceBarriers(0u),
+                NumSetDescriptorHeaps(0u),
+                NumSetRootParams(0u),
+                NumAsyncThings(0u)
+#endif
+            {
+                ZeroMemory(pCurrentDescriptorHeaps, sizeof(pCurrentDescriptorHeaps));
+            }
+
+            ~GPUTaskFiberContext()
+            {
+            }
+
+            ID3D12DescriptorHeap* pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = { nullptr };
+            ID3D12PipelineState* pCurrentPSO = nullptr;
+            ID3D12RootSignature* pCurrentGraphicsRS = nullptr;
+            ID3D12RootSignature* pCurrentComputeRS = nullptr;
+            custom::DynamicDescriptorHeap DynamicViewDescriptorHeaps;
+            custom::DynamicDescriptorHeap DynamicSamplerDescriptorHeaps;
+            // uint8_t TargetCommandList;
+#ifdef _DEBUG
+            uint32_t NumDrawJobs;
+            uint32_t NumSetRSs;
+            uint32_t NumSetPSOs;
+            uint32_t NumSetResourceBarriers;
+            uint32_t NumSetDescriptorHeaps;
+            uint32_t NumSetRootParams;
+            // Clear RT, Clear Depth, Clear UAV etc...
+            uint32_t NumAsyncThings;
+#endif
+        };
+        struct ResidencySetWrapper
+        {
+            ResidencySetWrapper()
+                :
+                pPrivateResidencySet(nullptr)
+            {
+                pPrivateResidencySet = device::g_D3D12ResidencyManager.CreateResidencySet();
+                ASSERT(pPrivateResidencySet);
+            }
+            ~ResidencySetWrapper()
+            {
+                device::g_D3D12ResidencyManager.DestroyResidencySet(pPrivateResidencySet);
+            }
+
+            D3DX12Residency::ResidencySet* pPrivateResidencySet;
+        };
 
     public:
         static void BeginFrame();
@@ -267,51 +339,8 @@ namespace custom
         std::vector<ID3D12CommandAllocator*>    m_pCommandAllocators;
         std::vector<ID3D12GraphicsCommandList*> m_pCommandLists;
 
-        // TODO 0 : 굳이 commandList갯수랑 똑같이 늘릴 필요가 없음.
-        // 갯수를 최소화하면 할 수록, cacheFlush될 필요가 없음.
-
-        // 잡카운트, RS, PSO, 리소스배리어 set한 수
-        struct GPUTaskFiberContext
-        {
-            GPUTaskFiberContext(CommandContext& BaseContext)
-                :
-                pCurrentPSO(nullptr),
-                pCurrentGraphicsRS(nullptr),
-                pCurrentComputeRS(nullptr),
-                DynamicViewDescriptorHeaps(BaseContext, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
-                DynamicSamplerDescriptorHeaps(BaseContext, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
-#ifdef _DEBUG
-                ,NumDrawJobs(0u),
-                NumSetRSs(0u),
-                NumSetPSOs(0u),
-                NumSetResourceBarriers(0u),
-                NumSetDescriptorHeaps(0u),
-                NumSetRootParams(0u),
-                NumAsyncThings(0u)
-#endif
-            {
-                ZeroMemory(pCurrentDescriptorHeaps, sizeof(pCurrentDescriptorHeaps));
-            }
-
-            ID3D12DescriptorHeap* pCurrentDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = { nullptr };
-            ID3D12PipelineState*  pCurrentPSO        = nullptr;
-            ID3D12RootSignature*  pCurrentGraphicsRS = nullptr;
-            ID3D12RootSignature*  pCurrentComputeRS  = nullptr;
-            DynamicDescriptorHeap DynamicViewDescriptorHeaps;
-            DynamicDescriptorHeap DynamicSamplerDescriptorHeaps;
-            // uint8_t TargetCommandList;
-#ifdef _DEBUG
-            uint32_t NumDrawJobs;
-            uint32_t NumSetRSs;
-            uint32_t NumSetPSOs;
-            uint32_t NumSetResourceBarriers;
-            uint32_t NumSetDescriptorHeaps;
-            uint32_t NumSetRootParams;
-            // Clear RT, Clear Depth, Clear UAV etc...
-            uint32_t NumAsyncThings;
-#endif
-        };
         std::vector<GPUTaskFiberContext> m_GPUTaskFiberContexts;
+        std::vector<ResidencySetWrapper> m_pResidencySets;
 
         LinearAllocator m_CPULinearAllocator;
         LinearAllocator m_GPULinearAllocator;
@@ -425,7 +454,7 @@ namespace custom
         void DrawInstanced(const UINT VertexCountPerInstance, const UINT InstanceCount,
             const UINT StartVertexLocation = 0, const UINT StartInstanceLocation = 0, const uint8_t commandIndex = -1);
         void DrawIndexedInstanced(const UINT IndexCountPerInstance, const UINT InstanceCount, const UINT StartIndexLocation,
-            const INT BaseVertexLocation, const UINT StartInstanceLocation, const uint8_t commandIndex = -1);
+            const INT BaseVertexLocation, const UINT StartInstanceLocation, const uint8_t commandIndex);
         void DrawIndirect(const UAVBuffer& ArgumentBuffer, const uint64_t ArgumentBufferOffset = 0, const uint8_t commandIndex = -1);
         void ExecuteIndirect
         (

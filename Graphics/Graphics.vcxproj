@@ -184,10 +184,22 @@
     <ClCompile Include="CommandSignature.cpp" />
     <ClCompile Include="CopyContext.cpp" />
     <ClCompile Include="CPULinearAllocator.cpp" />
+    <ClCompile Include="CustomD3D12Adapter.cpp" />
+    <ClCompile Include="CustomD3D12GPUNode.cpp" />
     <ClCompile Include="CustomFence.cpp" />
     <ClCompile Include="CustomResourceBarrier.cpp" />
+    <ClCompile Include="CustomStackWalk.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="D3D12CommonResourceAllocator.cpp" />
+    <ClCompile Include="D3D12ResidencyObject.cpp" />
+    <ClCompile Include="D3D12ResourceAllocator.cpp" />
+    <ClCompile Include="D3D12ResourceLocation.cpp" />
+    <ClCompile Include="D3D12SegListAllocator.cpp" />
+    <ClCompile Include="D3D12TextureResourceAllocator.cpp" />
     <ClCompile Include="D3D12Util.cpp" />
     <ClCompile Include="d3dx12Residency.cpp" />
+    <ClCompile Include="GPUResource.cpp" />
     <ClCompile Include="GPUWorkManager.cpp" />
     <ClCompile Include="CustomCommandQALPool.cpp" />
     <ClCompile Include="CustomImgui.cpp" />
@@ -200,6 +212,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="MainRenderPass.cpp" />
+    <ClCompile Include="ManagedD3D12Heap.cpp" />
     <ClCompile Include="MaterialConstants.cpp" />
     <ClCompile Include="ModelComponentWindow.cpp" />
     <ClCompile Include="ComputeContext.cpp" />
@@ -337,7 +350,18 @@
     <ClInclude Include="CopyContext.h" />
     <ClInclude Include="CPULinearAllocator.h" />
     <ClInclude Include="CustomCriticalSection.h" />
+    <ClInclude Include="CustomD3D12Adapter.h" />
+    <ClInclude Include="CustomD3D12GPUNode.h" />
     <ClInclude Include="CustomResourceBarrier.h" />
+    <ClInclude Include="CustomStackWalk.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="D3D12CommonResourceAllocator.h" />
+    <ClInclude Include="D3D12ResidencyObject.h" />
+    <ClInclude Include="D3D12ResourceAllocator.h" />
+    <ClInclude Include="D3D12ResourceLocation.h" />
+    <ClInclude Include="D3D12SegListAllocator.h" />
+    <ClInclude Include="D3D12TextureResourceAllocator.h" />
     <ClInclude Include="D3D12Util.h" />
     <ClInclude Include="d3dx12Residency.h" />
     <ClInclude Include="GPUWorkManager.h" />
@@ -349,6 +373,7 @@
     <ClInclude Include="FundamentalTexture.h" />
     <ClInclude Include="FundamentalVertexIndex.h" />
     <ClInclude Include="ListEntryHelper.h" />
+    <ClInclude Include="ManagedD3D12Heap.h" />
     <ClInclude Include="MaterialConstants.h" />
     <ClInclude Include="ModelComponentWindow.h" />
     <ClInclude Include="CompressedQuaternion.h" />

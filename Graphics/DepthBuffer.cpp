@@ -44,7 +44,7 @@ void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT forma
     ID3D12Resource* Resource = m_pResource;
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-    dsvDesc.Format = GetDSVFormat(format);
+    dsvDesc.Format = D3D12Util::GetDSVFormat(format);
     m_Format = dsvDesc.Format;
 
     if (Resource->GetDesc().SampleDesc.Count == 1U)
@@ -69,7 +69,7 @@ void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT forma
     dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
     pDevice->CreateDepthStencilView(Resource, &dsvDesc, m_hDSV[1]);
 
-    DXGI_FORMAT stencilReadFormat = GetStencilFormat(format);
+    DXGI_FORMAT stencilReadFormat = D3D12Util::GetStencilFormat(format);
 
     if (stencilReadFormat != DXGI_FORMAT_UNKNOWN)
     {
@@ -97,7 +97,7 @@ void DepthBuffer::createDSV(ID3D12Device* const pDevice, const DXGI_FORMAT forma
 	}
 
     D3D12_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-    SRVDesc.Format = GetDepthFormat(format);
+    SRVDesc.Format = D3D12Util::GetDepthFormat(format);
 
 
     if (dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)

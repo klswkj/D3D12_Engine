@@ -4,6 +4,7 @@
 namespace custom
 {
 	ID3D12Fence* CustomFence::sm_pFence[3] = { nullptr, nullptr, nullptr };
+
 	volatile uint64_t CustomFence::sm_CPUSideNextFenceValue[3] =
 	{
 		((uint64_t)D3D12_COMMAND_LIST_TYPE_DIRECT  << 56) | 1,
@@ -79,15 +80,29 @@ namespace custom
 		// InterlockedExchange(&sm_CPUSideNextFenceValue[TYPE_TO_INDEX(type)], fenceValue);
 	}
 
+	STATIC void CustomFence::DestoryAllFences()
+	{
+		for (size_t i = 0ul; i < _countof(sm_pFence); ++i)
+		{
+			if (sm_pFence[i])
+			{
+				sm_pFence[i]->Release();
+				sm_pFence[i] = nullptr;
+			}
+		}
+	}
+
 	uint64_t CustomFence::GetCPUSideNextFenceValue(D3D12_COMMAND_LIST_TYPE expectedtype)
 	{
+		uint64_t CPUSideNextFenceValue = InterlockedGetValue(&m_rCPUSideNextFenceValue);
+
 		ASSERT
 		(
 			(expectedtype == m_Type) &&
-			CHECK_TYPE(expectedtype, InterlockedGetValue(&m_rCPUSideNextFenceValue))
+			CHECK_TYPE(expectedtype, CPUSideNextFenceValue)
 		);
 
-		return InterlockedGetValue(&m_rCPUSideNextFenceValue);
+		return CPUSideNextFenceValue;
 	}
 
 	uint64_t CustomFence::GetGPUCompletedValue(D3D12_COMMAND_LIST_TYPE expectedtype)
@@ -179,18 +194,22 @@ namespace custom
 
 		ASSERT(m_prFence && CHECK_VALID_FENCE_VALUE(m_Type, fenceValue));
 
-		if (InterlockedGetValue(&m_rLastCompletedGPUFenceValue) <= fenceValue)
+		uint64_t LastCompletedGPUFenceValue = InterlockedGetValue(&m_rLastCompletedGPUFenceValue);
+
+		if (LastCompletedGPUFenceValue <= fenceValue)
 		{
 			//  m_rLastCompletedGPUFenceValue =
 			// 	(m_prFence->GetCompletedValue() <= m_rLastCompletedGPUFenceValue) ?
 			// 	m_rLastCompletedGPUFenceValue :
 			// 	m_prFence->GetCompletedValue();
 
+			uint64_t GPUSideLastCompletedFenceValue = m_prFence->GetCompletedValue();
+
 				InterlockedExchange64
 				(
 					(volatile LONG64*)m_rLastCompletedGPUFenceValue, 
-					(m_prFence->GetCompletedValue() <= m_rLastCompletedGPUFenceValue) 
-					? m_rLastCompletedGPUFenceValue : m_prFence->GetCompletedValue()
+					(GPUSideLastCompletedFenceValue <= LastCompletedGPUFenceValue)
+					? LastCompletedGPUFenceValue : GPUSideLastCompletedFenceValue
 				);
 		}
 

@@ -1,5 +1,8 @@
 #pragma once
 
+// 1. 이제 Fence가 단지 GPU의 CommandQueue의 작업이 끝났는지를 받는 동기화 오브젝트인 것 뿐만 아니라,
+//    
+
 namespace custom
 {
 	// class CustomFencePool;
@@ -26,7 +29,7 @@ namespace custom
 		void SignalCPUGPUFenceValue(uint64_t signalValue);
 		uint64_t IncreCPUGPUFenceValue();
 
-		bool IsFenceComplete(uint64_t fenceValue = 0);
+		bool IsFenceComplete(uint64_t fenceValue = 0ull);
 		HRESULT GPUSideWait(ID3D12Fence* pFence, uint64_t fenceValue);
 		HRESULT GPUSideWait(CustomFence& customFence);
 		_Check_return_ DWORD CPUSideWait(uint64_t fenceValue = 0,  bool WaitForCompletion = false);
@@ -36,6 +39,7 @@ namespace custom
 		static void     SetFence(ID3D12Fence* pFence, D3D12_COMMAND_LIST_TYPE type);
 		static void     UpdateCPUFenceValue(uint64_t fenceValue, D3D12_COMMAND_LIST_TYPE type);
 		static uint64_t IncrementCPUFenceValue(D3D12_COMMAND_LIST_TYPE type);
+		static void     DestoryAllFences();
 
 	private:
 		// 3D, Compute, Copy

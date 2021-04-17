@@ -1466,14 +1466,14 @@ namespace custom
 	void GraphicsContext::SetBufferSRV(const UINT RootIndex, const UAVBuffer& SRV, const UINT64 Offset, const uint8_t commandIndex)
 	{
 		ASSERT(((SRV.m_currentStates[Offset] & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) != 0) && CHECK_VALID_COMMAND_INDEX);
-		m_pCommandLists[commandIndex]->SetGraphicsRootShaderResourceView(RootIndex, SRV.GetGpuVirtualAddress() + Offset);
+		m_pCommandLists[commandIndex]->SetGraphicsRootShaderResourceView(RootIndex, SRV.GetGPUVirtualAddress() + Offset);
 		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 
 	void GraphicsContext::SetBufferUAV(const UINT RootIndex, const UAVBuffer& UAV, const UINT64 Offset, const uint8_t commandIndex)
 	{
 		ASSERT(((UAV.m_currentStates[Offset] & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) != 0) && CHECK_VALID_COMMAND_INDEX);
-		m_pCommandLists[commandIndex]->SetGraphicsRootUnorderedAccessView(RootIndex, UAV.GetGpuVirtualAddress() + Offset);
+		m_pCommandLists[commandIndex]->SetGraphicsRootUnorderedAccessView(RootIndex, UAV.GetGPUVirtualAddress() + Offset);
 		INCRE_DEBUG_SET_ROOT_PARAM_COUNT;
 	}
 

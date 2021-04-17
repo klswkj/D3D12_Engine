@@ -222,9 +222,6 @@
     <Filter Include="Main\ThreadPool">
       <UniqueIdentifier>{defe4c25-e8da-436b-ae76-c824302a3bce}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Custom D3D12 Core Interfaces\GPUWorkManager">
-      <UniqueIdentifier>{2c817161-d690-4545-9a5a-d8fe2cede64c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Custom D3D12 Core Interfaces\Context">
       <UniqueIdentifier>{4ec0f523-a6f4-4747-9852-19729a972699}</UniqueIdentifier>
     </Filter>
@@ -242,6 +239,24 @@
     </Filter>
     <Filter Include="PreCompiled Header\D3D12Util">
       <UniqueIdentifier>{9bd43e77-7c42-4cb0-b5e9-f8fd0441084e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\GPUWorkManager%28Not Used%29">
+      <UniqueIdentifier>{2c817161-d690-4545-9a5a-d8fe2cede64c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Testing">
+      <UniqueIdentifier>{8fd8d810-63a9-43ca-8f8e-329bef26266a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Testing\Capsulation Virtual Adapter">
+      <UniqueIdentifier>{3cf37b55-1bda-48e3-8466-160c1db1c3a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator">
+      <UniqueIdentifier>{b37ddba5-c80a-4092-8635-0a06f3a81f21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Testing\Fence">
+      <UniqueIdentifier>{4066256f-46cc-4143-8185-18260e27bce1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl">
+      <UniqueIdentifier>{0064a743-ca99-4ad5-b54e-678a23181000}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -498,13 +513,10 @@
       <Filter>Main\ThreadPool</Filter>
     </ClCompile>
     <ClCompile Include="GPUWorkManager.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager%28Not Used%29</Filter>
     </ClCompile>
     <ClCompile Include="CustomCommandQALPool.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
-    </ClCompile>
-    <ClCompile Include="CustomFence.cpp">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager%28Not Used%29</Filter>
     </ClCompile>
     <ClCompile Include="CopyContext.cpp">
       <Filter>Graphics\Custom D3D12 Core Interfaces\Context</Filter>
@@ -553,6 +565,42 @@
     </ClCompile>
     <ClCompile Include="d3dx12Residency.cpp">
       <Filter>External Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomD3D12Adapter.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Capsulation Virtual Adapter</Filter>
+    </ClCompile>
+    <ClCompile Include="ManagedD3D12Heap.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomD3D12GPUNode.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Capsulation Virtual Adapter</Filter>
+    </ClCompile>
+    <ClCompile Include="GPUResource.cpp">
+      <Filter>Graphics\D3D12Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomFence.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Fence</Filter>
+    </ClCompile>
+    <ClCompile Include="CustomStackWalk.cpp">
+      <Filter>PreCompiled Header</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12ResourceAllocator.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12ResourceLocation.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12SegListAllocator.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12CommonResourceAllocator.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12TextureResourceAllocator.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12ResidencyObject.cpp">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -902,13 +950,10 @@
       <Filter>Main\ThreadPool</Filter>
     </ClInclude>
     <ClInclude Include="GPUWorkManager.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager%28Not Used%29</Filter>
     </ClInclude>
     <ClInclude Include="CustomCommandQALPool.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
-    </ClInclude>
-    <ClInclude Include="CustomFence.h">
-      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager</Filter>
+      <Filter>Graphics\Custom D3D12 Core Interfaces\GPUWorkManager%28Not Used%29</Filter>
     </ClInclude>
     <ClInclude Include="ListEntryHelper.h">
       <Filter>Header Files Only</Filter>
@@ -963,6 +1008,39 @@
     </ClInclude>
     <ClInclude Include="d3dx12Residency.h">
       <Filter>External Dependencies</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomD3D12Adapter.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Capsulation Virtual Adapter</Filter>
+    </ClInclude>
+    <ClInclude Include="ManagedD3D12Heap.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomD3D12GPUNode.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Capsulation Virtual Adapter</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomFence.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\Fence</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomStackWalk.h">
+      <Filter>PreCompiled Header</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12ResourceAllocator.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12ResourceLocation.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12SegListAllocator.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator\Internal_Impl</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12CommonResourceAllocator.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12TextureResourceAllocator.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing\D3D12ResourceAllocator</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12ResidencyObject.h">
+      <Filter>Graphics\Custom D3D12 Core Interfaces\Testing</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

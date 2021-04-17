@@ -3,7 +3,7 @@
 #include "CommandQueueManager.h"
 #include "Device.h"
 #include "CustomFence.h"
-
+#include "d3dx12Residency.h"
 namespace custom
 {
     CommandQueue::CommandQueue()
@@ -165,6 +165,8 @@ namespace custom
         const size_t startIndex, const size_t endIndex
     )
     {
+        ASSERT(false);
+
         size_t Size = Lists.size();
 
         ASSERT((startIndex <= endIndex) && (endIndex < Size));
